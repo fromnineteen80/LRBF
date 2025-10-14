@@ -1,0 +1,19 @@
+{
+  "name": "railyard-markets",
+  "version": "1.0.0",
+  "description": "VWAP Recovery Trading Platform with Material Design 3",
+  "private": true,
+  "scripts": {
+    "install-material": "npm install @material/web --save"
+  },
+  "dependencies": {
+    "@material/web": "^2.0.0"
+  },
+  "devDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/fromnineteen80/luggageroom.git"
+  },
+  "author": "The Luggage Room Boys Fund",
+  "license": "UNLICENSED"
+}

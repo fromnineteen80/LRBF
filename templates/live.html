@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}Live Monitor - Railyard Markets{% endblock %}
+{% block page_title %}Live Monitor{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-4 gap-4 mb-4">
+    <div class="card">
+        <div class="card-content">
+            <p class="label-medium" style="color: var(--md-sys-color-on-surface-variant);">Balance</p>
+            <h3 class="headline-medium" id="liveBalance">-</h3>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-content">
+            <p class="label-medium" style="color: var(--md-sys-color-on-surface-variant);">P&L Today</p>
+            <h3 class="headline-medium" id="livePL">-</h3>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-content">
+            <p class="label-medium" style="color: var(--md-sys-color-on-surface-variant);">Trades</p>
+            <h3 class="headline-medium" id="liveTradesCount">-</h3>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-content">
+            <p class="label-medium" style="color: var(--md-sys-color-on-surface-variant);">Win Rate</p>
+            <h3 class="headline-medium" id="liveWinRate">-</h3>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">Live Performance</h3>
+    </div>
+    <div class="card-content">
+        <p class="body-medium" style="text-align: center; padding: var(--md-sys-spacing-8);">
+            Real-time monitoring active. Data updates every 5 seconds.
+        </p>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function updateLiveData() {
+    try {
+        const data = await apiCall('/api/live/data');
+        document.getElementById('liveBalance').textContent = formatCurrency(data.current_balance);
+        document.getElementById('livePL').textContent = formatCurrency(data.pl_today);
+        document.getElementById('liveTradesCount').textContent = data.trades_completed;
+        document.getElementById('liveWinRate').textContent = data.win_rate.toFixed(1) + '%';
+    } catch (error) {
+        console.error('Failed to update live data:', error);
+    }
+}
+
+updateLiveData();
+setInterval(updateLiveData, 5000);
+</script>
+{% endblock %}

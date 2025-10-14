@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Practice Mode - Railyard Markets{% endblock %}
+{% block page_title %}Practice Mode{% endblock %}
+{% block content %}
+<div class="card">
+    <div class="card-header"><h3 class="card-title">Practice Trading</h3></div>
+    <div class="card-content">
+        <p class="body-large mb-4">Test your strategy with simulated data.</p>
+        <button class="button button-filled" onclick="runPractice()">Run Simulation</button>
+        <div id="practiceResults" style="display:none; margin-top: var(--md-sys-spacing-4);">
+            <h4 class="title-medium mb-4">Simulation Results</h4>
+            <div id="practiceStocksList"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+async function runPractice() {
+    try {
+        const data = await apiCall('/api/practice/analyze', {method: 'POST', body: JSON.stringify({tickers: []})});
+        const simulate = await apiCall('/api/practice/simulate', {method: 'POST', body: JSON.stringify({selected_stocks: data.selected_stocks, simulation_days: 1})});
+        document.getElementById('practiceStocksList').innerHTML = simulate.simulation_results.map(r => `
+            <div style="padding: var(--md-sys-spacing-3); border-bottom: 1px solid var(--md-sys-color-outline-variant);">
+                <span class="title-medium">${r.ticker}</span>: <span class="body-medium">${formatCurrency(r.simulated_pl)}</span>
+            </div>
+        `).join('');
+        document.getElementById('practiceResults').style.display = 'block';
+        showSnackbar('Simulation complete');
+    } catch (error) {
+        showSnackbar('Simulation failed');
+    }
+}
+</script>
+{% endblock %}

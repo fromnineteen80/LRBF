@@ -1,0 +1,284 @@
+{% extends "base_new.html" %}
+
+{% block title %}Login - Railyard Markets{% endblock %}
+{% block page_title %}Welcome Back{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Login Page Specific Styles */
+    .login-container {
+        min-height: calc(100vh - 64px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: var(--spacing-lg);
+        background: linear-gradient(135deg, 
+            var(--md-sys-color-primary-container) 0%, 
+            var(--md-sys-color-secondary-container) 100%);
+    }
+    
+    .login-card {
+        width: 100%;
+        max-width: 400px;
+    }
+    
+    .login-header {
+        text-align: center;
+        margin-bottom: var(--spacing-xl);
+    }
+    
+    .login-logo {
+        font-size: 64px !important;
+        color: var(--md-sys-color-primary);
+        margin-bottom: var(--spacing-md);
+    }
+    
+    .login-title {
+        font-size: 28px;
+        font-weight: 500;
+        color: var(--md-sys-color-on-surface);
+        margin: 0 0 var(--spacing-sm) 0;
+    }
+    
+    .login-subtitle {
+        font-size: 14px;
+        color: var(--md-sys-color-on-surface-variant);
+        margin: 0;
+    }
+    
+    .login-form {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-lg);
+    }
+    
+    .form-field {
+        width: 100%;
+    }
+    
+    .form-actions {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-md);
+        margin-top: var(--spacing-md);
+    }
+    
+    .form-footer {
+        text-align: center;
+        margin-top: var(--spacing-lg);
+        padding-top: var(--spacing-lg);
+        border-top: 1px solid var(--md-sys-color-outline-variant);
+    }
+    
+    .forgot-password {
+        color: var(--md-sys-color-primary);
+        text-decoration: none;
+        font-size: 14px;
+    }
+    
+    .forgot-password:hover {
+        text-decoration: underline;
+    }
+    
+    .error-message {
+        background-color: var(--md-sys-color-error-container);
+        color: var(--md-sys-color-on-error-container);
+        padding: var(--spacing-md);
+        border-radius: var(--md-shape-corner-small);
+        font-size: 14px;
+        display: none;
+        align-items: center;
+        gap: var(--spacing-sm);
+    }
+    
+    .error-message.show {
+        display: flex;
+    }
+    
+    .success-message {
+        background-color: var(--md-sys-color-primary-container);
+        color: var(--md-sys-color-on-primary-container);
+        padding: var(--spacing-md);
+        border-radius: var(--md-shape-corner-small);
+        font-size: 14px;
+        display: none;
+        align-items: center;
+        gap: var(--spacing-sm);
+    }
+    
+    .success-message.show {
+        display: flex;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="login-container">
+    <md-elevated-card class="login-card">
+        <div class="login-header">
+            <span class="material-symbols-outlined login-logo">train</span>
+            <h1 class="login-title">Railyard Markets</h1>
+            <p class="login-subtitle">VWAP Recovery Trading Platform</p>
+        </div>
+        
+        <!-- Error Message -->
+        {% if error %}
+        <div class="error-message show">
+            <span class="material-symbols-outlined">error</span>
+            <span>{{ error }}</span>
+        </div>
+        {% endif %}
+        
+        <!-- Success Message -->
+        {% if success %}
+        <div class="success-message show">
+            <span class="material-symbols-outlined">check_circle</span>
+            <span>{{ success }}</span>
+        </div>
+        {% endif %}
+        
+        <!-- Login Form -->
+        <form method="POST" action="{{ url_for('login') }}" class="login-form" id="loginForm">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            
+            <!-- Username Field -->
+            <md-filled-text-field 
+                class="form-field"
+                label="Username"
+                name="username"
+                type="text"
+                required
+                autocomplete="username"
+                aria-label="Username">
+                <span slot="leading-icon" class="material-symbols-outlined">person</span>
+            </md-filled-text-field>
+            
+            <!-- Password Field -->
+            <md-filled-text-field 
+                class="form-field"
+                label="Password"
+                name="password"
+                type="password"
+                required
+                autocomplete="current-password"
+                aria-label="Password">
+                <span slot="leading-icon" class="material-symbols-outlined">lock</span>
+            </md-filled-text-field>
+            
+            <!-- Remember Me -->
+            <label style="display: flex; align-items: center; gap: var(--spacing-sm); cursor: pointer;">
+                <md-checkbox name="remember" touch-target="wrapper"></md-checkbox>
+                <span style="font-size: 14px; color: var(--md-sys-color-on-surface);">Remember me</span>
+            </label>
+            
+            <!-- Form Actions -->
+            <div class="form-actions">
+                <md-filled-button 
+                    type="submit" 
+                    style="width: 100%;"
+                    aria-label="Sign in to your account">
+                    <span slot="icon" class="material-symbols-outlined">login</span>
+                    Sign In
+                </md-filled-button>
+                
+                <md-text-button 
+                    type="button"
+                    style="width: 100%;"
+                    onclick="showForgotPassword()"
+                    aria-label="Reset your password">
+                    Forgot Password?
+                </md-text-button>
+            </div>
+        </form>
+        
+        <!-- Form Footer -->
+        <div class="form-footer">
+            <p style="font-size: 12px; color: var(--md-sys-color-on-surface-variant); margin: 0;">
+                © 2025 The Luggage Room Boys Fund<br>
+                Secure trading platform powered by Material Design 3
+            </p>
+        </div>
+    </md-elevated-card>
+</div>
+
+<!-- Forgot Password Dialog -->
+<md-dialog id="forgotPasswordDialog">
+    <div slot="headline">Reset Password</div>
+    <form slot="content" id="forgotPasswordForm" method="dialog">
+        <p style="margin-top: 0; color: var(--md-sys-color-on-surface-variant);">
+            Enter your email address and we'll send you instructions to reset your password.
+        </p>
+        <md-filled-text-field 
+            label="Email address"
+            type="email"
+            required
+            style="width: 100%; margin-top: var(--spacing-md);">
+            <span slot="leading-icon" class="material-symbols-outlined">email</span>
+        </md-filled-text-field>
+    </form>
+    <div slot="actions">
+        <md-text-button form="forgotPasswordForm" value="cancel">Cancel</md-text-button>
+        <md-filled-button form="forgotPasswordForm" value="reset">Send Reset Link</md-filled-button>
+    </div>
+</md-dialog>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Show forgot password dialog
+    function showForgotPassword() {
+        const dialog = document.getElementById('forgotPasswordDialog');
+        dialog.show();
+    }
+    
+    // Handle forgot password dialog close
+    const forgotPasswordDialog = document.getElementById('forgotPasswordDialog');
+    forgotPasswordDialog.addEventListener('close', (e) => {
+        if (e.target.returnValue === 'reset') {
+            // Show success message
+            showSnackbar('Password reset link sent! Check your email.');
+        }
+    });
+    
+    // Form validation
+    const loginForm = document.getElementById('loginForm');
+    loginForm.addEventListener('submit', (e) => {
+        const username = loginForm.querySelector('[name="username"]');
+        const password = loginForm.querySelector('[name="password"]');
+        
+        if (!username.value || !password.value) {
+            e.preventDefault();
+            showSnackbar('Please fill in all fields');
+            return false;
+        }
+    });
+    
+    // Auto-focus username field
+    window.addEventListener('load', () => {
+        const usernameField = document.querySelector('[name="username"]');
+        if (usernameField) {
+            setTimeout(() => usernameField.focus(), 100);
+        }
+    });
+    
+    // Show snackbar notification
+    function showSnackbar(message) {
+        const snackbar = document.getElementById('snackbar');
+        const text = snackbar.querySelector('.snackbar-text');
+        const closeBtn = snackbar.querySelector('.snackbar-action');
+        
+        text.textContent = message;
+        snackbar.classList.add('show');
+        
+        // Auto-hide after 5 seconds
+        setTimeout(() => {
+            snackbar.classList.remove('show');
+        }, 5000);
+        
+        // Close button
+        closeBtn.addEventListener('click', () => {
+            snackbar.classList.remove('show');
+        }, { once: true });
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}EOD Report - Railyard Markets{% endblock %}
+{% block page_title %}End of Day Report{% endblock %}
+
+{% block content %}
+<div class="card mb-4">
+    <div class="card-header">
+        <div class="flex items-center justify-between">
+            <h3 class="card-title">Daily Performance</h3>
+            <button class="button button-filled" onclick="generateEOD()">Generate Report</button>
+        </div>
+    </div>
+    <div class="card-content">
+        <div id="eodContent">
+            <div class="grid grid-cols-3 gap-4">
+                <div>
+                    <p class="label-medium" style="color: var(--md-sys-color-on-surface-variant);">Total P&L</p>
+                    <h3 class="headline-small" id="eodPL">-</h3>
+                </div>
+                <div>
+                    <p class="label-medium" style="color: var(--md-sys-color-on-surface-variant);">Win Rate</p>
+                    <h3 class="headline-small" id="eodWinRate">-</h3>
+                </div>
+                <div>
+                    <p class="label-medium" style="color: var(--md-sys-color-on-surface-variant);">Sharpe Ratio</p>
+                    <h3 class="headline-small" id="eodSharpe">-</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function generateEOD() {
+    try {
+        const data = await apiCall('/api/eod/generate', {method: 'POST'});
+        document.getElementById('eodPL').textContent = formatCurrency(data.realized_pl);
+        document.getElementById('eodWinRate').textContent = data.win_rate.toFixed(1) + '%';
+        document.getElementById('eodSharpe').textContent = data.sharpe_ratio.toFixed(2);
+        showSnackbar('EOD report generated');
+    } catch (error) {
+        showSnackbar('Failed to generate EOD report');
+    }
+}
+</script>
+{% endblock %}

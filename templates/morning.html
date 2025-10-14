@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block title %}Morning Report - Railyard Markets{% endblock %}
+{% block page_title %}Morning Report{% endblock %}
+
+{% block content %}
+<div class="card mb-4">
+    <div class="card-header">
+        <div class="flex items-center justify-between">
+            <h3 class="card-title">Stock Selection & Forecast</h3>
+            <button class="button button-filled" onclick="generateReport()">Generate Report</button>
+        </div>
+    </div>
+    <div class="card-content">
+        <div id="loadingState" style="display: none; text-align: center; padding: var(--md-sys-spacing-8);">
+            <p class="body-large">Analyzing stocks...</p>
+        </div>
+        <div id="reportContent" style="display: none;">
+            <div class="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                    <p class="label-medium" style="color: var(--md-sys-color-on-surface-variant);">Expected Trades</p>
+                    <p class="title-large" id="expectedTrades">-</p>
+                </div>
+                <div>
+                    <p class="label-medium" style="color: var(--md-sys-color-on-surface-variant);">Expected P&L</p>
+                    <p class="title-large" id="expectedPL">-</p>
+                </div>
+            </div>
+            <h4 class="title-medium mb-4">Selected Stocks</h4>
+            <div id="stocksList"></div>
+        </div>
+    </div>
+    <div class="card-actions">
+        <button class="button button-outlined" onclick="downloadPrompts()">Download Prompts</button>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function generateReport() {
+    document.getElementById('loadingState').style.display = 'block';
+    document.getElementById('reportContent').style.display = 'none';
+    
+    try {
+        const data = await apiCall('/api/morning/generate', {method: 'POST'});
+        
+        document.getElementById('expectedTrades').textContent = `${data.expected_trades_low}-${data.expected_trades_high}`;
+        document.getElementById('expectedPL').textContent = formatCurrency(data.expected_pl_low) + ' - ' + formatCurrency(data.expected_pl_high);
+        
+        const stocksList = document.getElementById('stocksList');
+        stocksList.innerHTML = data.selected_stocks.map(stock => `
+            <div style="padding: var(--md-sys-spacing-3); border-bottom: 1px solid var(--md-sys-color-outline-variant);">
+                <div class="flex justify-between">
+                    <span class="title-medium">${stock.ticker}</span>
+                    <span class="label-large">${stock.category}</span>
+                </div>
+                <p class="body-small" style="color: var(--md-sys-color-on-surface-variant);">
+                    Expected Entries: ${stock.expected_daily_entries} | Win Rate: ${stock.win_rate}% | Expected P&L: ${formatCurrency(stock.expected_daily_pl)}
+                </p>
+            </div>
+        `).join('');
+        
+        document.getElementById('loadingState').style.display = 'none';
+        document.getElementById('reportContent').style.display = 'block';
+        showSnackbar('Morning report generated successfully');
+    } catch (error) {
+        document.getElementById('loadingState').style.display = 'none';
+        showSnackbar('Failed to generate report');
+    }
+}
+
+async function downloadPrompts() {
+    try {
+        const data = await apiCall('/api/morning/prompts');
+        const content = data.prompts.map(p => `[${p.ticker}]\n${p.prompt}\n\n`).join('---\n\n');
+        const blob = new Blob([content], {type: 'text/plain'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'capitalise_prompts.txt';
+        a.click();
+        showSnackbar('Prompts downloaded');
+    } catch (error) {
+        showSnackbar('Failed to download prompts');
+    }
+}
+</script>
+{% endblock %}

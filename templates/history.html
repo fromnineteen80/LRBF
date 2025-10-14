@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}History - Railyard Markets{% endblock %}
+{% block page_title %}Trading History{% endblock %}
+{% block content %}
+<div class="card">
+    <div class="card-header"><h3 class="card-title">Performance History</h3></div>
+    <div class="card-content">
+        <canvas id="historyChart" height="100"></canvas>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+async function loadHistory() {
+    try {
+        const data = await apiCall('/api/history/range?days=30');
+        const ctx = document.getElementById('historyChart');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: data.history.map(d => new Date(d.date).toLocaleDateString()),
+                datasets: [{label: 'Daily P&L', data: data.history.map(d => d.realized_pl), borderColor: '#1976d2'}]
+            },
+            options: {responsive: true, maintainAspectRatio: false}
+        });
+    } catch (error) {
+        console.error('Failed to load history:', error);
+    }
+}
+loadHistory();
+</script>
+{% endblock %}

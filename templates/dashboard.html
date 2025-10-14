@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Railyard Markets{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-3 gap-4 mb-4">
+    <div class="card">
+        <div class="card-content">
+            <p class="label-medium" style="color: var(--md-sys-color-on-surface-variant); margin-bottom: var(--md-sys-spacing-2);">Account Balance</p>
+            <h2 class="headline-large" id="accountBalance">$0.00</h2>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-content">
+            <p class="label-medium" style="color: var(--md-sys-color-on-surface-variant); margin-bottom: var(--md-sys-spacing-2);">Today's P&L</p>
+            <h2 class="headline-large" id="todayPL">$0.00</h2>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-content">
+            <p class="label-medium" style="color: var(--md-sys-color-on-surface-variant); margin-bottom: var(--md-sys-spacing-2);">Win Rate</p>
+            <h2 class="headline-large" id="winRate">0%</h2>
+        </div>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 gap-4">
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Quick Actions</h3>
+        </div>
+        <div class="card-content">
+            <div class="flex gap-4">
+                <a href="/morning" class="button button-filled">Generate Morning Report</a>
+                <a href="/live" class="button button-outlined">Live Monitor</a>
+                <a href="/eod" class="button button-outlined">EOD Report</a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Recent Performance</h3>
+        </div>
+        <div class="card-content">
+            <canvas id="performanceChart" height="100"></canvas>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function loadDashboard() {
+    try {
+        const data = await apiCall('/api/live/data');
+        document.getElementById('accountBalance').textContent = formatCurrency(data.current_balance);
+        document.getElementById('todayPL').textContent = formatCurrency(data.pl_today);
+        document.getElementById('winRate').textContent = data.win_rate.toFixed(1) + '%';
+        
+        // Load chart
+        const history = await apiCall('/api/history/range?days=7');
+        const ctx = document.getElementById('performanceChart');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: history.history.map(d => new Date(d.date).toLocaleDateString()),
+                datasets: [{
+                    label: 'Daily P&L',
+                    data: history.history.map(d => d.realized_pl),
+                    borderColor: '#1976d2',
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        });
+    } catch (error) {
+        console.error('Failed to load dashboard:', error);
+    }
+}
+
+loadDashboard();
+</script>
+{% endblock %}

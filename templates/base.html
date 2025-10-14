@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Railyard Markets{% endblock %}</title>
+    
+    <!-- Material Web Components -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
+    
+    <!-- Material Design 3 Styles -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/md3-theme.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/md3-layout.css') }}">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <div class="app-container">
+        <!-- Navigation Rail -->
+        <nav class="nav-rail" role="navigation">
+            <div class="nav-rail-header">
+                <span class="material-symbols-outlined nav-rail-logo">train</span>
+            </div>
+            
+            <div class="nav-rail-items">
+                <a href="{{ url_for('dashboard') }}" class="nav-rail-item {% if request.endpoint == 'dashboard' %}active{% endif %}" title="Dashboard">
+                    <span class="material-symbols-outlined">dashboard</span>
+                    <span class="nav-rail-label">Home</span>
+                </a>
+                
+                <a href="{{ url_for('morning') }}" class="nav-rail-item {% if request.endpoint == 'morning' %}active{% endif %}" title="Morning Report">
+                    <span class="material-symbols-outlined">wb_twilight</span>
+                    <span class="nav-rail-label">Morning</span>
+                </a>
+                
+                <a href="{{ url_for('live') }}" class="nav-rail-item {% if request.endpoint == 'live' %}active{% endif %}" title="Live Monitor">
+                    <span class="material-symbols-outlined">monitoring</span>
+                    <span class="nav-rail-label">Live</span>
+                </a>
+                
+                <a href="{{ url_for('eod') }}" class="nav-rail-item {% if request.endpoint == 'eod' %}active{% endif %}" title="End of Day">
+                    <span class="material-symbols-outlined">nightlight</span>
+                    <span class="nav-rail-label">EOD</span>
+                </a>
+                
+                <div class="nav-rail-divider"></div>
+                
+                <a href="{{ url_for('calculator') }}" class="nav-rail-item {% if request.endpoint == 'calculator' %}active{% endif %}" title="Calculator">
+                    <span class="material-symbols-outlined">calculate</span>
+                    <span class="nav-rail-label">Calculator</span>
+                </a>
+                
+                <a href="{{ url_for('practice') }}" class="nav-rail-item {% if request.endpoint == 'practice' %}active{% endif %}" title="Practice Mode">
+                    <span class="material-symbols-outlined">science</span>
+                    <span class="nav-rail-label">Practice</span>
+                </a>
+                
+                <a href="{{ url_for('history') }}" class="nav-rail-item {% if request.endpoint == 'history' %}active{% endif %}" title="History">
+                    <span class="material-symbols-outlined">history</span>
+                    <span class="nav-rail-label">History</span>
+                </a>
+            </div>
+            
+            <div class="nav-rail-footer">
+                <a href="{{ url_for('settings') }}" class="nav-rail-item {% if request.endpoint == 'settings' %}active{% endif %}" title="Settings">
+                    <span class="material-symbols-outlined">settings</span>
+                    <span class="nav-rail-label">Settings</span>
+                </a>
+            </div>
+        </nav>
+        
+        <!-- Main Content -->
+        <div class="app-content">
+            <!-- Top App Bar -->
+            <header class="top-app-bar">
+                <div class="top-app-bar-content">
+                    <h1 class="top-app-bar-title">{% block page_title %}Dashboard{% endblock %}</h1>
+                    
+                    <div class="top-app-bar-actions">
+                        <div class="status-chip" id="systemStatus">
+                            <span class="status-indicator"></span>
+                            <span class="status-text">Loading...</span>
+                        </div>
+                        
+                        <button class="icon-button" onclick="toggleTheme()" title="Toggle theme">
+                            <span class="material-symbols-outlined">dark_mode</span>
+                        </button>
+                        
+                        <button class="icon-button" title="Notifications">
+                            <span class="material-symbols-outlined">notifications</span>
+                        </button>
+                        
+                        <div class="user-menu">
+                            <button class="icon-button" onclick="toggleUserMenu()" title="Account">
+                                <span class="material-symbols-outlined">account_circle</span>
+                            </button>
+                            <div class="user-menu-dropdown" id="userMenuDropdown">
+                                <div class="user-menu-header">
+                                    <span class="user-menu-name">{{ username }}</span>
+                                </div>
+                                <div class="user-menu-divider"></div>
+                                <a href="{{ url_for('api_credentials') }}" class="user-menu-item">
+                                    <span class="material-symbols-outlined">vpn_key</span>
+                                    <span>API Credentials</span>
+                                </a>
+                                <a href="{{ url_for('settings') }}" class="user-menu-item">
+                                    <span class="material-symbols-outlined">settings</span>
+                                    <span>Settings</span>
+                                </a>
+                                <div class="user-menu-divider"></div>
+                                <a href="{{ url_for('logout') }}" class="user-menu-item">
+                                    <span class="material-symbols-outlined">logout</span>
+                                    <span>Logout</span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </header>
+            
+            <!-- Page Content -->
+            <main class="main-content">
+                {% block content %}
+                <!-- Page-specific content goes here -->
+                {% endblock %}
+            </main>
+        </div>
+    </div>
+    
+    <!-- Snackbar for notifications -->
+    <div class="snackbar" id="snackbar">
+        <span class="snackbar-text"></span>
+        <button class="snackbar-action">Close</button>
+    </div>
+    
+    <!-- Common Scripts -->
+    <script src="{{ url_for('static', filename='js/common.js') }}"></script>
+    <script>
+        // Initialize system status check
+        checkSystemStatus();
+        setInterval(checkSystemStatus, 30000); // Check every 30 seconds
+        
+        // User menu toggle
+        function toggleUserMenu() {
+            const dropdown = document.getElementById('userMenuDropdown');
+            dropdown.classList.toggle('active');
+        }
+        
+        // Close user menu when clicking outside
+        document.addEventListener('click', function(event) {
+            const userMenu = document.querySelector('.user-menu');
+            const dropdown = document.getElementById('userMenuDropdown');
+            
+            if (!userMenu.contains(event.target)) {
+                dropdown.classList.remove('active');
+            }
+        });
+        
+        // Theme toggle
+        function toggleTheme() {
+            document.documentElement.classList.toggle('dark-theme');
+            const isDark = document.documentElement.classList.contains('dark-theme');
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+            
+            // Update icon
+            const icon = event.target.closest('button').querySelector('.material-symbols-outlined');
+            icon.textContent = isDark ? 'light_mode' : 'dark_mode';
+        }
+        
+        // Load saved theme
+        if (localStorage.getItem('theme') === 'dark') {
+            document.documentElement.classList.add('dark-theme');
+            document.querySelector('.top-app-bar-actions .icon-button .material-symbols-outlined').textContent = 'light_mode';
+        }
+        
+        // System status check
+        async function checkSystemStatus() {
+            try {
+                const response = await fetch('/api/system/status');
+                const data = await response.json();
+                
+                const statusChip = document.getElementById('systemStatus');
+                const indicator = statusChip.querySelector('.status-indicator');
+                const text = statusChip.querySelector('.status-text');
+                
+                if (data.mode === 'Simulation') {
+                    indicator.className = 'status-indicator status-warning';
+                    text.textContent = 'Simulation';
+                } else if (data.market_open) {
+                    indicator.className = 'status-indicator status-success';
+                    text.textContent = 'Market Open';
+                } else {
+                    indicator.className = 'status-indicator status-info';
+                    text.textContent = 'Market Closed';
+                }
+            } catch (error) {
+                console.error('Failed to check system status:', error);
+            }
+        }
+    </script>
+    
+    {% block scripts %}{% endblock %}
+</body>
+</html>
