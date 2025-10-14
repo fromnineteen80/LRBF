@@ -1,129 +1,242 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Railyard Markets{% endblock %}</title>
     
-    <!-- Material Web Components -->
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
+    <!-- Material Design 3 Custom Theme (Your Colors!) -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/theme/light.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/theme/dark.css') }}">
     
-    <!-- Material Design 3 Styles -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/md3-theme.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/md3-layout.css') }}">
+    <!-- Material Symbols Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
     
-    <!-- Chart.js -->
+    <!-- Roboto Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Material Web Components - Import Map -->
+    <script type="importmap">
+    {
+      "imports": {
+        "@material/web/": "https://esm.run/@material/web/"
+      }
+    }
+    </script>
+    
+    <!-- Material Web Components - Import Modules -->
+    <script type="module">
+        // Import all Material Web components we'll use
+        import '@material/web/all.js';
+        
+        // Navigation components
+        import '@material/web/navigationbar/navigation-bar.js';
+        import '@material/web/navigationbar/navigation-tab.js';
+        import '@material/web/navigationdrawer/navigation-drawer.js';
+        import '@material/web/list/list.js';
+        import '@material/web/list/list-item.js';
+        
+        // Buttons
+        import '@material/web/button/filled-button.js';
+        import '@material/web/button/outlined-button.js';
+        import '@material/web/button/text-button.js';
+        import '@material/web/iconbutton/icon-button.js';
+        
+        // Cards and surfaces
+        import '@material/web/card/filled-card.js';
+        import '@material/web/card/elevated-card.js';
+        import '@material/web/card/outlined-card.js';
+        
+        // Inputs
+        import '@material/web/textfield/filled-text-field.js';
+        import '@material/web/textfield/outlined-text-field.js';
+        import '@material/web/select/filled-select.js';
+        import '@material/web/select/outlined-select.js';
+        import '@material/web/select/select-option.js';
+        import '@material/web/checkbox/checkbox.js';
+        import '@material/web/switch/switch.js';
+        import '@material/web/radio/radio.js';
+        
+        // Dialogs and menus
+        import '@material/web/dialog/dialog.js';
+        import '@material/web/menu/menu.js';
+        import '@material/web/menu/menu-item.js';
+        
+        // Progress indicators
+        import '@material/web/progress/circular-progress.js';
+        import '@material/web/progress/linear-progress.js';
+        
+        // Chips
+        import '@material/web/chips/chip-set.js';
+        import '@material/web/chips/filter-chip.js';
+        import '@material/web/chips/assist-chip.js';
+        
+        // Other components
+        import '@material/web/divider/divider.js';
+        import '@material/web/elevation/elevation.js';
+        import '@material/web/ripple/ripple.js';
+        import '@material/web/focus/md-focus-ring.js';
+    </script>
+    
+    <!-- Custom Layout Styles -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/material-web-layout.css') }}">
+    
+    <!-- Chart.js (for trading charts) -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     
     {% block extra_css %}{% endblock %}
 </head>
 <body>
     <div class="app-container">
-        <!-- Navigation Rail -->
-        <nav class="nav-rail" role="navigation">
+        <!-- Navigation Drawer (Rail on desktop, drawer on mobile) -->
+        <nav class="nav-rail" role="navigation" aria-label="Main navigation">
+            <!-- Logo/Brand -->
             <div class="nav-rail-header">
-                <span class="material-symbols-outlined nav-rail-logo">train</span>
+                <span class="material-symbols-outlined nav-rail-logo" aria-label="Railyard Markets">train</span>
             </div>
             
+            <!-- Navigation Items -->
             <div class="nav-rail-items">
-                <a href="{{ url_for('dashboard') }}" class="nav-rail-item {% if request.endpoint == 'dashboard' %}active{% endif %}" title="Dashboard">
+                <a href="{{ url_for('dashboard') }}" 
+                   class="nav-rail-item {% if request.endpoint == 'dashboard' %}active{% endif %}" 
+                   aria-label="Dashboard"
+                   aria-current="{% if request.endpoint == 'dashboard' %}page{% endif %}">
+                    <md-ripple></md-ripple>
                     <span class="material-symbols-outlined">dashboard</span>
                     <span class="nav-rail-label">Home</span>
                 </a>
                 
-                <a href="{{ url_for('morning') }}" class="nav-rail-item {% if request.endpoint == 'morning' %}active{% endif %}" title="Morning Report">
+                <a href="{{ url_for('morning') }}" 
+                   class="nav-rail-item {% if request.endpoint == 'morning' %}active{% endif %}" 
+                   aria-label="Morning Report"
+                   aria-current="{% if request.endpoint == 'morning' %}page{% endif %}">
+                    <md-ripple></md-ripple>
                     <span class="material-symbols-outlined">wb_twilight</span>
                     <span class="nav-rail-label">Morning</span>
                 </a>
                 
-                <a href="{{ url_for('live') }}" class="nav-rail-item {% if request.endpoint == 'live' %}active{% endif %}" title="Live Monitor">
+                <a href="{{ url_for('live') }}" 
+                   class="nav-rail-item {% if request.endpoint == 'live' %}active{% endif %}" 
+                   aria-label="Live Monitor"
+                   aria-current="{% if request.endpoint == 'live' %}page{% endif %}">
+                    <md-ripple></md-ripple>
                     <span class="material-symbols-outlined">monitoring</span>
                     <span class="nav-rail-label">Live</span>
                 </a>
                 
-                <a href="{{ url_for('eod') }}" class="nav-rail-item {% if request.endpoint == 'eod' %}active{% endif %}" title="End of Day">
+                <a href="{{ url_for('eod') }}" 
+                   class="nav-rail-item {% if request.endpoint == 'eod' %}active{% endif %}" 
+                   aria-label="End of Day Report"
+                   aria-current="{% if request.endpoint == 'eod' %}page{% endif %}">
+                    <md-ripple></md-ripple>
                     <span class="material-symbols-outlined">nightlight</span>
                     <span class="nav-rail-label">EOD</span>
                 </a>
                 
-                <div class="nav-rail-divider"></div>
+                <md-divider></md-divider>
                 
-                <a href="{{ url_for('calculator') }}" class="nav-rail-item {% if request.endpoint == 'calculator' %}active{% endif %}" title="Calculator">
+                <a href="{{ url_for('calculator') }}" 
+                   class="nav-rail-item {% if request.endpoint == 'calculator' %}active{% endif %}" 
+                   aria-label="Performance Calculator"
+                   aria-current="{% if request.endpoint == 'calculator' %}page{% endif %}">
+                    <md-ripple></md-ripple>
                     <span class="material-symbols-outlined">calculate</span>
                     <span class="nav-rail-label">Calculator</span>
                 </a>
                 
-                <a href="{{ url_for('practice') }}" class="nav-rail-item {% if request.endpoint == 'practice' %}active{% endif %}" title="Practice Mode">
+                <a href="{{ url_for('practice') }}" 
+                   class="nav-rail-item {% if request.endpoint == 'practice' %}active{% endif %}" 
+                   aria-label="Practice Mode"
+                   aria-current="{% if request.endpoint == 'practice' %}page{% endif %}">
+                    <md-ripple></md-ripple>
                     <span class="material-symbols-outlined">science</span>
                     <span class="nav-rail-label">Practice</span>
                 </a>
                 
-                <a href="{{ url_for('history') }}" class="nav-rail-item {% if request.endpoint == 'history' %}active{% endif %}" title="History">
+                <a href="{{ url_for('history') }}" 
+                   class="nav-rail-item {% if request.endpoint == 'history' %}active{% endif %}" 
+                   aria-label="Trading History"
+                   aria-current="{% if request.endpoint == 'history' %}page{% endif %}">
+                    <md-ripple></md-ripple>
                     <span class="material-symbols-outlined">history</span>
                     <span class="nav-rail-label">History</span>
                 </a>
             </div>
             
+            <!-- Footer Items -->
             <div class="nav-rail-footer">
-                <a href="{{ url_for('settings') }}" class="nav-rail-item {% if request.endpoint == 'settings' %}active{% endif %}" title="Settings">
+                <a href="{{ url_for('settings') }}" 
+                   class="nav-rail-item {% if request.endpoint == 'settings' %}active{% endif %}" 
+                   aria-label="Settings"
+                   aria-current="{% if request.endpoint == 'settings' %}page{% endif %}">
+                    <md-ripple></md-ripple>
                     <span class="material-symbols-outlined">settings</span>
                     <span class="nav-rail-label">Settings</span>
                 </a>
             </div>
         </nav>
         
-        <!-- Main Content -->
+        <!-- Main Content Area -->
         <div class="app-content">
             <!-- Top App Bar -->
-            <header class="top-app-bar">
+            <header class="top-app-bar" role="banner">
                 <div class="top-app-bar-content">
                     <h1 class="top-app-bar-title">{% block page_title %}Dashboard{% endblock %}</h1>
                     
                     <div class="top-app-bar-actions">
-                        <div class="status-chip" id="systemStatus">
+                        <!-- System Status Chip -->
+                        <div class="status-chip" id="systemStatus" role="status" aria-live="polite">
                             <span class="status-indicator"></span>
                             <span class="status-text">Loading...</span>
                         </div>
                         
-                        <button class="icon-button" onclick="toggleTheme()" title="Toggle theme">
-                            <span class="material-symbols-outlined">dark_mode</span>
-                        </button>
+                        <!-- Theme Toggle -->
+                        <md-icon-button onclick="toggleTheme()" aria-label="Toggle light/dark theme">
+                            <span class="material-symbols-outlined" id="themeIcon">dark_mode</span>
+                        </md-icon-button>
                         
-                        <button class="icon-button" title="Notifications">
+                        <!-- Notifications -->
+                        <md-icon-button aria-label="Notifications">
                             <span class="material-symbols-outlined">notifications</span>
-                        </button>
+                        </md-icon-button>
                         
+                        <!-- User Menu -->
                         <div class="user-menu">
-                            <button class="icon-button" onclick="toggleUserMenu()" title="Account">
+                            <md-icon-button onclick="toggleUserMenu()" aria-label="Account menu" aria-haspopup="true" aria-expanded="false" id="userMenuButton">
                                 <span class="material-symbols-outlined">account_circle</span>
-                            </button>
-                            <div class="user-menu-dropdown" id="userMenuDropdown">
-                                <div class="user-menu-header">
-                                    <span class="user-menu-name">{{ username }}</span>
-                                </div>
-                                <div class="user-menu-divider"></div>
-                                <a href="{{ url_for('api_credentials') }}" class="user-menu-item">
-                                    <span class="material-symbols-outlined">vpn_key</span>
-                                    <span>API Credentials</span>
-                                </a>
-                                <a href="{{ url_for('settings') }}" class="user-menu-item">
-                                    <span class="material-symbols-outlined">settings</span>
-                                    <span>Settings</span>
-                                </a>
-                                <div class="user-menu-divider"></div>
-                                <a href="{{ url_for('logout') }}" class="user-menu-item">
-                                    <span class="material-symbols-outlined">logout</span>
-                                    <span>Logout</span>
-                                </a>
-                            </div>
+                            </md-icon-button>
+                            
+                            <!-- User Menu Dropdown -->
+                            <md-menu 
+                                id="userMenu" 
+                                anchor="userMenuButton"
+                                positioning="popover"
+                                quick>
+                                <md-menu-item>
+                                    <div slot="headline">{{ username }}</div>
+                                </md-menu-item>
+                                <md-divider></md-divider>
+                                <md-menu-item href="{{ url_for('api_credentials') }}">
+                                    <span slot="start" class="material-symbols-outlined">vpn_key</span>
+                                    <div slot="headline">API Credentials</div>
+                                </md-menu-item>
+                                <md-menu-item href="{{ url_for('settings') }}">
+                                    <span slot="start" class="material-symbols-outlined">settings</span>
+                                    <div slot="headline">Settings</div>
+                                </md-menu-item>
+                                <md-divider></md-divider>
+                                <md-menu-item href="{{ url_for('logout') }}">
+                                    <span slot="start" class="material-symbols-outlined">logout</span>
+                                    <div slot="headline">Logout</div>
+                                </md-menu-item>
+                            </md-menu>
                         </div>
                     </div>
                 </div>
             </header>
             
             <!-- Page Content -->
-            <main class="main-content">
+            <main class="main-content" role="main">
                 {% block content %}
                 <!-- Page-specific content goes here -->
                 {% endblock %}
@@ -131,13 +244,14 @@
         </div>
     </div>
     
-    <!-- Snackbar for notifications -->
-    <div class="snackbar" id="snackbar">
+    <!-- Snackbar for notifications (using MD3 styles) -->
+    <div class="snackbar" id="snackbar" role="alert" aria-live="assertive" aria-atomic="true">
         <span class="snackbar-text"></span>
-        <button class="snackbar-action">Close</button>
+        <md-text-button class="snackbar-action">Close</md-text-button>
     </div>
     
     <!-- Common Scripts -->
+    <script src="{{ url_for('static', filename='js/theme-controller.js') }}"></script>
     <script src="{{ url_for('static', filename='js/common.js') }}"></script>
     <script>
         // Initialize system status check
@@ -146,36 +260,13 @@
         
         // User menu toggle
         function toggleUserMenu() {
-            const dropdown = document.getElementById('userMenuDropdown');
-            dropdown.classList.toggle('active');
+            const menu = document.getElementById('userMenu');
+            const button = document.getElementById('userMenuButton');
+            menu.open = !menu.open;
+            button.setAttribute('aria-expanded', menu.open);
         }
         
-        // Close user menu when clicking outside
-        document.addEventListener('click', function(event) {
-            const userMenu = document.querySelector('.user-menu');
-            const dropdown = document.getElementById('userMenuDropdown');
-            
-            if (!userMenu.contains(event.target)) {
-                dropdown.classList.remove('active');
-            }
-        });
-        
-        // Theme toggle
-        function toggleTheme() {
-            document.documentElement.classList.toggle('dark-theme');
-            const isDark = document.documentElement.classList.contains('dark-theme');
-            localStorage.setItem('theme', isDark ? 'dark' : 'light');
-            
-            // Update icon
-            const icon = event.target.closest('button').querySelector('.material-symbols-outlined');
-            icon.textContent = isDark ? 'light_mode' : 'dark_mode';
-        }
-        
-        // Load saved theme
-        if (localStorage.getItem('theme') === 'dark') {
-            document.documentElement.classList.add('dark-theme');
-            document.querySelector('.top-app-bar-actions .icon-button .material-symbols-outlined').textContent = 'light_mode';
-        }
+        // Close user menu when clicking outside (handled by md-menu)
         
         // System status check
         async function checkSystemStatus() {
