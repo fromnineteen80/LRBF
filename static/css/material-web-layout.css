@@ -85,7 +85,7 @@ body {
 .nav-rail {
     width: var(--rail-width-collapsed);
     height: 100vh;
-    background-color: #F4F3EE;
+    background-color: #E7E5E0;
     border-right: 1px solid var(--md-sys-color-outline-variant);
     display: flex;
     flex-direction: column;
@@ -99,10 +99,9 @@ body {
 
 .nav-rail:not(.collapsed) {
     width: var(--rail-width-expanded);
-    background-color: #E7E5E0;
 }
 
-/* Collapsed state explicitly set to match main content */
+/* Collapsed state overrides to match main content */
 .nav-rail.collapsed {
     background-color: #F4F3EE;
 }
