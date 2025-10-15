@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/theme/light.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/theme/dark.css') }}">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:wght@100..900;slnt@-10..0&display=swap" rel="stylesheet">
     
     <!-- Material Web Components -->
     <script type="importmap">
@@ -31,7 +31,10 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/material-web-layout.css') }}">
     
 <style>
-    /* Login Page - Editorial Design */
+    /* ===================================================================== */
+    /* LOGIN PAGE - FINANCIAL SECTOR EDITORIAL DESIGN */
+    /* ===================================================================== */
+    
     * {
         box-sizing: border-box;
     }
@@ -40,53 +43,53 @@
         margin: 0;
         padding: 0;
         font-family: 'Roboto Flex', sans-serif;
-        overflow: hidden;
+        overflow-x: hidden;
+        overflow-y: auto;
     }
     
-    /* Animated Background with Geometric Texture */
+    /* ===================================================================== */
+    /* FULL-SCREEN BACKGROUND IMAGE */
+    /* ===================================================================== */
+    
     .login-background {
         position: fixed;
         top: 0;
         left: 0;
         width: 100%;
         height: 100%;
-        background: linear-gradient(135deg, 
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        z-index: 0;
+        /* Fallback gradient */
+        background-image: linear-gradient(135deg, 
             #1a1a2e 0%,
             #16213e 25%,
             #0f3460 50%,
             #16213e 75%,
             #1a1a2e 100%);
-        background-size: 400% 400%;
-        animation: gradientShift 20s ease infinite;
-        z-index: 0;
     }
     
-    @keyframes gradientShift {
-        0%, 100% { background-position: 0% 50%; }
-        50% { background-position: 100% 50%; }
-    }
-    
-    /* Geometric Pattern Overlay */
-    .pattern-overlay {
+    /* Dark overlay for readability */
+    .background-overlay {
         position: absolute;
         top: 0;
         left: 0;
         width: 100%;
         height: 100%;
-        opacity: 0.1;
-        background-image: 
-            repeating-linear-gradient(45deg, transparent, transparent 35px, rgba(255,255,255,.03) 35px, rgba(255,255,255,.03) 70px),
-            repeating-linear-gradient(-45deg, transparent, transparent 35px, rgba(255,255,255,.03) 35px, rgba(255,255,255,.03) 70px);
+        background: rgba(0, 0, 0, 0.4);
+        z-index: 1;
     }
     
     /* Floating Particles */
     .particle {
         position: absolute;
-        width: 4px;
-        height: 4px;
-        background: rgba(255, 255, 255, 0.3);
+        width: 3px;
+        height: 3px;
+        background: rgba(255, 255, 255, 0.4);
         border-radius: 50%;
         animation: float linear infinite;
+        z-index: 2;
     }
     
     @keyframes float {
@@ -95,10 +98,10 @@
             opacity: 0;
         }
         10% {
-            opacity: 0.5;
+            opacity: 0.6;
         }
         90% {
-            opacity: 0.5;
+            opacity: 0.6;
         }
         100% {
             transform: translateY(-100px) translateX(100px);
@@ -106,61 +109,109 @@
         }
     }
     
-    /* Main Container */
+    /* ===================================================================== */
+    /* MAIN LAYOUT */
+    /* ===================================================================== */
+    
     .login-container {
         position: relative;
         min-height: 100vh;
         display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        padding: 60px 20px 20px 20px;
-        z-index: 1;
+        align-items: flex-start;
+        justify-content: space-between;
+        padding: 40px;
+        z-index: 3;
     }
     
-    /* Title - The Luggage Room Boys Fund */
+    /* ===================================================================== */
+    /* TITLE - LEFT SIDE (LARGE, BOLD) */
+    /* ===================================================================== */
+    
+    .title-section {
+        position: fixed;
+        left: 40px;
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 4;
+    }
+    
     .fund-title {
         font-family: 'Roboto Flex', sans-serif;
-        font-size: clamp(32px, 6vw, 64px);
+        font-size: clamp(60px, 8vw, 120px);
+        line-height: 0.9;
+        margin: 0;
+        text-transform: uppercase;
+    }
+    
+    .fund-title .word {
+        display: block;
         font-weight: 900;
-        letter-spacing: -0.02em;
+        letter-spacing: -0.03em;
+    }
+    
+    /* Variable font weight gradient effect */
+    .fund-title .word:nth-child(1) { 
+        color: #ffffff;
+        font-variation-settings: 'wght' 900;
+    }
+    
+    .fund-title .word:nth-child(2) { 
+        color: #266A49; /* Matte green */
+        font-variation-settings: 'wght' 700;
+    }
+    
+    .fund-title .word:nth-child(3) { 
+        color: #ffffff;
+        font-variation-settings: 'wght' 900;
+    }
+    
+    .fund-title .word:nth-child(4) { 
+        color: #266A49; /* Matte green */
+        font-variation-settings: 'wght' 800;
+    }
+    
+    .fund-title .word:nth-child(5) { 
+        color: #ffffff;
+        font-variation-settings: 'wght' 900;
+    }
+    
+    /* ===================================================================== */
+    /* TAGLINE - RIGHT SIDE (THIN, VERTICAL) */
+    /* ===================================================================== */
+    
+    .tagline-section {
+        position: fixed;
+        right: 40px;
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 4;
+    }
+    
+    .tagline {
+        font-family: 'Roboto Flex', sans-serif;
+        font-size: clamp(18px, 2vw, 28px);
+        font-weight: 200;
+        color: #ffffff;
+        letter-spacing: 0.4em;
+        text-transform: uppercase;
+        writing-mode: vertical-rl;
         text-align: center;
-        margin-bottom: 80px;
-        background: linear-gradient(135deg, #ffffff 0%, #e0e0e0 50%, #ffffff 100%);
-        background-size: 200% 200%;
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-        animation: shimmer 3s ease-in-out infinite;
-        text-shadow: 0 0 40px rgba(255, 255, 255, 0.1);
-        position: relative;
+        opacity: 0.9;
     }
     
-    @keyframes shimmer {
-        0%, 100% { background-position: 0% 50%; }
-        50% { background-position: 100% 50%; }
-    }
+    /* ===================================================================== */
+    /* TRADING CLOCK & TRAIN TRACK */
+    /* ===================================================================== */
     
-    .fund-title::before {
-        content: '';
+    .trading-clock-wrapper {
         position: absolute;
-        top: -20px;
         left: 50%;
         transform: translateX(-50%);
-        width: 80px;
-        height: 4px;
-        background: linear-gradient(90deg, transparent, #53a8b6, transparent);
-        border-radius: 2px;
-    }
-    
-    /* Trading Clock Container */
-    .trading-clock-container {
-        position: relative;
-        width: 100%;
-        max-width: 600px;
-        height: 200px;
-        margin-bottom: -100px;
-        z-index: 2;
+        top: calc(66.666vh - 250px); /* Position above login card in lower 2/3 */
+        width: 90%;
+        max-width: 700px;
+        height: 180px;
+        z-index: 5;
     }
     
     /* SVG Track Arc */
@@ -171,33 +222,40 @@
     
     .track-background {
         fill: none;
-        stroke: rgba(255, 255, 255, 0.1);
-        stroke-width: 3;
+        stroke: rgba(255, 255, 255, 0.15);
+        stroke-width: 6;
         stroke-linecap: round;
     }
     
     .track-progress {
         fill: none;
-        stroke: url(#trackGradient);
-        stroke-width: 4;
+        stroke: #266A49; /* Matte green */
+        stroke-width: 8;
         stroke-linecap: round;
-        filter: drop-shadow(0 0 8px rgba(83, 168, 182, 0.6));
+        filter: drop-shadow(0 0 10px rgba(38, 106, 73, 0.6));
         transition: stroke-dashoffset 1s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    /* White when time remaining */
+    .track-progress.time-remaining {
+        stroke: #ffffff;
+        filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.4));
     }
     
     /* Train Icon */
     .train-icon {
         position: absolute;
-        font-size: 32px;
-        color: #53a8b6;
-        filter: drop-shadow(0 0 12px rgba(83, 168, 182, 0.8));
+        font-size: 36px;
+        color: #266A49; /* Matte green */
+        filter: drop-shadow(0 0 15px rgba(38, 106, 73, 0.8));
         transition: all 1s cubic-bezier(0.4, 0, 0.2, 1);
-        animation: trainPulse 2s ease-in-out infinite;
+        animation: trainBob 3s ease-in-out infinite;
+        z-index: 6;
     }
     
-    @keyframes trainPulse {
-        0%, 100% { transform: scale(1) rotate(0deg); }
-        50% { transform: scale(1.1) rotate(5deg); }
+    @keyframes trainBob {
+        0%, 100% { transform: translate(-50%, -50%) translateY(0px); }
+        50% { transform: translate(-50%, -50%) translateY(-8px); }
     }
     
     /* City Labels */
@@ -206,60 +264,69 @@
         font-family: 'Roboto Flex', sans-serif;
         font-size: 11px;
         font-weight: 600;
-        letter-spacing: 0.05em;
+        letter-spacing: 0.08em;
         text-transform: uppercase;
-        color: rgba(255, 255, 255, 0.7);
+        color: rgba(255, 255, 255, 0.8);
+        z-index: 5;
     }
     
     .city-label.denver {
-        left: 0;
-        bottom: 20px;
+        left: 5%;
+        bottom: -30px;
     }
     
     .city-label.dc {
-        right: 0;
-        bottom: 20px;
+        right: 5%;
+        bottom: -30px;
     }
     
     /* Market Status Badge */
     .market-status {
         position: absolute;
-        top: -40px;
+        top: -50px;
         left: 50%;
         transform: translateX(-50%);
         font-family: 'Roboto Flex', sans-serif;
         font-size: 12px;
         font-weight: 600;
-        padding: 6px 16px;
-        border-radius: 20px;
-        background: rgba(83, 168, 182, 0.2);
-        color: #53a8b6;
-        border: 1px solid rgba(83, 168, 182, 0.4);
+        padding: 8px 20px;
+        border-radius: 24px;
+        background: rgba(38, 106, 73, 0.2); /* Matte green */
+        color: #266A49;
+        border: 1px solid rgba(38, 106, 73, 0.4);
         backdrop-filter: blur(10px);
-        animation: statusPulse 3s ease-in-out infinite;
+        z-index: 6;
     }
     
-    @keyframes statusPulse {
-        0%, 100% { box-shadow: 0 0 0 0 rgba(83, 168, 182, 0.4); }
-        50% { box-shadow: 0 0 0 8px rgba(83, 168, 182, 0); }
+    /* ===================================================================== */
+    /* LOGIN CARD - LOWER 2/3, CENTERED, SCALED */
+    /* ===================================================================== */
+    
+    .login-card-wrapper {
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        top: 66.666vh; /* Start at 2/3 down the viewport */
+        width: 90%;
+        max-width: 440px;
+        z-index: 6;
+        padding-bottom: 60px; /* Space below card */
     }
     
-    /* Login Card */
     .login-card {
         width: 100%;
-        max-width: 420px;
-        background: rgba(255, 255, 255, 0.05);
-        backdrop-filter: blur(20px);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 28px;
-        padding: 48px 40px;
+        background: rgba(15, 20, 35, 0.85);
+        backdrop-filter: blur(30px);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 24px;
+        padding: 44px 36px;
         box-shadow: 
-            0 8px 32px rgba(0, 0, 0, 0.3),
+            0 20px 60px rgba(0, 0, 0, 0.5),
             0 0 0 1px rgba(255, 255, 255, 0.05) inset;
-        animation: cardFloat 6s ease-in-out infinite;
+        animation: cardBob 5s ease-in-out infinite;
     }
     
-    @keyframes cardFloat {
+    @keyframes cardBob {
         0%, 100% { transform: translateY(0px); }
         50% { transform: translateY(-10px); }
     }
@@ -270,15 +337,15 @@
     }
     
     .login-logo {
-        font-size: 48px !important;
-        color: #53a8b6;
+        font-size: 52px !important;
+        color: #266A49; /* Matte green */
         margin-bottom: 16px;
-        filter: drop-shadow(0 0 20px rgba(83, 168, 182, 0.4));
+        filter: drop-shadow(0 0 20px rgba(38, 106, 73, 0.4));
     }
     
     .login-title {
         font-family: 'Roboto Flex', sans-serif;
-        font-size: 24px;
+        font-size: 26px;
         font-weight: 700;
         color: #ffffff;
         margin: 0 0 8px 0;
@@ -288,15 +355,19 @@
         font-family: 'Roboto Flex', sans-serif;
         font-size: 13px;
         font-weight: 400;
-        color: rgba(255, 255, 255, 0.6);
+        color: rgba(255, 255, 255, 0.65);
         margin: 0;
         letter-spacing: 0.02em;
     }
     
+    /* ===================================================================== */
+    /* FORM STYLING */
+    /* ===================================================================== */
+    
     .login-form {
         display: flex;
         flex-direction: column;
-        gap: 24px;
+        gap: 20px;
     }
     
     .form-field {
@@ -304,24 +375,26 @@
     }
     
     .form-field md-filled-text-field {
+        width: 100%;
         --md-filled-text-field-container-color: rgba(255, 255, 255, 0.08);
         --md-filled-text-field-label-text-color: rgba(255, 255, 255, 0.7);
         --md-filled-text-field-input-text-color: #ffffff;
-        --md-filled-text-field-active-indicator-color: #53a8b6;
-        --md-filled-text-field-focus-active-indicator-color: #53a8b6;
+        --md-filled-text-field-active-indicator-color: #266A49; /* Matte green */
+        --md-filled-text-field-focus-active-indicator-color: #266A49;
+        --md-filled-text-field-caret-color: #266A49;
     }
     
     .form-actions {
         display: flex;
         flex-direction: column;
-        gap: 16px;
-        margin-top: 8px;
+        gap: 14px;
+        margin-top: 12px;
     }
     
     .form-actions md-filled-button {
         width: 100%;
-        --md-filled-button-container-color: #53a8b6;
-        --md-filled-button-label-text-color: #000000;
+        --md-filled-button-container-color: #266A49; /* Matte green */
+        --md-filled-button-label-text-color: #ffffff;
         --md-filled-button-hover-state-layer-color: rgba(255, 255, 255, 0.1);
     }
     
@@ -332,26 +405,31 @@
     
     .form-footer {
         text-align: center;
-        margin-top: 32px;
-        padding-top: 24px;
+        margin-top: 28px;
+        padding-top: 20px;
         border-top: 1px solid rgba(255, 255, 255, 0.1);
     }
     
     .form-footer p {
-        font-size: 11px;
+        font-size: 10px;
         color: rgba(255, 255, 255, 0.5);
         margin: 0;
         line-height: 1.6;
+        letter-spacing: 0.02em;
     }
     
+    /* ===================================================================== */
+    /* ERROR/SUCCESS MESSAGES */
+    /* ===================================================================== */
+    
     .error-message, .success-message {
-        padding: 14px;
+        padding: 14px 16px;
         border-radius: 12px;
         font-size: 13px;
         display: none;
         align-items: center;
         gap: 10px;
-        margin-bottom: 20px;
+        margin-bottom: 18px;
     }
     
     .error-message {
@@ -361,20 +439,23 @@
     }
     
     .success-message {
-        background-color: rgba(83, 168, 182, 0.15);
-        color: #53a8b6;
-        border: 1px solid rgba(83, 168, 182, 0.3);
+        background-color: rgba(38, 106, 73, 0.15); /* Matte green */
+        color: #7bc99f;
+        border: 1px solid rgba(38, 106, 73, 0.3);
     }
     
     .error-message.show, .success-message.show {
         display: flex;
     }
     
-    /* Checkbox Styling */
+    /* ===================================================================== */
+    /* CHECKBOX STYLING */
+    /* ===================================================================== */
+    
     label {
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 10px;
         cursor: pointer;
     }
     
@@ -384,65 +465,139 @@
     }
     
     label md-checkbox {
-        --md-checkbox-selected-container-color: #53a8b6;
-        --md-checkbox-selected-icon-color: #000000;
+        --md-checkbox-selected-container-color: #266A49; /* Matte green */
+        --md-checkbox-selected-icon-color: #ffffff;
     }
     
-    /* Responsive Design */
-    @media (max-width: 768px) {
-        .trading-clock-container {
-            max-width: 90vw;
-            height: 150px;
-            margin-bottom: -75px;
+    /* ===================================================================== */
+    /* RESPONSIVE DESIGN */
+    /* ===================================================================== */
+    
+    @media (max-width: 1200px) {
+        .title-section {
+            left: 30px;
+        }
+        
+        .tagline-section {
+            right: 30px;
         }
         
         .fund-title {
+            font-size: clamp(50px, 7vw, 90px);
+        }
+    }
+    
+    @media (max-width: 768px) {
+        .login-container {
+            padding: 20px;
+        }
+        
+        /* Hide side title/tagline on mobile */
+        .title-section,
+        .tagline-section {
+            display: none;
+        }
+        
+        /* Add compact title above card on mobile */
+        .login-card::before {
+            content: 'The Luggage Room Boys Fund';
+            display: block;
+            text-align: center;
+            font-family: 'Roboto Flex', sans-serif;
+            font-size: 20px;
+            font-weight: 800;
+            color: #ffffff;
+            margin-bottom: 40px;
+            letter-spacing: -0.02em;
+        }
+        
+        .trading-clock-wrapper {
+            width: 95%;
+            height: 140px;
+            top: calc(66.666vh - 200px);
+        }
+        
+        .train-icon {
             font-size: 28px;
-            margin-bottom: 60px;
+        }
+        
+        .city-label {
+            font-size: 10px;
+        }
+        
+        .login-card-wrapper {
+            width: 95%;
+            max-width: 400px;
         }
         
         .login-card {
             padding: 36px 28px;
         }
     }
+    
+    @media (max-width: 480px) {
+        .login-card {
+            padding: 30px 24px;
+        }
+        
+        .trading-clock-wrapper {
+            height: 120px;
+        }
+        
+        .track-background,
+        .track-progress {
+            stroke-width: 5;
+        }
+    }
 </style>
 </head>
 <body>
-</head>
-<body>
     <!-- Animated Background -->
-    <div class="login-background">
-        <div class="pattern-overlay"></div>
+    <div class="login-background" id="loginBackground">
+        <div class="background-overlay"></div>
     </div>
     
     <!-- Login Container -->
     <div class="login-container">
-        <!-- Fund Title -->
-        <h1 class="fund-title">The Luggage Room Boys Fund</h1>
+        <!-- Title Section (Left Side) -->
+        <div class="title-section">
+            <h1 class="fund-title">
+                <span class="word">The</span>
+                <span class="word">Luggage</span>
+                <span class="word">Room</span>
+                <span class="word">Boys</span>
+                <span class="word">Fund</span>
+            </h1>
+        </div>
         
-        <!-- Trading Clock Arc -->
-        <div class="trading-clock-container">
+        <!-- Tagline Section (Right Side) -->
+        <div class="tagline-section">
+            <div class="tagline">Ride With The Boys</div>
+        </div>
+        
+        <!-- Trading Clock & Train Track -->
+        <div class="trading-clock-wrapper">
             <!-- Market Status Badge -->
             <div class="market-status" id="marketStatus">Market Closed</div>
             
             <!-- SVG Track -->
-            <svg class="track-svg" viewBox="0 0 600 200" preserveAspectRatio="xMidYMid meet">
+            <svg class="track-svg" viewBox="0 0 700 180" preserveAspectRatio="xMidYMid meet">
                 <defs>
-                    <!-- Gradient for track progress -->
+                    <!-- Gradient for track (not used anymore, kept for compatibility) -->
                     <linearGradient id="trackGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                        <stop offset="0%" style="stop-color:#53a8b6;stop-opacity:1" />
-                        <stop offset="50%" style="stop-color:#7fc8d6;stop-opacity:1" />
-                        <stop offset="100%" style="stop-color:#53a8b6;stop-opacity:1" />
+                        <stop offset="0%" style="stop-color:#266A49;stop-opacity:1" />
+                        <stop offset="50%" style="stop-color:#3a8a5e;stop-opacity:1" />
+                        <stop offset="100%" style="stop-color:#266A49;stop-opacity:1" />
                     </linearGradient>
                 </defs>
                 
                 <!-- Background track (full arc) -->
                 <path class="track-background" id="trackBackground" 
-                      d="M 50 180 Q 300 20, 550 180" />
+                      d="M 50 160 Q 350 10, 650 160" />
                 
                 <!-- Progress track (animated) -->
                 <path class="track-progress" id="trackProgress" 
-                      d="M 50 180 Q 300 20, 550 180" />
+                      d="M 50 160 Q 350 10, 650 160" />
             </svg>
             
             <!-- Train Icon -->
@@ -454,75 +609,77 @@
         </div>
         
         <!-- Login Card -->
-        <md-elevated-card class="login-card">
-            <div class="login-header">
-                <span class="material-symbols-outlined login-logo">account_circle</span>
-                <h2 class="login-title">Welcome Back</h2>
-                <p class="login-subtitle">Sign in to access your trading platform</p>
-            </div>
-            
-            <!-- Error/Success Messages -->
-            <div class="error-message" id="errorMessage">
-                <span class="material-symbols-outlined">error</span>
-                <span id="errorText">Invalid credentials</span>
-            </div>
-            
-            <div class="success-message" id="successMessage">
-                <span class="material-symbols-outlined">check_circle</span>
-                <span id="successText">Login successful!</span>
-            </div>
-            
-            <!-- Login Form -->
-            <form class="login-form" id="loginForm" onsubmit="handleLogin(event); return false;">
-                <!-- Username Field -->
-                <md-filled-text-field 
-                    class="form-field"
-                    label="Username"
-                    name="username"
-                    type="text"
-                    required
-                    autocomplete="username">
-                    <span slot="leading-icon" class="material-symbols-outlined">person</span>
-                </md-filled-text-field>
-                
-                <!-- Password Field -->
-                <md-filled-text-field 
-                    class="form-field"
-                    label="Password"
-                    name="password"
-                    type="password"
-                    required
-                    autocomplete="current-password">
-                    <span slot="leading-icon" class="material-symbols-outlined">lock</span>
-                </md-filled-text-field>
-                
-                <!-- Remember Me -->
-                <label>
-                    <md-checkbox name="remember" touch-target="wrapper"></md-checkbox>
-                    <span>Remember me</span>
-                </label>
-                
-                <!-- Form Actions -->
-                <div class="form-actions">
-                    <md-filled-button type="submit">
-                        <span slot="icon" class="material-symbols-outlined">login</span>
-                        Sign In
-                    </md-filled-button>
-                    
-                    <md-text-button type="button" onclick="showForgotPassword()">
-                        Forgot Password?
-                    </md-text-button>
+        <div class="login-card-wrapper">
+            <div class="login-card">
+                <div class="login-header">
+                    <span class="material-symbols-outlined login-logo">account_circle</span>
+                    <h2 class="login-title">Welcome Back</h2>
+                    <p class="login-subtitle">Sign in to access your trading platform</p>
                 </div>
-            </form>
-            
-            <!-- Form Footer -->
-            <div class="form-footer">
-                <p>
-                    © 2025 The Luggage Room Boys Fund<br>
-                    VWAP Recovery Trading Platform
-                </p>
+                
+                <!-- Error/Success Messages -->
+                <div class="error-message" id="errorMessage">
+                    <span class="material-symbols-outlined">error</span>
+                    <span id="errorText">Invalid credentials</span>
+                </div>
+                
+                <div class="success-message" id="successMessage">
+                    <span class="material-symbols-outlined">check_circle</span>
+                    <span id="successText">Login successful!</span>
+                </div>
+                
+                <!-- Login Form -->
+                <form class="login-form" id="loginForm" onsubmit="handleLogin(event); return false;">
+                    <!-- Username Field -->
+                    <md-filled-text-field 
+                        class="form-field"
+                        label="Username"
+                        name="username"
+                        type="text"
+                        required
+                        autocomplete="username">
+                        <span slot="leading-icon" class="material-symbols-outlined">person</span>
+                    </md-filled-text-field>
+                    
+                    <!-- Password Field -->
+                    <md-filled-text-field 
+                        class="form-field"
+                        label="Password"
+                        name="password"
+                        type="password"
+                        required
+                        autocomplete="current-password">
+                        <span slot="leading-icon" class="material-symbols-outlined">lock</span>
+                    </md-filled-text-field>
+                    
+                    <!-- Remember Me -->
+                    <label>
+                        <md-checkbox name="remember" touch-target="wrapper"></md-checkbox>
+                        <span>Remember me</span>
+                    </label>
+                    
+                    <!-- Form Actions -->
+                    <div class="form-actions">
+                        <md-filled-button type="submit">
+                            <span slot="icon" class="material-symbols-outlined">login</span>
+                            Sign In
+                        </md-filled-button>
+                        
+                        <md-text-button type="button" onclick="showForgotPassword()">
+                            Forgot Password?
+                        </md-text-button>
+                    </div>
+                </form>
+                
+                <!-- Form Footer -->
+                <div class="form-footer">
+                    <p>
+                        © 2025 The Luggage Room Boys Fund<br>
+                        VWAP Recovery Trading Platform
+                    </p>
+                </div>
             </div>
-        </md-elevated-card>
+        </div>
     </div>
     
     <!-- Forgot Password Dialog -->
@@ -545,11 +702,35 @@
             <md-filled-button form="forgotPasswordForm" value="reset">Send Reset Link</md-filled-button>
         </div>
     </md-dialog>
-    </md-dialog>
     
     <script>
         // ========================================================================
-        // TRADING CLOCK - Real-time market visualization
+        // BACKGROUND IMAGE ROTATION
+        // ========================================================================
+        
+        // Background images array (will be populated with user-provided images later)
+        const backgroundImages = [
+            // Placeholder - user will provide actual images
+            'linear-gradient(135deg, #1a1a2e 0%, #16213e 25%, #0f3460 50%, #16213e 75%, #1a1a2e 100%)'
+        ];
+        
+        function setRandomBackground() {
+            const bg = document.getElementById('loginBackground');
+            if (backgroundImages.length > 0) {
+                const randomIndex = Math.floor(Math.random() * backgroundImages.length);
+                const image = backgroundImages[randomIndex];
+                
+                if (image.startsWith('http') || image.startsWith('/')) {
+                    bg.style.backgroundImage = `url('${image}')`;
+                } else {
+                    // It's a gradient
+                    bg.style.backgroundImage = image;
+                }
+            }
+        }
+        
+        // ========================================================================
+        // TRADING CLOCK - Real-time market visualization with correct train logic
         // ========================================================================
         
         function initTradingClock() {
@@ -566,52 +747,57 @@
             function updateClock() {
                 const now = new Date();
                 
-                // Convert to Eastern Time (rough approximation - in production use proper timezone library)
+                // Convert to Eastern Time
                 const eastern = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
                 const hours = eastern.getHours();
                 const minutes = eastern.getMinutes();
+                const dayOfWeek = eastern.getDay();
                 
                 // Calculate market progress (0 to 1)
-                const marketOpenMinutes = MARKET_OPEN_HOUR * 60 + MARKET_OPEN_MINUTE; // 571 minutes
-                const marketCloseMinutes = MARKET_CLOSE_HOUR * 60 + MARKET_CLOSE_MINUTE; // 960 minutes
+                const marketOpenMinutes = MARKET_OPEN_HOUR * 60 + MARKET_OPEN_MINUTE;
+                const marketCloseMinutes = MARKET_CLOSE_HOUR * 60 + MARKET_CLOSE_MINUTE;
                 const currentMinutes = hours * 60 + minutes;
                 
                 let progress = 0;
                 let statusText = '';
-                let statusColor = '';
+                let isMarketOpen = false;
                 
                 // Check if weekend
-                const dayOfWeek = eastern.getDay();
                 const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
                 
-                if (isWeekend) {
+                // Check for holidays (simple check - could be enhanced)
+                const isHoliday = false; // TODO: Add holiday detection
+                
+                if (isWeekend || isHoliday) {
+                    // Weekend or holiday - train at Denver (start)
                     progress = 0;
-                    statusText = 'Weekend - Market Closed';
-                    statusColor = 'rgba(150, 150, 150, 0.2)';
+                    statusText = isWeekend ? 'Weekend - Market Closed' : 'Holiday - Market Closed';
                 } else if (currentMinutes < marketOpenMinutes) {
-                    // Before market open
+                    // Before market open - train at Denver (start)
                     progress = 0;
                     const minutesUntilOpen = marketOpenMinutes - currentMinutes;
                     const hoursUntilOpen = Math.floor(minutesUntilOpen / 60);
                     const minsUntilOpen = minutesUntilOpen % 60;
                     statusText = `Opens in ${hoursUntilOpen}h ${minsUntilOpen}m`;
-                    statusColor = 'rgba(83, 168, 182, 0.2)';
                 } else if (currentMinutes >= marketOpenMinutes && currentMinutes < marketCloseMinutes) {
-                    // Market is open
+                    // Market is open - train moves along track
                     const elapsedMinutes = currentMinutes - marketOpenMinutes;
-                    const totalMarketMinutes = marketCloseMinutes - marketOpenMinutes; // 389 minutes
+                    const totalMarketMinutes = marketCloseMinutes - marketOpenMinutes;
                     progress = elapsedMinutes / totalMarketMinutes;
                     
                     const minutesRemaining = marketCloseMinutes - currentMinutes;
                     const hoursRemaining = Math.floor(minutesRemaining / 60);
                     const minsRemaining = minutesRemaining % 60;
                     statusText = `Market Open · ${hoursRemaining}h ${minsRemaining}m left`;
-                    statusColor = 'rgba(83, 255, 182, 0.2)';
+                    isMarketOpen = true;
+                    
+                    // Track is WHITE when time remaining
+                    trackProgress.classList.add('time-remaining');
                 } else {
-                    // Market closed
+                    // After market close - train at DC (end)
                     progress = 1;
                     statusText = 'Market Closed';
-                    statusColor = 'rgba(150, 150, 150, 0.2)';
+                    trackProgress.classList.remove('time-remaining');
                 }
                 
                 // Clamp progress between 0 and 1
@@ -619,7 +805,6 @@
                 
                 // Update market status badge
                 marketStatus.textContent = statusText;
-                marketStatus.style.backgroundColor = statusColor;
                 
                 // Update SVG track progress
                 const pathLength = trackProgress.getTotalLength();
@@ -636,14 +821,9 @@
                 const pathLength = trackPath.getTotalLength();
                 const point = trackPath.getPointAtLength(pathLength * progress);
                 
-                // Calculate rotation angle for train
-                const nextPoint = trackPath.getPointAtLength(Math.min(pathLength * progress + 1, pathLength));
-                const angle = Math.atan2(nextPoint.y - point.y, nextPoint.x - point.x) * (180 / Math.PI);
-                
                 // Position train
                 trainIcon.style.left = `${point.x}px`;
                 trainIcon.style.top = `${point.y}px`;
-                trainIcon.style.transform = `translate(-50%, -50%) rotate(${angle}deg)`;
             }
             
             // Initialize and update every second
@@ -657,13 +837,13 @@
         
         function createParticles() {
             const container = document.querySelector('.login-background');
-            const particleCount = 30;
+            const particleCount = 25;
             
             for (let i = 0; i < particleCount; i++) {
                 const particle = document.createElement('div');
                 particle.className = 'particle';
                 particle.style.left = `${Math.random() * 100}%`;
-                particle.style.animationDuration = `${15 + Math.random() * 20}s`;
+                particle.style.animationDuration = `${15 + Math.random() * 25}s`;
                 particle.style.animationDelay = `${Math.random() * 10}s`;
                 container.appendChild(particle);
             }
@@ -762,6 +942,7 @@
         // ========================================================================
         
         document.addEventListener('DOMContentLoaded', () => {
+            setRandomBackground();
             initTradingClock();
             createParticles();
         });
