@@ -85,7 +85,7 @@ body {
 .nav-rail {
     width: var(--rail-width-collapsed);
     height: 100vh;
-    background-color: var(--md-sys-color-primary);
+    background-color: #E7E5E0;
     border-right: 1px solid var(--md-sys-color-outline-variant);
     display: flex;
     flex-direction: column;
@@ -103,7 +103,7 @@ body {
 
 /* Collapsed state overrides to match main content */
 .nav-rail.collapsed {
-    background-color: var(--md-sys-color-background);
+    background-color: #F4F3EE;
 }
 
 /* Toggle Button + Title */
@@ -347,7 +347,7 @@ body {
 
 .top-app-bar {
     height: var(--app-bar-height);
-    background-color: var(--md-sys-color-background);
+    background-color: #F4F3EE;
     display: flex;
     align-items: center;
     padding: 0 var(--spacing-lg);
