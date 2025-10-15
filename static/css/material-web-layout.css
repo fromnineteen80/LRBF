@@ -13,7 +13,7 @@
 :root {
     /* Layout spacing */
     --rail-width-collapsed: 48px;
-    --rail-width-expanded: 240px;
+    --rail-width-expanded: 220px;
     --rail-width: var(--rail-width-collapsed);
     --app-bar-height: 64px;
     --content-max-width: 1400px;
@@ -54,7 +54,7 @@ body {
 /* Material Symbols Icons */
 .material-symbols-outlined {
     font-family: 'Material Symbols Outlined';
-    font-weight: normal;
+    font-weight: 300;
     font-style: normal;
     font-size: 24px;
     line-height: 1;
@@ -65,6 +65,7 @@ body {
     word-wrap: normal;
     direction: ltr;
     user-select: none;
+    font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
 }
 
 /* ========================================
@@ -105,13 +106,14 @@ body {
     width: 100%;
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px;
-    min-height: 56px;
+    gap: 6px;
+    padding: 6px;
+    min-height: 52px;
 }
 
 .nav-rail-toggle md-icon-button {
-    --md-icon-button-state-layer-shape: 12px;
+    --md-icon-button-state-layer-shape: 10px;
+    --md-icon-button-icon-size: 20px;
     cursor: pointer;
     flex-shrink: 0;
 }
@@ -126,7 +128,8 @@ body {
     opacity: 0;
     width: 0;
     overflow: hidden;
-    transition: opacity var(--transition-standard);
+    transition: opacity 0.2s ease;
+    line-height: 1;
 }
 
 .nav-rail:not(.collapsed) .nav-rail-title {
@@ -142,7 +145,7 @@ body {
 
 .title-fund {
     font-family: 'Roboto Serif', serif;
-    font-weight: 400;
+    font-weight: 300;
     color: var(--md-sys-color-on-surface);
 }
 
@@ -152,7 +155,7 @@ body {
     width: 100%;
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 1px;
     overflow-y: auto;
     overflow-x: hidden;
     padding: 4px 6px;
@@ -160,32 +163,52 @@ body {
 
 .nav-rail-footer {
     width: 100%;
-    padding: 4px 6px;
+    padding: 4px 6px 8px 6px;
     margin-top: auto;
-    padding-bottom: 8px;
+}
+
+/* Section Headers */
+.nav-rail-section-header {
+    padding: 12px 12px 6px 12px;
+    margin-top: 8px;
+}
+
+.nav-rail.collapsed .nav-rail-section-header {
+    display: none;
+}
+
+.section-label {
+    font-family: 'Roboto', sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: var(--md-sys-color-on-surface-variant);
+    opacity: 0.6;
+    white-space: nowrap;
 }
 
 /* Navigation Rail Items */
 .nav-rail-item {
     position: relative;
     width: 100%;
-    min-height: 36px;
+    min-height: 32px;
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 6px 12px;
+    gap: 10px;
+    padding: 6px 10px;
     text-decoration: none;
     color: var(--md-sys-color-on-surface-variant);
-    border-radius: 8px;
+    border-radius: 6px;
     cursor: pointer;
-    transition: background-color 0.2s ease;
+    transition: background-color 0.15s ease;
     overflow: hidden;
     white-space: nowrap;
 }
 
 .nav-rail.collapsed .nav-rail-item {
     justify-content: center;
-    padding: 6px 0;
+    padding: 6px;
 }
 
 .nav-rail-item:hover {
@@ -199,13 +222,13 @@ body {
 
 .nav-rail-item .material-symbols-outlined {
     font-size: 20px;
+    font-weight: 300;
     flex-shrink: 0;
     width: 20px;
     height: 20px;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: none;
 }
 
 .nav-rail-item.active .material-symbols-outlined {
@@ -215,11 +238,11 @@ body {
 .nav-rail-label {
     font-family: 'Roboto', sans-serif;
     font-size: 14px;
-    font-weight: 500;
+    font-weight: 400;
     opacity: 0;
     width: 0;
     overflow: hidden;
-    transition: opacity var(--transition-standard);
+    transition: opacity 0.2s ease;
 }
 
 .nav-rail:not(.collapsed) .nav-rail-label {
@@ -227,24 +250,19 @@ body {
     width: auto;
 }
 
-/* Dividers */
-.nav-rail md-divider {
-    margin: 4px 0;
-}
-
 /* Tooltips for collapsed state */
 .nav-rail.collapsed .nav-rail-item[title]:hover::after {
     content: attr(title);
     position: absolute;
-    left: calc(100% + 12px);
+    left: calc(100% + 10px);
     top: 50%;
     transform: translateY(-50%);
     background-color: var(--md-sys-color-inverse-surface);
     color: var(--md-sys-color-inverse-on-surface);
-    padding: 6px 12px;
+    padding: 4px 10px;
     border-radius: 6px;
     font-size: 12px;
-    font-weight: 500;
+    font-weight: 400;
     white-space: nowrap;
     z-index: 1000;
     pointer-events: none;

@@ -93,7 +93,7 @@
             <!-- Toggle Button + Title -->
             <div class="nav-rail-toggle">
                 <md-icon-button onclick="toggleNavRail()" aria-label="Toggle navigation menu" id="navToggleBtn">
-                    <span class="material-symbols-outlined">menu</span>
+                    <span class="material-symbols-outlined">dock_to_left</span>
                 </md-icon-button>
                 <span class="nav-rail-title">
                     <span class="title-lrb">LRB</span><span class="title-fund">Fund</span>
@@ -142,7 +142,10 @@
                     <span class="nav-rail-label">EOD</span>
                 </a>
                 
-                <md-divider></md-divider>
+                <!-- Analytics Section -->
+                <div class="nav-rail-section-header">
+                    <span class="section-label">Analytics</span>
+                </div>
                 
                 <a href="{{ url_for('calculator') }}" 
                    class="nav-rail-item {% if request.endpoint == 'calculator' %}active{% endif %}" 
@@ -174,7 +177,10 @@
                     <span class="nav-rail-label">History</span>
                 </a>
                 
-                <md-divider></md-divider>
+                <!-- System Section -->
+                <div class="nav-rail-section-header">
+                    <span class="section-label">System</span>
+                </div>
                 
                 <a href="{{ url_for('about') }}" 
                    class="nav-rail-item {% if request.endpoint == 'about' %}active{% endif %}" 
@@ -338,7 +344,7 @@
             
             // Update icon and save state
             if (navRail.classList.contains('collapsed')) {
-                icon.textContent = 'menu';
+                icon.textContent = 'dock_to_left';
                 localStorage.setItem('navRailCollapsed', 'true');
             } else {
                 icon.textContent = 'chevron_left';
