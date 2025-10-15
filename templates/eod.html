@@ -4,32 +4,47 @@
 {% block page_title %}End of Day Report{% endblock %}
 
 {% block content %}
-<div class="card mb-4">
-    <div class="card-header">
-        <div class="flex items-center justify-between">
-            <h3 class="card-title">Daily Performance</h3>
-            <button class="button button-filled" onclick="generateEOD()">Generate Report</button>
+<md-elevated-card style="margin-bottom: 16px;">
+    <div style="padding: 16px; border-bottom: 1px solid var(--md-sys-color-outline-variant);">
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <md-icon style="color: var(--md-sys-color-primary);">nightlight</md-icon>
+                <h3 class="card-title" style="margin: 0;">Daily Performance</h3>
+            </div>
+            <md-filled-button onclick="generateEOD()">
+                <md-icon slot="icon">summarize</md-icon>
+                Generate Report
+            </md-filled-button>
         </div>
     </div>
-    <div class="card-content">
+    <div style="padding: 24px;">
         <div id="eodContent">
-            <div class="grid grid-cols-3 gap-4">
-                <div>
-                    <p class="label-medium" style="color: var(--md-sys-color-on-surface-variant);">Total P&L</p>
-                    <h3 class="headline-small" id="eodPL">-</h3>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
+                <div style="padding: 16px; background: var(--md-sys-color-surface-container); border-radius: 12px;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                        <md-icon style="color: var(--md-sys-color-tertiary);">account_balance</md-icon>
+                        <p class="label-medium" style="color: var(--md-sys-color-on-surface-variant); margin: 0;">Total P&L</p>
+                    </div>
+                    <h3 class="headline-small" id="eodPL" style="margin: 0; color: var(--md-sys-color-tertiary);">-</h3>
                 </div>
-                <div>
-                    <p class="label-medium" style="color: var(--md-sys-color-on-surface-variant);">Win Rate</p>
-                    <h3 class="headline-small" id="eodWinRate">-</h3>
+                <div style="padding: 16px; background: var(--md-sys-color-surface-container); border-radius: 12px;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                        <md-icon style="color: var(--md-sys-color-secondary);">percent</md-icon>
+                        <p class="label-medium" style="color: var(--md-sys-color-on-surface-variant); margin: 0;">Win Rate</p>
+                    </div>
+                    <h3 class="headline-small" id="eodWinRate" style="margin: 0; color: var(--md-sys-color-secondary);">-</h3>
                 </div>
-                <div>
-                    <p class="label-medium" style="color: var(--md-sys-color-on-surface-variant);">Sharpe Ratio</p>
-                    <h3 class="headline-small" id="eodSharpe">-</h3>
+                <div style="padding: 16px; background: var(--md-sys-color-surface-container); border-radius: 12px;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                        <md-icon style="color: var(--md-sys-color-primary);">analytics</md-icon>
+                        <p class="label-medium" style="color: var(--md-sys-color-on-surface-variant); margin: 0;">Sharpe Ratio</p>
+                    </div>
+                    <h3 class="headline-small" id="eodSharpe" style="margin: 0; color: var(--md-sys-color-primary);">-</h3>
                 </div>
             </div>
         </div>
     </div>
-</div>
+</md-elevated-card>
 {% endblock %}
 
 {% block scripts %}
