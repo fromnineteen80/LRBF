@@ -130,14 +130,15 @@ body {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 8px 0 8px 18px;
     min-height: 48px;
 }
 
+/* Collapsed: Toggle icon padding matches nav item icon padding exactly */
 .nav-rail.collapsed .nav-rail-toggle {
-    padding: 8px 18px;
+    padding: 8px 0 8px 18px;
 }
 
+/* Expanded: Toggle icon padding matches nav item icon padding exactly */
 .nav-rail:not(.collapsed) .nav-rail-toggle {
     padding: 8px 0 8px 10px;
 }
@@ -243,7 +244,6 @@ body {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 6px 10px;
     text-decoration: none;
     color: var(--md-sys-color-on-surface-variant);
     border-radius: 6px;
@@ -253,11 +253,14 @@ body {
     white-space: nowrap;
 }
 
-/* Collapsed state - perfectly center icons in 56px sidebar */
-/* Sidebar width: 56px, Icon width: 20px, Padding: (56-20)/2 = 18px each side */
+/* Expanded state */
+.nav-rail:not(.collapsed) .nav-rail-item {
+    padding: 6px 10px;
+}
+
+/* Collapsed state - icons start at 18px from left edge */
 .nav-rail.collapsed .nav-rail-item {
-    padding: 6px 18px;
-    justify-content: flex-start;
+    padding: 6px 0 6px 18px;
 }
 
 .nav-rail-item:hover {
