@@ -397,6 +397,16 @@
             const MARKET_CLOSE_HOUR = 16;
             const MARKET_CLOSE_MINUTE = 0;
             
+            const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            
+            function getNextTradingDay(currentDay) {
+                // Returns the next trading day (Mon-Fri)
+                if (currentDay === 5) return 'Mon'; // Friday -> Monday
+                if (currentDay === 6) return 'Mon'; // Saturday -> Monday
+                if (currentDay === 0) return 'Mon'; // Sunday -> Monday
+                return dayNames[currentDay + 1]; // Next weekday
+            }
+            
             function formatTimeRemaining(minutes) {
                 if (minutes <= 0) return '0:00:00';
                 
@@ -429,32 +439,28 @@
                 const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
                 
                 if (isWeekend) {
-                    // Weekend - train at Denver (start)
+                    // Weekend - train at Denver (start), show next trading day
                     progress = 0;
-                    timeRemaining.textContent = '--:--:--';
+                    timeRemaining.textContent = 'Markets Closed until Mon';
                 } else if (currentMinutes < marketOpenMinutes) {
-                    // Before market open - train at Denver
+                    // Before market open (12:01 AM - 9:30 AM on trading day)
+                    // Train at Denver, countdown to market open
                     progress = 0;
                     remainingMinutes = marketOpenMinutes - currentMinutes;
-                    timeRemaining.textContent = 'Opens ' + formatTimeRemaining(remainingMinutes);
+                    timeRemaining.textContent = 'Markets Open in ' + formatTimeRemaining(remainingMinutes);
                 } else if (currentMinutes >= marketOpenMinutes && currentMinutes < marketCloseMinutes) {
-                    // Market is OPEN - train moves along track
+                    // Market is OPEN (9:31 AM - 4:00 PM) - train moves along track
                     const elapsedMinutes = currentMinutes - marketOpenMinutes;
                     const totalMarketMinutes = marketCloseMinutes - marketOpenMinutes; // 389 minutes
                     progress = elapsedMinutes / totalMarketMinutes;
                     remainingMinutes = totalMarketMinutes - elapsedMinutes;
                     timeRemaining.textContent = formatTimeRemaining(remainingMinutes);
                 } else {
-                    // After market close
-                    // Switch back to "before hours" at 12:01 AM
-                    if (hours === 0 && minutes >= 1) {
-                        progress = 0;
-                        remainingMinutes = marketOpenMinutes - currentMinutes;
-                        timeRemaining.textContent = 'Opens ' + formatTimeRemaining(remainingMinutes);
-                    } else {
-                        progress = 1;
-                        timeRemaining.textContent = 'Closed';
-                    }
+                    // After market close (4:00 PM - 11:59 PM)
+                    // Train at DC (end), show markets closed until next trading day
+                    progress = 1;
+                    const nextDay = getNextTradingDay(dayOfWeek);
+                    timeRemaining.textContent = 'Markets Closed until ' + nextDay;
                 }
                 
                 // Clamp progress between 0 and 1
@@ -463,9 +469,7 @@
                 // Update progress bar width
                 progressBar.style.width = `${progress * 100}%`;
                 
-                // Position indicator with padding consideration
-                // The track has 40px padding on each side, so we need to map progress
-                // 0% = 40px in, 100% = 40px from end
+                // Position indicator
                 progressIndicator.style.left = `${progress * 100}%`;
             }
             
