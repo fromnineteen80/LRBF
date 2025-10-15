@@ -1,5 +1,5 @@
 .light {
-  /* Primary - Sidebar background */
+  /* Primary - Sidebar background when EXPANDED */
   --md-sys-color-primary: rgb(244 243 238);
   --md-sys-color-surface-tint: rgb(244 243 238);
   --md-sys-color-on-primary: rgb(59 53 47);
@@ -7,15 +7,15 @@
   --md-sys-color-on-primary-container: rgb(59 53 47);
   
   /* Secondary */
-  --md-sys-color-secondary: rgb(177 173 161);
+  --md-sys-color-secondary: rgb(211 208 200);
   --md-sys-color-on-secondary: rgb(59 53 47);
   --md-sys-color-secondary-container: rgb(231 229 224);
   --md-sys-color-on-secondary-container: rgb(59 53 47);
   
   /* Tertiary */
-  --md-sys-color-tertiary: rgb(211 208 200);
+  --md-sys-color-tertiary: rgb(177 173 161);
   --md-sys-color-on-tertiary: rgb(59 53 47);
-  --md-sys-color-tertiary-container: rgb(231 229 224);
+  --md-sys-color-tertiary-container: rgb(177 173 161);
   --md-sys-color-on-tertiary-container: rgb(59 53 47);
   
   /* Error */
@@ -24,11 +24,11 @@
   --md-sys-color-error-container: rgb(255 235 233);
   --md-sys-color-on-error-container: rgb(186 26 26);
   
-  /* Background - Main content page */
+  /* Background - Main content page, top app bar, sidebar when collapsed */
   --md-sys-color-background: rgb(250 249 247);
   --md-sys-color-on-background: rgb(59 53 47);
   
-  /* Surface - Cards, text boxes (#F4F3EE to match primary/pop from background) */
+  /* Surface - Cards, text boxes (pop from background) */
   --md-sys-color-surface: rgb(244 243 238);
   --md-sys-color-on-surface: rgb(59 53 47);
   --md-sys-color-surface-variant: rgb(231 229 224);
@@ -71,6 +71,8 @@
   --md-sys-color-surface-container-highest: rgb(211 208 200);
   
   /* Custom app colors for stock performance and status */
+  --app-color-falling-behind: rgb(255 84 73);
+  --app-color-falling-behind-text: rgb(255 255 255);
   --app-color-on-pace: rgb(231 195 109);
   --app-color-on-pace-text: rgb(59 53 47);
   --app-color-above-target: rgb(122 130 97);

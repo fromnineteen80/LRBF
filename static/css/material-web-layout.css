@@ -85,7 +85,7 @@ body {
 .nav-rail {
     width: var(--rail-width-collapsed);
     height: 100vh;
-    background-color: var(--md-sys-color-primary);
+    background-color: #F4F3EE;
     border-right: 1px solid var(--md-sys-color-outline-variant);
     display: flex;
     flex-direction: column;
@@ -103,7 +103,7 @@ body {
 
 /* Collapsed state overrides to match main content */
 .nav-rail.collapsed {
-    background-color: var(--md-sys-color-background);
+    background-color: #FAF9F7;
 }
 
 /* Toggle Button + Title */
@@ -241,7 +241,7 @@ body {
 }
 
 .nav-rail-item:hover {
-    background-color: var(--md-sys-color-surface-variant);
+    background-color: #E7E5E0;
 }
 
 .nav-rail-item.active {
@@ -347,7 +347,7 @@ body {
 
 .top-app-bar {
     height: var(--app-bar-height);
-    background-color: var(--md-sys-color-background);
+    background-color: #FAF9F7;
     display: flex;
     align-items: center;
     padding: 0 var(--spacing-lg);
@@ -426,7 +426,7 @@ body {
     flex: 1;
     overflow-y: auto;
     padding: var(--spacing-lg);
-    background-color: var(--md-sys-color-background);
+    background-color: #FAF9F7;
 }
 
 /* Content Container */
