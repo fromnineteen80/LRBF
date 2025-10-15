@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Glossary - Railyard Markets{% endblock %}
+{% block page_title %}Glossary{% endblock %}
+{% block content %}
+
+<md-elevated-card>
+    <div style="padding: 16px; border-bottom: 1px solid var(--md-sys-color-outline-variant);">
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <span class="material-symbols-outlined" style="color: var(--md-sys-color-primary);">book</span>
+            <h3 class="title-large" style="margin: 0;">Trading Glossary</h3>
+        </div>
+    </div>
+    <div style="padding: 24px;">
+        <p class="body-large" style="color: var(--md-sys-color-on-surface-variant); margin-bottom: 32px;">
+            Key terms and definitions for understanding the Luggage Room Boys Fund trading strategy.
+        </p>
+        
+        <!-- Glossary terms will go here -->
+        <div style="display: grid; gap: 24px;">
+            <div class="glossary-term">
+                <h4 class="title-medium" style="margin: 0 0 8px 0; color: var(--md-sys-color-primary);">VWAP (Volume Weighted Average Price)</h4>
+                <p class="body-medium" style="margin: 0; color: var(--md-sys-color-on-surface-variant);">
+                    Content coming soon...
+                </p>
+            </div>
+            
+            <div class="glossary-term">
+                <h4 class="title-medium" style="margin: 0 0 8px 0; color: var(--md-sys-color-primary);">Recovery Engine</h4>
+                <p class="body-medium" style="margin: 0; color: var(--md-sys-color-on-surface-variant);">
+                    Content coming soon...
+                </p>
+            </div>
+            
+            <div class="glossary-term">
+                <h4 class="title-medium" style="margin: 0 0 8px 0; color: var(--md-sys-color-primary);">Sharpe Ratio</h4>
+                <p class="body-medium" style="margin: 0; color: var(--md-sys-color-on-surface-variant);">
+                    Content coming soon...
+                </p>
+            </div>
+        </div>
+    </div>
+</md-elevated-card>
+
+{% endblock %}

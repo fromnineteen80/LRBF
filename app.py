@@ -227,6 +227,11 @@ def about():
 def how_it_works():
     return render_template('how_it_works.html', username=session.get('username'))
 
+@app.route('/glossary')
+@login_required
+def glossary():
+    return render_template('glossary.html', username=session.get('username'))
+
 # ============================================================================
 # API - MORNING REPORT
 # ============================================================================

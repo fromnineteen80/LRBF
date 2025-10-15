@@ -147,21 +147,6 @@
                     <span class="section-label">Analytics</span>
                 </div>
                 
-                <a href="{{ url_for('calculator') }}" 
-                   class="nav-rail-item {% if request.endpoint == 'calculator' %}active{% endif %}" 
-                   aria-label="Performance Calculator"
-                   aria-current="{% if request.endpoint == 'calculator' %}page{% endif %}"
-                   title="Calculator">
-                    <md-ripple></md-ripple>
-                    <span class="material-symbols-outlined">calculate</span>
-                    <span class="nav-rail-label">Calculator</span>
-                </a>
-                
-                <!-- System Section -->
-                <div class="nav-rail-section-header">
-                    <span class="section-label">System</span>
-                </div>
-                
                 <a href="{{ url_for('performance') }}" 
                    class="nav-rail-item {% if request.endpoint == 'performance' %}active{% endif %}" 
                    aria-label="Performance"
@@ -192,6 +177,21 @@
                     <span class="nav-rail-label">Practice</span>
                 </a>
                 
+                <a href="{{ url_for('calculator') }}" 
+                   class="nav-rail-item {% if request.endpoint == 'calculator' %}active{% endif %}" 
+                   aria-label="Performance Calculator"
+                   aria-current="{% if request.endpoint == 'calculator' %}page{% endif %}"
+                   title="Calculator">
+                    <md-ripple></md-ripple>
+                    <span class="material-symbols-outlined">calculate</span>
+                    <span class="nav-rail-label">Calculator</span>
+                </a>
+                
+                <!-- System Section -->
+                <div class="nav-rail-section-header">
+                    <span class="section-label">System</span>
+                </div>
+                
                 <a href="{{ url_for('api_credentials') }}" 
                    class="nav-rail-item {% if request.endpoint == 'api_credentials' %}active{% endif %}" 
                    aria-label="API & Credentials"
@@ -220,6 +220,16 @@
                     <md-ripple></md-ripple>
                     <span class="material-symbols-outlined">psychology</span>
                     <span class="nav-rail-label">How It Works</span>
+                </a>
+                
+                <a href="{{ url_for('glossary') }}" 
+                   class="nav-rail-item {% if request.endpoint == 'glossary' %}active{% endif %}" 
+                   aria-label="Glossary"
+                   aria-current="{% if request.endpoint == 'glossary' %}page{% endif %}"
+                   title="Glossary">
+                    <md-ripple></md-ripple>
+                    <span class="material-symbols-outlined">book</span>
+                    <span class="nav-rail-label">Glossary</span>
                 </a>
             </div>
             
