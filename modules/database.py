@@ -117,6 +117,57 @@ class TradingDatabase:
             )
         """)
         
+        # Table 5: Users (Co-Founders)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT UNIQUE NOT NULL,
+                password_hash TEXT NOT NULL,
+                first_name TEXT NOT NULL,
+                last_name TEXT NOT NULL,
+                email TEXT UNIQUE NOT NULL,
+                phone_number TEXT NOT NULL,
+                timezone TEXT NOT NULL DEFAULT 'America/New_York',
+                fund_contribution REAL NOT NULL DEFAULT 0.0,
+                ownership_pct REAL NOT NULL DEFAULT 0.0,
+                is_verified BOOLEAN DEFAULT 0,
+                verification_code TEXT,
+                is_active BOOLEAN DEFAULT 1,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                last_login TIMESTAMP,
+                invited_by INTEGER,
+                FOREIGN KEY (invited_by) REFERENCES users(id)
+            )
+        """)
+        
+        # Table 6: Sessions
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS sessions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                session_token TEXT UNIQUE NOT NULL,
+                expires_at TIMESTAMP NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                last_activity TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+        """)
+        
+        # Table 7: Account Deletion Requests
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS deletion_requests (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                requested_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                confirmed BOOLEAN DEFAULT 0,
+                confirmed_at TIMESTAMP,
+                fund_value_at_deletion REAL,
+                payout_amount REAL,
+                notes TEXT,
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            )
+        """)
+        
         # Create indexes for better query performance
         cursor.execute("""
             CREATE INDEX IF NOT EXISTS idx_fills_date 
@@ -136,6 +187,26 @@ class TradingDatabase:
         cursor.execute("""
             CREATE INDEX IF NOT EXISTS idx_events_severity 
             ON system_events(severity)
+        """)
+        
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_users_username 
+            ON users(username)
+        """)
+        
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_users_email 
+            ON users(email)
+        """)
+        
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_sessions_token 
+            ON sessions(session_token)
+        """)
+        
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_sessions_user 
+            ON sessions(user_id)
         """)
         
         self.conn.commit()
@@ -531,6 +602,318 @@ class TradingDatabase:
         df = df.rename(columns={'closing_balance': 'balance'})
         df = df.sort_values('date')  # Oldest to newest for chart
         return df[['date', 'balance', 'roi_pct']]
+    
+    # ========================================================================
+    # USER MANAGEMENT
+    # ========================================================================
+    
+    def create_user(self, user_data: Dict) -> int:
+        """
+        Create a new co-founder user account.
+        
+        Args:
+            user_data: Dict with keys: username, password_hash, first_name, 
+                      last_name, email, phone_number, timezone, fund_contribution,
+                      invited_by (optional)
+        
+        Returns:
+            User ID of created user
+        """
+        cursor = self.conn.cursor()
+        
+        cursor.execute("""
+            INSERT INTO users (
+                username, password_hash, first_name, last_name, email,
+                phone_number, timezone, fund_contribution, invited_by
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            user_data['username'],
+            user_data['password_hash'],
+            user_data['first_name'],
+            user_data['last_name'],
+            user_data['email'],
+            user_data['phone_number'],
+            user_data.get('timezone', 'America/New_York'),
+            user_data['fund_contribution'],
+            user_data.get('invited_by')
+        ))
+        
+        self.conn.commit()
+        user_id = cursor.lastrowid
+        
+        # Recalculate ownership percentages for all users
+        self._recalculate_ownership()
+        
+        # Log event
+        self.log_event(
+            "INFO", 
+            "MEDIUM", 
+            f"New co-founder added: {user_data['username']} (${user_data['fund_contribution']:,.2f})"
+        )
+        
+        return user_id
+    
+    def get_user_by_username(self, username: str) -> Optional[Dict]:
+        """Get user by username."""
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT * FROM users WHERE username = ?", (username,))
+        row = cursor.fetchone()
+        return dict(row) if row else None
+    
+    def get_user_by_email(self, email: str) -> Optional[Dict]:
+        """Get user by email."""
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT * FROM users WHERE email = ?", (email,))
+        row = cursor.fetchone()
+        return dict(row) if row else None
+    
+    def get_user_by_id(self, user_id: int) -> Optional[Dict]:
+        """Get user by ID."""
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT * FROM users WHERE id = ?", (user_id,))
+        row = cursor.fetchone()
+        return dict(row) if row else None
+    
+    def get_all_users(self) -> List[Dict]:
+        """Get all users (co-founders)."""
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT * FROM users WHERE is_active = 1 ORDER BY created_at")
+        return [dict(row) for row in cursor.fetchall()]
+    
+    def update_user_profile(self, user_id: int, updates: Dict) -> bool:
+        """
+        Update user profile fields.
+        
+        Args:
+            user_id: User ID
+            updates: Dict of fields to update (e.g., {'email': '...', 'timezone': '...'})
+        
+        Returns:
+            True if successful
+        """
+        # Build SET clause dynamically
+        allowed_fields = ['first_name', 'last_name', 'email', 'phone_number', 
+                         'timezone', 'fund_contribution']
+        
+        set_clauses = []
+        values = []
+        for field in allowed_fields:
+            if field in updates:
+                set_clauses.append(f"{field} = ?")
+                values.append(updates[field])
+        
+        if not set_clauses:
+            return False
+        
+        values.append(user_id)
+        
+        cursor = self.conn.cursor()
+        cursor.execute(f"""
+            UPDATE users 
+            SET {', '.join(set_clauses)}
+            WHERE id = ?
+        """, values)
+        
+        self.conn.commit()
+        
+        # If fund contribution changed, recalculate ownership
+        if 'fund_contribution' in updates:
+            self._recalculate_ownership()
+        
+        return True
+    
+    def update_password(self, user_id: int, new_password_hash: str) -> bool:
+        """Update user password."""
+        cursor = self.conn.cursor()
+        cursor.execute("""
+            UPDATE users 
+            SET password_hash = ?
+            WHERE id = ?
+        """, (new_password_hash, user_id))
+        
+        self.conn.commit()
+        return True
+    
+    def verify_user(self, user_id: int) -> bool:
+        """Mark user as verified (after phone verification)."""
+        cursor = self.conn.cursor()
+        cursor.execute("""
+            UPDATE users 
+            SET is_verified = 1, verification_code = NULL
+            WHERE id = ?
+        """, (user_id,))
+        
+        self.conn.commit()
+        return True
+    
+    def update_last_login(self, user_id: int):
+        """Update user's last login timestamp."""
+        cursor = self.conn.cursor()
+        cursor.execute("""
+            UPDATE users 
+            SET last_login = CURRENT_TIMESTAMP
+            WHERE id = ?
+        """, (user_id,))
+        
+        self.conn.commit()
+    
+    def _recalculate_ownership(self):
+        """
+        Recalculate ownership percentages for all active users based on contributions.
+        This runs automatically when users are added or contributions change.
+        """
+        cursor = self.conn.cursor()
+        
+        # Get total fund value from all active users
+        cursor.execute("""
+            SELECT SUM(fund_contribution) as total
+            FROM users
+            WHERE is_active = 1
+        """)
+        
+        total = cursor.fetchone()['total'] or 0
+        
+        if total == 0:
+            return
+        
+        # Update each user's ownership percentage
+        cursor.execute("""
+            UPDATE users
+            SET ownership_pct = ROUND((fund_contribution / ?) * 100, 4)
+            WHERE is_active = 1
+        """, (total,))
+        
+        self.conn.commit()
+    
+    def get_total_fund_value(self) -> float:
+        """Get total fund contributions from all active users."""
+        cursor = self.conn.cursor()
+        cursor.execute("""
+            SELECT SUM(fund_contribution) as total
+            FROM users
+            WHERE is_active = 1
+        """)
+        
+        result = cursor.fetchone()
+        return result['total'] or 0.0
+    
+    # ========================================================================
+    # SESSION MANAGEMENT
+    # ========================================================================
+    
+    def create_session(self, user_id: int, session_token: str, expires_at: datetime) -> int:
+        """Create a new session for user."""
+        cursor = self.conn.cursor()
+        
+        cursor.execute("""
+            INSERT INTO sessions (user_id, session_token, expires_at)
+            VALUES (?, ?, ?)
+        """, (user_id, session_token, expires_at.isoformat()))
+        
+        self.conn.commit()
+        return cursor.lastrowid
+    
+    def get_session(self, session_token: str) -> Optional[Dict]:
+        """Get session by token."""
+        cursor = self.conn.cursor()
+        cursor.execute("""
+            SELECT s.*, u.username, u.first_name, u.last_name, u.email,
+                   u.is_active, u.is_verified
+            FROM sessions s
+            JOIN users u ON s.user_id = u.id
+            WHERE s.session_token = ?
+        """, (session_token,))
+        
+        row = cursor.fetchone()
+        return dict(row) if row else None
+    
+    def update_session_activity(self, session_token: str):
+        """Update session's last activity timestamp."""
+        cursor = self.conn.cursor()
+        cursor.execute("""
+            UPDATE sessions
+            SET last_activity = CURRENT_TIMESTAMP
+            WHERE session_token = ?
+        """, (session_token,))
+        
+        self.conn.commit()
+    
+    def delete_session(self, session_token: str):
+        """Delete a session (logout)."""
+        cursor = self.conn.cursor()
+        cursor.execute("DELETE FROM sessions WHERE session_token = ?", (session_token,))
+        self.conn.commit()
+    
+    def delete_expired_sessions(self):
+        """Delete all expired sessions."""
+        cursor = self.conn.cursor()
+        cursor.execute("""
+            DELETE FROM sessions
+            WHERE datetime(expires_at) < datetime('now')
+        """)
+        self.conn.commit()
+    
+    # ========================================================================
+    # ACCOUNT DELETION
+    # ========================================================================
+    
+    def create_deletion_request(self, user_id: int, fund_value: float, payout: float, notes: str = "") -> int:
+        """Create account deletion request."""
+        cursor = self.conn.cursor()
+        
+        cursor.execute("""
+            INSERT INTO deletion_requests (
+                user_id, fund_value_at_deletion, payout_amount, notes
+            ) VALUES (?, ?, ?, ?)
+        """, (user_id, fund_value, payout, notes))
+        
+        self.conn.commit()
+        return cursor.lastrowid
+    
+    def confirm_deletion_request(self, request_id: int) -> bool:
+        """Confirm and execute account deletion."""
+        cursor = self.conn.cursor()
+        
+        # Mark request as confirmed
+        cursor.execute("""
+            UPDATE deletion_requests
+            SET confirmed = 1, confirmed_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        """, (request_id,))
+        
+        # Get user_id from request
+        cursor.execute("SELECT user_id FROM deletion_requests WHERE id = ?", (request_id,))
+        user_id = cursor.fetchone()['user_id']
+        
+        # Mark user as inactive (soft delete)
+        cursor.execute("""
+            UPDATE users
+            SET is_active = 0
+            WHERE id = ?
+        """, (user_id,))
+        
+        # Delete all user's sessions
+        cursor.execute("DELETE FROM sessions WHERE user_id = ?", (user_id,))
+        
+        self.conn.commit()
+        
+        # Recalculate ownership for remaining users
+        self._recalculate_ownership()
+        
+        return True
+    
+    def get_deletion_request(self, user_id: int) -> Optional[Dict]:
+        """Get pending deletion request for user."""
+        cursor = self.conn.cursor()
+        cursor.execute("""
+            SELECT * FROM deletion_requests
+            WHERE user_id = ? AND confirmed = 0
+            ORDER BY requested_at DESC
+            LIMIT 1
+        """, (user_id,))
+        
+        row = cursor.fetchone()
+        return dict(row) if row else None
     
     def close(self):
         """Close database connection."""
