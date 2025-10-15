@@ -4,50 +4,65 @@
 {% block page_title %}Dashboard{% endblock %}
 
 {% block content %}
-<div class="grid grid-cols-3 gap-4 mb-4">
-    <div class="card">
-        <div class="card-content">
-            <p class="label-medium" style="color: var(--md-sys-color-on-surface-variant); margin-bottom: var(--md-sys-spacing-2);">Account Balance</p>
-            <h2 class="headline-large" id="accountBalance">$0.00</h2>
+<!-- Stats Cards -->
+<div class="grid grid-3 gap-lg mb-lg">
+    <md-elevated-card style="padding: 24px;">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+            <span class="material-symbols-outlined" style="font-size: 32px; color: var(--md-sys-color-primary);">
+                account_balance_wallet
+            </span>
+            <p style="margin: 0; font-size: 14px; color: var(--md-sys-color-on-surface-variant);">Account Balance</p>
         </div>
-    </div>
-    <div class="card">
-        <div class="card-content">
-            <p class="label-medium" style="color: var(--md-sys-color-on-surface-variant); margin-bottom: var(--md-sys-spacing-2);">Today's P&L</p>
-            <h2 class="headline-large" id="todayPL">$0.00</h2>
+        <h2 style="margin: 0; font-size: 32px; font-weight: 500; color: var(--md-sys-color-on-surface);" id="accountBalance">$0.00</h2>
+    </md-elevated-card>
+    
+    <md-elevated-card style="padding: 24px;">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+            <span class="material-symbols-outlined" style="font-size: 32px; color: var(--md-sys-color-primary);">
+                trending_up
+            </span>
+            <p style="margin: 0; font-size: 14px; color: var(--md-sys-color-on-surface-variant);">Today's P&L</p>
         </div>
-    </div>
-    <div class="card">
-        <div class="card-content">
-            <p class="label-medium" style="color: var(--md-sys-color-on-surface-variant); margin-bottom: var(--md-sys-spacing-2);">Win Rate</p>
-            <h2 class="headline-large" id="winRate">0%</h2>
+        <h2 style="margin: 0; font-size: 32px; font-weight: 500;" id="todayPL">$0.00</h2>
+    </md-elevated-card>
+    
+    <md-elevated-card style="padding: 24px;">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+            <span class="material-symbols-outlined" style="font-size: 32px; color: var(--md-sys-color-primary);">
+                percent
+            </span>
+            <p style="margin: 0; font-size: 14px; color: var(--md-sys-color-on-surface-variant);">Win Rate</p>
         </div>
-    </div>
+        <h2 style="margin: 0; font-size: 32px; font-weight: 500; color: var(--md-sys-color-on-surface);" id="winRate">0%</h2>
+    </md-elevated-card>
 </div>
 
-<div class="grid grid-cols-1 gap-4">
-    <div class="card">
-        <div class="card-header">
-            <h3 class="card-title">Quick Actions</h3>
-        </div>
-        <div class="card-content">
-            <div class="flex gap-4">
-                <a href="/morning" class="button button-filled">Generate Morning Report</a>
-                <a href="/live" class="button button-outlined">Live Monitor</a>
-                <a href="/eod" class="button button-outlined">EOD Report</a>
-            </div>
-        </div>
+<!-- Quick Actions Card -->
+<md-elevated-card style="padding: 24px; margin-bottom: 24px;">
+    <h3 style="margin: 0 0 16px 0; font-size: 20px; font-weight: 500;">Quick Actions</h3>
+    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+        <md-filled-button href="/morning">
+            <span slot="icon" class="material-symbols-outlined">wb_twilight</span>
+            Generate Morning Report
+        </md-filled-button>
+        <md-outlined-button href="/live">
+            <span slot="icon" class="material-symbols-outlined">monitoring</span>
+            Live Monitor
+        </md-outlined-button>
+        <md-outlined-button href="/eod">
+            <span slot="icon" class="material-symbols-outlined">nightlight</span>
+            EOD Report
+        </md-outlined-button>
     </div>
-    
-    <div class="card">
-        <div class="card-header">
-            <h3 class="card-title">Recent Performance</h3>
-        </div>
-        <div class="card-content">
-            <canvas id="performanceChart" height="100"></canvas>
-        </div>
+</md-elevated-card>
+
+<!-- Performance Chart Card -->
+<md-elevated-card style="padding: 24px;">
+    <h3 style="margin: 0 0 16px 0; font-size: 20px; font-weight: 500;">Recent Performance</h3>
+    <div style="position: relative; height: 300px;">
+        <canvas id="performanceChart"></canvas>
     </div>
-</div>
+</md-elevated-card>
 {% endblock %}
 
 {% block scripts %}
