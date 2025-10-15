@@ -209,6 +209,8 @@ body {
 .nav-rail.collapsed .nav-rail-item {
     justify-content: center;
     padding: 6px;
+    margin: 0 auto;
+    width: 36px;
 }
 
 .nav-rail-item:hover {
@@ -229,6 +231,10 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+.nav-rail.collapsed .nav-rail-item .material-symbols-outlined {
+    margin: 0;
 }
 
 .nav-rail-item.active .material-symbols-outlined {

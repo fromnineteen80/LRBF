@@ -93,7 +93,7 @@
             <!-- Toggle Button + Title -->
             <div class="nav-rail-toggle">
                 <md-icon-button onclick="toggleNavRail()" aria-label="Toggle navigation menu" id="navToggleBtn">
-                    <span class="material-symbols-outlined">dock_to_left</span>
+                    <span class="material-symbols-outlined">left_panel_close</span>
                 </md-icon-button>
                 <span class="nav-rail-title">
                     <span class="title-lrb">LRB</span><span class="title-fund">Fund</span>
@@ -344,7 +344,7 @@
             
             // Update icon and save state
             if (navRail.classList.contains('collapsed')) {
-                icon.textContent = 'dock_to_left';
+                icon.textContent = 'left_panel_close';
                 localStorage.setItem('navRailCollapsed', 'true');
             } else {
                 icon.textContent = 'chevron_left';
