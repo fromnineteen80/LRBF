@@ -359,7 +359,7 @@ def practice_analyze():
         analyzed_stocks = []
         
         for ticker in tickers:
-            analysis = detector.analyze_ticker(ticker, simulation_mode=True)
+            analysis = detector.analyze_ticker(ticker, simulation_mode=cfg.USE_SIMULATION)
             if analysis:
                 analyzed_stocks.append(analysis)
         

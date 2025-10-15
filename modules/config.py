@@ -104,6 +104,12 @@ class TradingConfig:
     # SIMULATION PARAMETERS (for testing without real IBKR connection)
     # ========================================================================
     
+    USE_SIMULATION = False  # PRODUCTION: Set to False to use real yfinance data
+                            # DEVELOPMENT: Set to True when testing in Claude container
+                            # 
+                            # NOTE: yfinance is blocked in Claude container (403 errors)
+                            # but will work correctly in production deployment (Railway)
+                            
     SIMULATION_STARTING_BALANCE = 30000.0  # Starting balance for simulation mode
     
     # ========================================================================
