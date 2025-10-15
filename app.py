@@ -47,7 +47,15 @@ def set_security_headers(response):
     response.headers['X-Frame-Options'] = 'DENY'
     response.headers['X-XSS-Protection'] = '1; mode=block'
     response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
-    response.headers['Content-Security-Policy'] = "default-src 'self' 'unsafe-inline' 'unsafe-eval' https://esm.run https://fonts.googleapis.com https://fonts.gstatic.com data:;"
+    # Enhanced CSP to allow Material Web Components
+    response.headers['Content-Security-Policy'] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://esm.run https://cdn.jsdelivr.net; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+        "font-src 'self' https://fonts.gstatic.com; "
+        "img-src 'self' data: https:; "
+        "connect-src 'self' https://esm.run;"
+    )
     return response
 
 # Initialize database
@@ -59,10 +67,11 @@ if BACKEND_AVAILABLE:
 # ============================================================================
 
 # Production: Store these in environment variables or secure database
-# For now, using bcrypt-hashed passwords (much more secure than SHA256)
+# Pre-hashed passwords using bcrypt
+# admin: admin123, cofounder: luggage2025
 USERS = {
-    'admin': bcrypt.hashpw('admin123'.encode(), bcrypt.gensalt()).decode('utf-8'),
-    'cofounder': bcrypt.hashpw('luggage2025'.encode(), bcrypt.gensalt()).decode('utf-8')
+    'admin': '$2b$12$o63kdC0CSIPlGU82cG9UMueIMf3C3rwlcgNRv0z.dKwwT3N3vm7oC',
+    'cofounder': '$2b$12$mLje1vvYjCnrXnE9j37MT.mdypNvzSS3kkaqR8IAoLwloxFA8QQsm'
 }
 
 # Simple rate limiting (production should use Redis)
