@@ -2,67 +2,75 @@
 
 :root {
     /* === PRIMARY PALETTE === */
-    --md-sys-color-primary: #1976d2;
-    --md-sys-color-on-primary: #ffffff;
-    --md-sys-color-primary-container: #bbdefb;
-    --md-sys-color-on-primary-container: #0d47a1;
+    --md-sys-color-primary: #E7E5E0;
+    --md-sys-color-on-primary: #3B352F;
+    --md-sys-color-primary-container: #E7E5E0;
+    --md-sys-color-on-primary-container: #3B352F;
     
     /* === SECONDARY PALETTE === */
-    --md-sys-color-secondary: #424242;
-    --md-sys-color-on-secondary: #ffffff;
-    --md-sys-color-secondary-container: #e0e0e0;
-    --md-sys-color-on-secondary-container: #212121;
+    --md-sys-color-secondary: #B1ADA1;
+    --md-sys-color-on-secondary: #3B352F;
+    --md-sys-color-secondary-container: #D3D0C8;
+    --md-sys-color-on-secondary-container: #3B352F;
     
     /* === TERTIARY PALETTE === */
-    --md-sys-color-tertiary: #00838f;
-    --md-sys-color-on-tertiary: #ffffff;
-    --md-sys-color-tertiary-container: #b2ebf2;
-    --md-sys-color-on-tertiary-container: #006064;
+    --md-sys-color-tertiary: #D3D0C8;
+    --md-sys-color-on-tertiary: #3B352F;
+    --md-sys-color-tertiary-container: #FAF9F7;
+    --md-sys-color-on-tertiary-container: #3B352F;
     
     /* === ERROR PALETTE === */
-    --md-sys-color-error: #d32f2f;
-    --md-sys-color-on-error: #ffffff;
-    --md-sys-color-error-container: #ffcdd2;
-    --md-sys-color-on-error-container: #b71c1c;
+    --md-sys-color-error: #FF5449;
+    --md-sys-color-on-error: #FFFFFF;
+    --md-sys-color-error-container: #FFEBE9;
+    --md-sys-color-on-error-container: #3B352F;
     
     /* === SURFACE COLORS === */
-    --md-sys-color-surface: #ffffff;
-    --md-sys-color-on-surface: #212121;
-    --md-sys-color-surface-variant: #f5f5f5;
-    --md-sys-color-on-surface-variant: #424242;
-    --md-sys-color-surface-container-lowest: #fafafa;
-    --md-sys-color-surface-container-low: #f8f8f8;
-    --md-sys-color-surface-container: #f5f5f5;
-    --md-sys-color-surface-container-high: #f0f0f0;
-    --md-sys-color-surface-container-highest: #eeeeee;
+    --md-sys-color-surface: #FFFFFF;
+    --md-sys-color-on-surface: #3B352F;
+    --md-sys-color-surface-variant: #FAF9F7;
+    --md-sys-color-on-surface-variant: #3B352F;
+    --md-sys-color-surface-container-lowest: #FFFFFF;
+    --md-sys-color-surface-container-low: #FAF9F7;
+    --md-sys-color-surface-container: #F4F3EE;
+    --md-sys-color-surface-container-high: #E7E5E0;
+    --md-sys-color-surface-container-highest: #D3D0C8;
     
     /* === OUTLINE === */
-    --md-sys-color-outline: #bdbdbd;
-    --md-sys-color-outline-variant: #e0e0e0;
+    --md-sys-color-outline: rgba(59, 53, 47, 0.5);
+    --md-sys-color-outline-variant: #B1ADA1;
     
     /* === BACKGROUND === */
-    --md-sys-color-background: #fafafa;
-    --md-sys-color-on-background: #212121;
+    --md-sys-color-background: #F4F3EE;
+    --md-sys-color-on-background: #3B352F;
     
     /* === SHADOW === */
     --md-sys-color-shadow: #000000;
     --md-sys-color-scrim: rgba(0, 0, 0, 0.32);
     
     /* === EXTENDED COLORS === */
-    --md-sys-color-success: #2e7d32;
-    --md-sys-color-on-success: #ffffff;
+    --md-sys-color-success: #7A8261;
+    --md-sys-color-on-success: #FFFFFF;
     --md-sys-color-success-container: #c8e6c9;
-    --md-sys-color-on-success-container: #1b5e20;
+    --md-sys-color-on-success-container: #3B352F;
     
-    --md-sys-color-warning: #f57c00;
-    --md-sys-color-on-warning: #ffffff;
+    --md-sys-color-warning: #E7C36D;
+    --md-sys-color-on-warning: #3B352F;
     --md-sys-color-warning-container: #ffe0b2;
-    --md-sys-color-on-warning-container: #e65100;
+    --md-sys-color-on-warning-container: #3B352F;
     
-    --md-sys-color-info: #0288d1;
-    --md-sys-color-on-info: #ffffff;
-    --md-sys-color-info-container: #b3e5fc;
-    --md-sys-color-on-info-container: #01579b;
+    --md-sys-color-info: #3F4F5D;
+    --md-sys-color-on-info: #FFFFFF;
+    --md-sys-color-info-container: #5B7286;
+    --md-sys-color-on-info-container: #FFFFFF;
+    
+    /* === CUSTOM APP COLORS === */
+    --app-color-falling-behind: #FF5449;
+    --app-color-on-pace: #E7C36D;
+    --app-color-above-target: #7A8261;
+    --app-color-conservative: #3F4F5D;
+    --app-color-moderate: #5B7286;
+    --app-color-aggressive: #869AAC;
     
     /* === ELEVATION === */
     --md-sys-elevation-1: 0 1px 2px rgba(0, 0, 0, 0.05);
