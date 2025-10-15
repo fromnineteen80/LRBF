@@ -413,34 +413,79 @@ body {
     background-color: var(--md-sys-color-info);
 }
 
-/* User Menu - Enterprise Quant Desk Design */
+/* User Menu - Enterprise Quant Desk Design with MD3 Filled Button Styling */
 .user-menu {
     position: relative;
 }
 
 .user-menu-button {
-    padding: 8px 20px;
-    background-color: #000000;
-    color: #ffffff;
+    /* MD3 Filled Button Styling */
+    padding: 10px 24px;
+    background-color: var(--md-sys-color-inverse-surface);
+    color: var(--md-sys-color-inverse-on-surface);
     border: none;
-    border-radius: 4px;
+    border-radius: 20px; /* MD3 full-rounded corners for buttons */
     font-family: 'Roboto', sans-serif;
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 500;
-    letter-spacing: 0.02em;
+    letter-spacing: 0.1px;
+    text-transform: none;
     cursor: pointer;
     transition: background-color 0.2s ease, box-shadow 0.2s ease;
     white-space: nowrap;
+    min-height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+    
+    /* MD3 Elevation Level 0 (default state) */
+    box-shadow: none;
+}
+
+/* MD3 State Layer - Hover */
+.user-menu-button::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--md-sys-color-inverse-on-surface);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    pointer-events: none;
+}
+
+.user-menu-button:hover::before {
+    opacity: 0.08; /* MD3 hover state layer opacity */
 }
 
 .user-menu-button:hover {
-    background-color: #1a1a1a;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    /* MD3 Elevation Level 1 on hover */
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.3),
+                0 1px 3px 1px rgba(0, 0, 0, 0.15);
+}
+
+/* MD3 State Layer - Pressed */
+.user-menu-button:active::before {
+    opacity: 0.12; /* MD3 pressed state layer opacity */
 }
 
 .user-menu-button:active {
-    background-color: #000000;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+    /* MD3 Elevation Level 0 on press (flattens) */
+    box-shadow: none;
+}
+
+/* MD3 State Layer - Focus */
+.user-menu-button:focus {
+    outline: none;
+}
+
+.user-menu-button:focus-visible {
+    outline: 2px solid var(--md-sys-color-inverse-surface);
+    outline-offset: 2px;
 }
 
 /* Dropdown Menu */
@@ -476,14 +521,29 @@ body {
     font-size: 14px;
     font-weight: 300;
     transition: background-color 0.15s ease;
+    position: relative;
 }
 
-.user-menu-item:hover {
-    background-color: var(--md-sys-color-surface-variant);
+/* MD3 State Layer for menu items */
+.user-menu-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--md-sys-color-on-surface);
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    pointer-events: none;
 }
 
-.user-menu-item:active {
-    background-color: var(--md-sys-color-surface-container-high);
+.user-menu-item:hover::before {
+    opacity: 0.08;
+}
+
+.user-menu-item:active::before {
+    opacity: 0.12;
 }
 
 .user-menu-divider {
