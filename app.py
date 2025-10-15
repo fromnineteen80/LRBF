@@ -192,6 +192,11 @@ def eod():
 def history():
     return render_template('history.html', username=session.get('username'))
 
+@app.route('/performance')
+@login_required
+def performance():
+    return render_template('performance.html', username=session.get('username'))
+
 @app.route('/calculator')
 @login_required
 def calculator():

@@ -157,14 +157,19 @@
                     <span class="nav-rail-label">Calculator</span>
                 </a>
                 
-                <a href="{{ url_for('practice') }}" 
-                   class="nav-rail-item {% if request.endpoint == 'practice' %}active{% endif %}" 
-                   aria-label="Practice Mode"
-                   aria-current="{% if request.endpoint == 'practice' %}page{% endif %}"
-                   title="Practice">
+                <!-- System Section -->
+                <div class="nav-rail-section-header">
+                    <span class="section-label">System</span>
+                </div>
+                
+                <a href="{{ url_for('performance') }}" 
+                   class="nav-rail-item {% if request.endpoint == 'performance' %}active{% endif %}" 
+                   aria-label="Performance"
+                   aria-current="{% if request.endpoint == 'performance' %}page{% endif %}"
+                   title="Performance">
                     <md-ripple></md-ripple>
-                    <span class="material-symbols-outlined">science</span>
-                    <span class="nav-rail-label">Practice</span>
+                    <span class="material-symbols-outlined">show_chart</span>
+                    <span class="nav-rail-label">Performance</span>
                 </a>
                 
                 <a href="{{ url_for('history') }}" 
@@ -177,10 +182,25 @@
                     <span class="nav-rail-label">History</span>
                 </a>
                 
-                <!-- System Section -->
-                <div class="nav-rail-section-header">
-                    <span class="section-label">System</span>
-                </div>
+                <a href="{{ url_for('practice') }}" 
+                   class="nav-rail-item {% if request.endpoint == 'practice' %}active{% endif %}" 
+                   aria-label="Practice Mode"
+                   aria-current="{% if request.endpoint == 'practice' %}page{% endif %}"
+                   title="Practice">
+                    <md-ripple></md-ripple>
+                    <span class="material-symbols-outlined">science</span>
+                    <span class="nav-rail-label">Practice</span>
+                </a>
+                
+                <a href="{{ url_for('api_credentials') }}" 
+                   class="nav-rail-item {% if request.endpoint == 'api_credentials' %}active{% endif %}" 
+                   aria-label="API & Credentials"
+                   aria-current="{% if request.endpoint == 'api_credentials' %}page{% endif %}"
+                   title="API & Credentials">
+                    <md-ripple></md-ripple>
+                    <span class="material-symbols-outlined">vpn_key</span>
+                    <span class="nav-rail-label">API & Creds</span>
+                </a>
                 
                 <a href="{{ url_for('about') }}" 
                    class="nav-rail-item {% if request.endpoint == 'about' %}active{% endif %}" 
