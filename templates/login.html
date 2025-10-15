@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Railyard Markets</title>
+    <title>Login - The Luggage Room Boys Fund</title>
     
     <!-- Material Design 3 Theme -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/theme/light.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/theme/dark.css') }}">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     
     <!-- Material Web Components -->
     <script type="importmap">
@@ -31,312 +31,740 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/material-web-layout.css') }}">
     
 <style>
-    /* Login Page Specific Styles */
+    /* Login Page - Editorial Design */
+    * {
+        box-sizing: border-box;
+    }
+    
     body {
         margin: 0;
         padding: 0;
-        font-family: 'Roboto', sans-serif;
-        background-color: var(--md-sys-color-background);
-        color: var(--md-sys-color-on-background);
+        font-family: 'Roboto Flex', sans-serif;
+        overflow: hidden;
     }
     
+    /* Animated Background with Geometric Texture */
+    .login-background {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(135deg, 
+            #1a1a2e 0%,
+            #16213e 25%,
+            #0f3460 50%,
+            #16213e 75%,
+            #1a1a2e 100%);
+        background-size: 400% 400%;
+        animation: gradientShift 20s ease infinite;
+        z-index: 0;
+    }
+    
+    @keyframes gradientShift {
+        0%, 100% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+    }
+    
+    /* Geometric Pattern Overlay */
+    .pattern-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        opacity: 0.1;
+        background-image: 
+            repeating-linear-gradient(45deg, transparent, transparent 35px, rgba(255,255,255,.03) 35px, rgba(255,255,255,.03) 70px),
+            repeating-linear-gradient(-45deg, transparent, transparent 35px, rgba(255,255,255,.03) 35px, rgba(255,255,255,.03) 70px);
+    }
+    
+    /* Floating Particles */
+    .particle {
+        position: absolute;
+        width: 4px;
+        height: 4px;
+        background: rgba(255, 255, 255, 0.3);
+        border-radius: 50%;
+        animation: float linear infinite;
+    }
+    
+    @keyframes float {
+        0% {
+            transform: translateY(100vh) translateX(0);
+            opacity: 0;
+        }
+        10% {
+            opacity: 0.5;
+        }
+        90% {
+            opacity: 0.5;
+        }
+        100% {
+            transform: translateY(-100px) translateX(100px);
+            opacity: 0;
+        }
+    }
+    
+    /* Main Container */
     .login-container {
+        position: relative;
         min-height: 100vh;
         display: flex;
+        flex-direction: column;
         align-items: center;
         justify-content: center;
-        padding: var(--spacing-lg);
-        background: linear-gradient(135deg, 
-            var(--md-sys-color-primary-container) 0%, 
-            var(--md-sys-color-secondary-container) 100%);
+        padding: 60px 20px 20px 20px;
+        z-index: 1;
     }
     
+    /* Title - The Luggage Room Boys Fund */
+    .fund-title {
+        font-family: 'Roboto Flex', sans-serif;
+        font-size: clamp(32px, 6vw, 64px);
+        font-weight: 900;
+        letter-spacing: -0.02em;
+        text-align: center;
+        margin-bottom: 80px;
+        background: linear-gradient(135deg, #ffffff 0%, #e0e0e0 50%, #ffffff 100%);
+        background-size: 200% 200%;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        animation: shimmer 3s ease-in-out infinite;
+        text-shadow: 0 0 40px rgba(255, 255, 255, 0.1);
+        position: relative;
+    }
+    
+    @keyframes shimmer {
+        0%, 100% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+    }
+    
+    .fund-title::before {
+        content: '';
+        position: absolute;
+        top: -20px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 80px;
+        height: 4px;
+        background: linear-gradient(90deg, transparent, #53a8b6, transparent);
+        border-radius: 2px;
+    }
+    
+    /* Trading Clock Container */
+    .trading-clock-container {
+        position: relative;
+        width: 100%;
+        max-width: 600px;
+        height: 200px;
+        margin-bottom: -100px;
+        z-index: 2;
+    }
+    
+    /* SVG Track Arc */
+    .track-svg {
+        width: 100%;
+        height: 100%;
+    }
+    
+    .track-background {
+        fill: none;
+        stroke: rgba(255, 255, 255, 0.1);
+        stroke-width: 3;
+        stroke-linecap: round;
+    }
+    
+    .track-progress {
+        fill: none;
+        stroke: url(#trackGradient);
+        stroke-width: 4;
+        stroke-linecap: round;
+        filter: drop-shadow(0 0 8px rgba(83, 168, 182, 0.6));
+        transition: stroke-dashoffset 1s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    /* Train Icon */
+    .train-icon {
+        position: absolute;
+        font-size: 32px;
+        color: #53a8b6;
+        filter: drop-shadow(0 0 12px rgba(83, 168, 182, 0.8));
+        transition: all 1s cubic-bezier(0.4, 0, 0.2, 1);
+        animation: trainPulse 2s ease-in-out infinite;
+    }
+    
+    @keyframes trainPulse {
+        0%, 100% { transform: scale(1) rotate(0deg); }
+        50% { transform: scale(1.1) rotate(5deg); }
+    }
+    
+    /* City Labels */
+    .city-label {
+        position: absolute;
+        font-family: 'Roboto Flex', sans-serif;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.7);
+    }
+    
+    .city-label.denver {
+        left: 0;
+        bottom: 20px;
+    }
+    
+    .city-label.dc {
+        right: 0;
+        bottom: 20px;
+    }
+    
+    /* Market Status Badge */
+    .market-status {
+        position: absolute;
+        top: -40px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-family: 'Roboto Flex', sans-serif;
+        font-size: 12px;
+        font-weight: 600;
+        padding: 6px 16px;
+        border-radius: 20px;
+        background: rgba(83, 168, 182, 0.2);
+        color: #53a8b6;
+        border: 1px solid rgba(83, 168, 182, 0.4);
+        backdrop-filter: blur(10px);
+        animation: statusPulse 3s ease-in-out infinite;
+    }
+    
+    @keyframes statusPulse {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(83, 168, 182, 0.4); }
+        50% { box-shadow: 0 0 0 8px rgba(83, 168, 182, 0); }
+    }
+    
+    /* Login Card */
     .login-card {
         width: 100%;
-        max-width: 400px;
+        max-width: 420px;
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 28px;
+        padding: 48px 40px;
+        box-shadow: 
+            0 8px 32px rgba(0, 0, 0, 0.3),
+            0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+        animation: cardFloat 6s ease-in-out infinite;
+    }
+    
+    @keyframes cardFloat {
+        0%, 100% { transform: translateY(0px); }
+        50% { transform: translateY(-10px); }
     }
     
     .login-header {
         text-align: center;
-        margin-bottom: var(--spacing-xl);
+        margin-bottom: 32px;
     }
     
     .login-logo {
-        font-size: 64px !important;
-        color: var(--md-sys-color-primary);
-        margin-bottom: var(--spacing-md);
+        font-size: 48px !important;
+        color: #53a8b6;
+        margin-bottom: 16px;
+        filter: drop-shadow(0 0 20px rgba(83, 168, 182, 0.4));
     }
     
     .login-title {
-        font-size: 28px;
-        font-weight: 500;
-        color: var(--md-sys-color-on-surface);
-        margin: 0 0 var(--spacing-sm) 0;
+        font-family: 'Roboto Flex', sans-serif;
+        font-size: 24px;
+        font-weight: 700;
+        color: #ffffff;
+        margin: 0 0 8px 0;
     }
     
     .login-subtitle {
-        font-size: 14px;
-        color: var(--md-sys-color-on-surface-variant);
+        font-family: 'Roboto Flex', sans-serif;
+        font-size: 13px;
+        font-weight: 400;
+        color: rgba(255, 255, 255, 0.6);
         margin: 0;
+        letter-spacing: 0.02em;
     }
     
     .login-form {
         display: flex;
         flex-direction: column;
-        gap: var(--spacing-lg);
+        gap: 24px;
     }
     
     .form-field {
         width: 100%;
     }
     
+    .form-field md-filled-text-field {
+        --md-filled-text-field-container-color: rgba(255, 255, 255, 0.08);
+        --md-filled-text-field-label-text-color: rgba(255, 255, 255, 0.7);
+        --md-filled-text-field-input-text-color: #ffffff;
+        --md-filled-text-field-active-indicator-color: #53a8b6;
+        --md-filled-text-field-focus-active-indicator-color: #53a8b6;
+    }
+    
     .form-actions {
         display: flex;
         flex-direction: column;
-        gap: var(--spacing-md);
-        margin-top: var(--spacing-md);
+        gap: 16px;
+        margin-top: 8px;
+    }
+    
+    .form-actions md-filled-button {
+        width: 100%;
+        --md-filled-button-container-color: #53a8b6;
+        --md-filled-button-label-text-color: #000000;
+        --md-filled-button-hover-state-layer-color: rgba(255, 255, 255, 0.1);
+    }
+    
+    .form-actions md-text-button {
+        width: 100%;
+        --md-text-button-label-text-color: rgba(255, 255, 255, 0.7);
     }
     
     .form-footer {
         text-align: center;
-        margin-top: var(--spacing-lg);
-        padding-top: var(--spacing-lg);
-        border-top: 1px solid var(--md-sys-color-outline-variant);
+        margin-top: 32px;
+        padding-top: 24px;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
     }
     
-    .forgot-password {
-        color: var(--md-sys-color-primary);
-        text-decoration: none;
-        font-size: 14px;
+    .form-footer p {
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.5);
+        margin: 0;
+        line-height: 1.6;
     }
     
-    .forgot-password:hover {
-        text-decoration: underline;
+    .error-message, .success-message {
+        padding: 14px;
+        border-radius: 12px;
+        font-size: 13px;
+        display: none;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 20px;
     }
     
     .error-message {
-        background-color: var(--md-sys-color-error-container);
-        color: var(--md-sys-color-on-error-container);
-        padding: var(--spacing-md);
-        border-radius: var(--md-shape-corner-small);
-        font-size: 14px;
-        display: none;
-        align-items: center;
-        gap: var(--spacing-sm);
-    }
-    
-    .error-message.show {
-        display: flex;
+        background-color: rgba(242, 113, 113, 0.15);
+        color: #ffb3b3;
+        border: 1px solid rgba(242, 113, 113, 0.3);
     }
     
     .success-message {
-        background-color: var(--md-sys-color-primary-container);
-        color: var(--md-sys-color-on-primary-container);
-        padding: var(--spacing-md);
-        border-radius: var(--md-shape-corner-small);
-        font-size: 14px;
-        display: none;
-        align-items: center;
-        gap: var(--spacing-sm);
+        background-color: rgba(83, 168, 182, 0.15);
+        color: #53a8b6;
+        border: 1px solid rgba(83, 168, 182, 0.3);
     }
     
-    .success-message.show {
+    .error-message.show, .success-message.show {
         display: flex;
     }
+    
+    /* Checkbox Styling */
+    label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+    }
+    
+    label span {
+        font-size: 13px;
+        color: rgba(255, 255, 255, 0.8);
+    }
+    
+    label md-checkbox {
+        --md-checkbox-selected-container-color: #53a8b6;
+        --md-checkbox-selected-icon-color: #000000;
+    }
+    
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .trading-clock-container {
+            max-width: 90vw;
+            height: 150px;
+            margin-bottom: -75px;
+        }
+        
+        .fund-title {
+            font-size: 28px;
+            margin-bottom: 60px;
+        }
+        
+        .login-card {
+            padding: 36px 28px;
+        }
+    }
 </style>
-{% endblock %}
-
-{% block content %}
-<div class="login-container">
-    <md-elevated-card class="login-card">
-        <div class="login-header">
-            <span class="material-symbols-outlined login-logo">train</span>
-            <h1 class="login-title">Railyard Markets</h1>
-            <p class="login-subtitle">VWAP Recovery Trading Platform</p>
-        </div>
-        
-        <!-- Error Message -->
-        {% if error %}
-        <div class="error-message show">
-            <span class="material-symbols-outlined">error</span>
-            <span>{{ error }}</span>
-        </div>
-        {% endif %}
-        
-        <!-- Success Message -->
-        {% if success %}
-        <div class="success-message show">
-            <span class="material-symbols-outlined">check_circle</span>
-            <span>{{ success }}</span>
-        </div>
-        {% endif %}
-        
-        <!-- Login Form -->
-        <form class="login-form" id="loginForm" onsubmit="handleLogin(event); return false;">
-            
-            <!-- Username Field -->
-            <md-filled-text-field 
-                class="form-field"
-                label="Username"
-                name="username"
-                type="text"
-                required
-                autocomplete="username"
-                aria-label="Username">
-                <span slot="leading-icon" class="material-symbols-outlined">person</span>
-            </md-filled-text-field>
-            
-            <!-- Password Field -->
-            <md-filled-text-field 
-                class="form-field"
-                label="Password"
-                name="password"
-                type="password"
-                required
-                autocomplete="current-password"
-                aria-label="Password">
-                <span slot="leading-icon" class="material-symbols-outlined">lock</span>
-            </md-filled-text-field>
-            
-            <!-- Remember Me -->
-            <label style="display: flex; align-items: center; gap: var(--spacing-sm); cursor: pointer;">
-                <md-checkbox name="remember" touch-target="wrapper"></md-checkbox>
-                <span style="font-size: 14px; color: var(--md-sys-color-on-surface);">Remember me</span>
-            </label>
-            
-            <!-- Form Actions -->
-            <div class="form-actions">
-                <md-filled-button 
-                    type="submit" 
-                    style="width: 100%;"
-                    aria-label="Sign in to your account">
-                    <span slot="icon" class="material-symbols-outlined">login</span>
-                    Sign In
-                </md-filled-button>
-                
-                <md-text-button 
-                    type="button"
-                    style="width: 100%;"
-                    onclick="showForgotPassword()"
-                    aria-label="Reset your password">
-                    Forgot Password?
-                </md-text-button>
-            </div>
-        </form>
-        
-        <!-- Form Footer -->
-        <div class="form-footer">
-            <p style="font-size: 12px; color: var(--md-sys-color-on-surface-variant); margin: 0;">
-                © 2025 The Luggage Room Boys Fund<br>
-                Secure trading platform powered by Material Design 3
-            </p>
-        </div>
-    </md-elevated-card>
-</div>
-
-<!-- Forgot Password Dialog -->
-<md-dialog id="forgotPasswordDialog">
-    <div slot="headline">Reset Password</div>
-    <form slot="content" id="forgotPasswordForm" method="dialog">
-        <p style="margin-top: 0; color: var(--md-sys-color-on-surface-variant);">
-            Enter your email address and we'll send you instructions to reset your password.
-        </p>
-        <md-filled-text-field 
-            label="Email address"
-            type="email"
-            required
-            style="width: 100%; margin-top: var(--spacing-md);">
-            <span slot="leading-icon" class="material-symbols-outlined">email</span>
-        </md-filled-text-field>
-    </form>
-    <div slot="actions">
-        <md-text-button form="forgotPasswordForm" value="cancel">Cancel</md-text-button>
-        <md-filled-button form="forgotPasswordForm" value="reset">Send Reset Link</md-filled-button>
+</head>
+<body>
+</head>
+<body>
+    <!-- Animated Background -->
+    <div class="login-background">
+        <div class="pattern-overlay"></div>
     </div>
-</md-dialog>
-</div>
-</body>
-
-<script>
-    // Handle login with AJAX
-    async function handleLogin(e) {
-        e.preventDefault();
+    
+    <!-- Login Container -->
+    <div class="login-container">
+        <!-- Fund Title -->
+        <h1 class="fund-title">The Luggage Room Boys Fund</h1>
         
-        const form = document.getElementById('loginForm');
-        const username = form.querySelector('[name="username"]').value;
-        const password = form.querySelector('[name="password"]').value;
-        const loginButton = form.querySelector('md-filled-button');
-        
-        // Disable button during login
-        loginButton.disabled = true;
-        loginButton.innerHTML = '<md-circular-progress indeterminate></md-circular-progress> Signing in...';
-        
-        try {
-            const response = await fetch('/login', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ username, password })
-            });
+        <!-- Trading Clock Arc -->
+        <div class="trading-clock-container">
+            <!-- Market Status Badge -->
+            <div class="market-status" id="marketStatus">Market Closed</div>
             
-            const data = await response.json();
+            <!-- SVG Track -->
+            <svg class="track-svg" viewBox="0 0 600 200" preserveAspectRatio="xMidYMid meet">
+                <defs>
+                    <!-- Gradient for track progress -->
+                    <linearGradient id="trackGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" style="stop-color:#53a8b6;stop-opacity:1" />
+                        <stop offset="50%" style="stop-color:#7fc8d6;stop-opacity:1" />
+                        <stop offset="100%" style="stop-color:#53a8b6;stop-opacity:1" />
+                    </linearGradient>
+                </defs>
+                
+                <!-- Background track (full arc) -->
+                <path class="track-background" id="trackBackground" 
+                      d="M 50 180 Q 300 20, 550 180" />
+                
+                <!-- Progress track (animated) -->
+                <path class="track-progress" id="trackProgress" 
+                      d="M 50 180 Q 300 20, 550 180" />
+            </svg>
             
-            if (data.success) {
-                // Success! Redirect to dashboard
-                showMessage('Login successful! Redirecting...', 'success');
-                setTimeout(() => {
-                    window.location.href = '/dashboard';
-                }, 500);
-            } else {
-                // Failed login
-                showMessage(data.error || 'Invalid credentials', 'error');
+            <!-- Train Icon -->
+            <span class="material-symbols-outlined train-icon" id="trainIcon">train</span>
+            
+            <!-- City Labels -->
+            <div class="city-label denver">Denver, CO</div>
+            <div class="city-label dc">Washington, DC</div>
+        </div>
+        
+        <!-- Login Card -->
+        <md-elevated-card class="login-card">
+            <div class="login-header">
+                <span class="material-symbols-outlined login-logo">account_circle</span>
+                <h2 class="login-title">Welcome Back</h2>
+                <p class="login-subtitle">Sign in to access your trading platform</p>
+            </div>
+            
+            <!-- Error/Success Messages -->
+            <div class="error-message" id="errorMessage">
+                <span class="material-symbols-outlined">error</span>
+                <span id="errorText">Invalid credentials</span>
+            </div>
+            
+            <div class="success-message" id="successMessage">
+                <span class="material-symbols-outlined">check_circle</span>
+                <span id="successText">Login successful!</span>
+            </div>
+            
+            <!-- Login Form -->
+            <form class="login-form" id="loginForm" onsubmit="handleLogin(event); return false;">
+                <!-- Username Field -->
+                <md-filled-text-field 
+                    class="form-field"
+                    label="Username"
+                    name="username"
+                    type="text"
+                    required
+                    autocomplete="username">
+                    <span slot="leading-icon" class="material-symbols-outlined">person</span>
+                </md-filled-text-field>
+                
+                <!-- Password Field -->
+                <md-filled-text-field 
+                    class="form-field"
+                    label="Password"
+                    name="password"
+                    type="password"
+                    required
+                    autocomplete="current-password">
+                    <span slot="leading-icon" class="material-symbols-outlined">lock</span>
+                </md-filled-text-field>
+                
+                <!-- Remember Me -->
+                <label>
+                    <md-checkbox name="remember" touch-target="wrapper"></md-checkbox>
+                    <span>Remember me</span>
+                </label>
+                
+                <!-- Form Actions -->
+                <div class="form-actions">
+                    <md-filled-button type="submit">
+                        <span slot="icon" class="material-symbols-outlined">login</span>
+                        Sign In
+                    </md-filled-button>
+                    
+                    <md-text-button type="button" onclick="showForgotPassword()">
+                        Forgot Password?
+                    </md-text-button>
+                </div>
+            </form>
+            
+            <!-- Form Footer -->
+            <div class="form-footer">
+                <p>
+                    © 2025 The Luggage Room Boys Fund<br>
+                    VWAP Recovery Trading Platform
+                </p>
+            </div>
+        </md-elevated-card>
+    </div>
+    
+    <!-- Forgot Password Dialog -->
+    <md-dialog id="forgotPasswordDialog">
+        <div slot="headline">Reset Password</div>
+        <form slot="content" id="forgotPasswordForm" method="dialog">
+            <p style="margin-top: 0; color: rgba(255, 255, 255, 0.7);">
+                Enter your email address and we'll send you instructions to reset your password.
+            </p>
+            <md-filled-text-field 
+                label="Email address"
+                type="email"
+                required
+                style="width: 100%; margin-top: 16px;">
+                <span slot="leading-icon" class="material-symbols-outlined">email</span>
+            </md-filled-text-field>
+        </form>
+        <div slot="actions">
+            <md-text-button form="forgotPasswordForm" value="cancel">Cancel</md-text-button>
+            <md-filled-button form="forgotPasswordForm" value="reset">Send Reset Link</md-filled-button>
+        </div>
+    </md-dialog>
+    </md-dialog>
+    
+    <script>
+        // ========================================================================
+        // TRADING CLOCK - Real-time market visualization
+        // ========================================================================
+        
+        function initTradingClock() {
+            const trackProgress = document.getElementById('trackProgress');
+            const trainIcon = document.getElementById('trainIcon');
+            const marketStatus = document.getElementById('marketStatus');
+            
+            // Market hours (Eastern Time)
+            const MARKET_OPEN_HOUR = 9;
+            const MARKET_OPEN_MINUTE = 31;
+            const MARKET_CLOSE_HOUR = 16;
+            const MARKET_CLOSE_MINUTE = 0;
+            
+            function updateClock() {
+                const now = new Date();
+                
+                // Convert to Eastern Time (rough approximation - in production use proper timezone library)
+                const eastern = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+                const hours = eastern.getHours();
+                const minutes = eastern.getMinutes();
+                
+                // Calculate market progress (0 to 1)
+                const marketOpenMinutes = MARKET_OPEN_HOUR * 60 + MARKET_OPEN_MINUTE; // 571 minutes
+                const marketCloseMinutes = MARKET_CLOSE_HOUR * 60 + MARKET_CLOSE_MINUTE; // 960 minutes
+                const currentMinutes = hours * 60 + minutes;
+                
+                let progress = 0;
+                let statusText = '';
+                let statusColor = '';
+                
+                // Check if weekend
+                const dayOfWeek = eastern.getDay();
+                const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+                
+                if (isWeekend) {
+                    progress = 0;
+                    statusText = 'Weekend - Market Closed';
+                    statusColor = 'rgba(150, 150, 150, 0.2)';
+                } else if (currentMinutes < marketOpenMinutes) {
+                    // Before market open
+                    progress = 0;
+                    const minutesUntilOpen = marketOpenMinutes - currentMinutes;
+                    const hoursUntilOpen = Math.floor(minutesUntilOpen / 60);
+                    const minsUntilOpen = minutesUntilOpen % 60;
+                    statusText = `Opens in ${hoursUntilOpen}h ${minsUntilOpen}m`;
+                    statusColor = 'rgba(83, 168, 182, 0.2)';
+                } else if (currentMinutes >= marketOpenMinutes && currentMinutes < marketCloseMinutes) {
+                    // Market is open
+                    const elapsedMinutes = currentMinutes - marketOpenMinutes;
+                    const totalMarketMinutes = marketCloseMinutes - marketOpenMinutes; // 389 minutes
+                    progress = elapsedMinutes / totalMarketMinutes;
+                    
+                    const minutesRemaining = marketCloseMinutes - currentMinutes;
+                    const hoursRemaining = Math.floor(minutesRemaining / 60);
+                    const minsRemaining = minutesRemaining % 60;
+                    statusText = `Market Open · ${hoursRemaining}h ${minsRemaining}m left`;
+                    statusColor = 'rgba(83, 255, 182, 0.2)';
+                } else {
+                    // Market closed
+                    progress = 1;
+                    statusText = 'Market Closed';
+                    statusColor = 'rgba(150, 150, 150, 0.2)';
+                }
+                
+                // Clamp progress between 0 and 1
+                progress = Math.max(0, Math.min(1, progress));
+                
+                // Update market status badge
+                marketStatus.textContent = statusText;
+                marketStatus.style.backgroundColor = statusColor;
+                
+                // Update SVG track progress
+                const pathLength = trackProgress.getTotalLength();
+                const dashOffset = pathLength * (1 - progress);
+                trackProgress.style.strokeDasharray = pathLength;
+                trackProgress.style.strokeDashoffset = dashOffset;
+                
+                // Position train icon along the arc
+                positionTrainOnArc(progress);
+            }
+            
+            function positionTrainOnArc(progress) {
+                const trackPath = document.getElementById('trackBackground');
+                const pathLength = trackPath.getTotalLength();
+                const point = trackPath.getPointAtLength(pathLength * progress);
+                
+                // Calculate rotation angle for train
+                const nextPoint = trackPath.getPointAtLength(Math.min(pathLength * progress + 1, pathLength));
+                const angle = Math.atan2(nextPoint.y - point.y, nextPoint.x - point.x) * (180 / Math.PI);
+                
+                // Position train
+                trainIcon.style.left = `${point.x}px`;
+                trainIcon.style.top = `${point.y}px`;
+                trainIcon.style.transform = `translate(-50%, -50%) rotate(${angle}deg)`;
+            }
+            
+            // Initialize and update every second
+            updateClock();
+            setInterval(updateClock, 1000);
+        }
+        
+        // ========================================================================
+        // FLOATING PARTICLES
+        // ========================================================================
+        
+        function createParticles() {
+            const container = document.querySelector('.login-background');
+            const particleCount = 30;
+            
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = `${Math.random() * 100}%`;
+                particle.style.animationDuration = `${15 + Math.random() * 20}s`;
+                particle.style.animationDelay = `${Math.random() * 10}s`;
+                container.appendChild(particle);
+            }
+        }
+        
+        // ========================================================================
+        // LOGIN FUNCTIONALITY
+        // ========================================================================
+        
+        async function handleLogin(e) {
+            e.preventDefault();
+            
+            const form = document.getElementById('loginForm');
+            const username = form.querySelector('[name="username"]').value;
+            const password = form.querySelector('[name="password"]').value;
+            const loginButton = form.querySelector('md-filled-button');
+            
+            // Disable button during login
+            loginButton.disabled = true;
+            loginButton.innerHTML = 'Signing in...';
+            
+            // Hide any existing messages
+            document.getElementById('errorMessage').classList.remove('show');
+            document.getElementById('successMessage').classList.remove('show');
+            
+            try {
+                const response = await fetch('/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Success! Redirect to dashboard
+                    showMessage('Login successful! Redirecting...', 'success');
+                    setTimeout(() => {
+                        window.location.href = '/dashboard';
+                    }, 500);
+                } else {
+                    // Failed login
+                    showMessage(data.error || 'Invalid credentials', 'error');
+                    loginButton.disabled = false;
+                    loginButton.innerHTML = '<span slot="icon" class="material-symbols-outlined">login</span> Sign In';
+                }
+            } catch (error) {
+                showMessage('Connection error. Please try again.', 'error');
                 loginButton.disabled = false;
                 loginButton.innerHTML = '<span slot="icon" class="material-symbols-outlined">login</span> Sign In';
             }
-        } catch (error) {
-            showMessage('Connection error. Please try again.', 'error');
-            loginButton.disabled = false;
-            loginButton.innerHTML = '<span slot="icon" class="material-symbols-outlined">login</span> Sign In';
         }
-    }
-    
-    // Show message
-    function showMessage(message, type) {
-        const errorDiv = document.querySelector('.error-message');
-        const successDiv = document.querySelector('.success-message');
         
-        if (type === 'error') {
-            errorDiv.querySelector('span:last-child').textContent = message;
-            errorDiv.classList.add('show');
-            successDiv.classList.remove('show');
-        } else {
-            successDiv.querySelector('span:last-child').textContent = message;
-            successDiv.classList.add('show');
-            errorDiv.classList.remove('show');
+        function showMessage(message, type) {
+            const errorDiv = document.getElementById('errorMessage');
+            const successDiv = document.getElementById('successMessage');
+            const errorText = document.getElementById('errorText');
+            const successText = document.getElementById('successText');
+            
+            if (type === 'error') {
+                errorText.textContent = message;
+                errorDiv.classList.add('show');
+                successDiv.classList.remove('show');
+            } else {
+                successText.textContent = message;
+                successDiv.classList.add('show');
+                errorDiv.classList.remove('show');
+            }
         }
-    }
-    
-    // Show forgot password dialog
-    function showForgotPassword() {
-        const dialog = document.getElementById('forgotPasswordDialog');
-        dialog.show();
-    }
-    
-    // Handle forgot password dialog
-    const forgotPasswordDialog = document.getElementById('forgotPasswordDialog');
-    forgotPasswordDialog?.addEventListener('close', (e) => {
-        if (e.target.returnValue === 'reset') {
-            showMessage('Password reset link sent! Check your email.', 'success');
+        
+        function showForgotPassword() {
+            const dialog = document.getElementById('forgotPasswordDialog');
+            dialog.show();
         }
-    });
-    
-    // Auto-focus username field on load
-    window.addEventListener('load', () => {
-        const usernameField = document.querySelector('[name="username"]');
-        if (usernameField) {
-            setTimeout(() => usernameField.focus(), 100);
-        }
-    });
-</script>
+        
+        // Handle forgot password dialog
+        const forgotPasswordDialog = document.getElementById('forgotPasswordDialog');
+        forgotPasswordDialog?.addEventListener('close', (e) => {
+            if (e.target.returnValue === 'reset') {
+                showMessage('Password reset link sent! Check your email.', 'success');
+            }
+        });
+        
+        // Auto-focus username field on load
+        window.addEventListener('load', () => {
+            const usernameField = document.querySelector('[name="username"]');
+            if (usernameField) {
+                setTimeout(() => usernameField.focus(), 100);
+            }
+        });
+        
+        // ========================================================================
+        // INITIALIZE EVERYTHING
+        // ========================================================================
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            initTradingClock();
+            createParticles();
+        });
+    </script>
+</body>
 </html>
