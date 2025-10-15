@@ -107,19 +107,8 @@ body {
     display: flex;
     align-items: center;
     gap: 12px;
+    padding: 8px 12px 8px 18px;
     min-height: 48px;
-}
-
-/* Collapsed: no margin, 18px left padding */
-.nav-rail.collapsed .nav-rail-toggle {
-    padding: 8px 0 8px 18px;
-    margin: 0;
-}
-
-/* Expanded: 6px margin + 18px left padding = 24px total */
-.nav-rail:not(.collapsed) .nav-rail-toggle {
-    padding: 8px 0 8px 18px;
-    margin: 0 6px;
 }
 
 .nav-rail-toggle md-icon-button {
@@ -184,16 +173,13 @@ body {
     width: 100%;
     padding: 0;
     margin-top: auto;
-}
-
-.nav-rail-footer .nav-rail-item {
-    margin-bottom: 8px;
+    padding-bottom: 8px;
 }
 
 /* Section Headers */
 .nav-rail-section-header {
-    padding: 10px 12px 4px 24px;
-    margin: 6px 6px 0 6px;
+    padding: 10px 12px 4px 18px;
+    margin-top: 6px;
 }
 
 .nav-rail.collapsed .nav-rail-section-header {
@@ -227,11 +213,6 @@ body {
     transition: background-color 0.15s ease;
     overflow: hidden;
     white-space: nowrap;
-    margin: 0 6px;
-}
-
-.nav-rail.collapsed .nav-rail-item {
-    margin: 0;
 }
 
 .nav-rail-item:hover {
