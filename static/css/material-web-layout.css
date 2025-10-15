@@ -107,8 +107,8 @@ body {
     display: flex;
     align-items: center;
     gap: 0;
-    padding: 18px 0;
-    margin: 6px 0;
+    margin: 20px 0 18px 0;
+    padding: 0 18px;
     min-height: 48px;
 }
 
@@ -119,15 +119,15 @@ body {
     flex-shrink: 0;
     width: 20px;
     height: 20px;
-    margin: 0 18px;
+    margin: 0;
     padding: 0;
 }
 
 /* When expanded, adjust toggle padding/margin for consistency */
 .nav-rail:not(.collapsed) .nav-rail-toggle {
-    padding: 8px 18px;
-    margin: 4px 0;
-    min-height: 40px;
+    gap: 8px;
+    margin: 20px 18px 24px 18px;
+    padding: 0 14px;
 }
 
 /* Make toggle icons match nav item icons exactly */
