@@ -106,8 +106,8 @@ body {
     width: 100%;
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 8px 12px 8px 18px;
+    gap: 8px;
+    padding: 8px 0 8px 18px;
     min-height: 48px;
 }
 
@@ -171,15 +171,14 @@ body {
 
 .nav-rail-footer {
     width: 100%;
-    padding: 0;
-    margin-top: auto;
-    padding-bottom: 8px;
+    padding: 0 0 8px 0;
+    margin: 0;
 }
 
 /* Section Headers */
 .nav-rail-section-header {
-    padding: 10px 12px 4px 18px;
-    margin-top: 6px;
+    padding: 10px 0 4px 18px;
+    margin: 6px 0 0 0;
 }
 
 .nav-rail.collapsed .nav-rail-section-header {
@@ -197,18 +196,19 @@ body {
     white-space: nowrap;
 }
 
-/* Navigation Rail Items - SAME padding whether collapsed or expanded */
+/* Navigation Rail Items */
 .nav-rail-item {
     position: relative;
     width: 100%;
     min-height: 32px;
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 6px 12px 6px 18px;
+    gap: 8px;
+    padding: 6px 0 6px 18px;
+    margin: 0;
     text-decoration: none;
     color: var(--md-sys-color-on-surface-variant);
-    border-radius: 6px;
+    border-radius: 0;
     cursor: pointer;
     transition: background-color 0.15s ease;
     overflow: hidden;
