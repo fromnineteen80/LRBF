@@ -207,7 +207,7 @@
         position: absolute;
         left: 50%;
         transform: translateX(-50%);
-        top: calc(66.666vh - 150px); /* Closer to login card */
+        top: calc(66.666vh - 100px); /* Lowered - was -150px */
         width: 90%;
         max-width: 700px;
         height: 140px;
@@ -265,9 +265,9 @@
     
     /* Very subtle side-to-side wiggle */
     @keyframes trainWiggle {
-        0%, 100% { transform: translate(-50%, -50%) translateX(0px); }
-        25% { transform: translate(-50%, -50%) translateX(-1.5px); }
-        75% { transform: translate(-50%, -50%) translateX(1.5px); }
+        0%, 100% { transform: translate(-50%, -80%) translateX(0px); }
+        25% { transform: translate(-50%, -80%) translateX(-1.5px); }
+        75% { transform: translate(-50%, -80%) translateX(1.5px); }
     }
     
     /* City Labels */
@@ -722,8 +722,8 @@
             <span class="material-symbols-outlined train-icon market-closed" id="trainIcon">train</span>
             
             <!-- City Labels -->
-            <div class="city-label denver">Denver, CO</div>
-            <div class="city-label dc">Washington, DC</div>
+            <div class="city-label denver">DEN</div>
+            <div class="city-label dc">DCA</div>
         </div>
         
         <!-- Login Card -->
