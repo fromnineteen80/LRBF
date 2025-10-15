@@ -85,7 +85,7 @@ body {
 .nav-rail {
     width: var(--rail-width-collapsed);
     height: 100vh;
-    background-color: #F4F3EE;
+    background-color: var(--md-sys-color-primary);
     border-right: 1px solid var(--md-sys-color-outline-variant);
     display: flex;
     flex-direction: column;
@@ -103,7 +103,7 @@ body {
 
 /* Collapsed state overrides to match main content */
 .nav-rail.collapsed {
-    background-color: #FAF9F7;
+    background-color: var(--md-sys-color-background);
 }
 
 /* Toggle Button + Title */
@@ -241,7 +241,7 @@ body {
 }
 
 .nav-rail-item:hover {
-    background-color: var(--md-sys-color-surface-variant);
+    background-color: rgba(59, 53, 47, 0.08);
 }
 
 .nav-rail-item.active {
@@ -347,7 +347,7 @@ body {
 
 .top-app-bar {
     height: var(--app-bar-height);
-    background-color: #FAF9F7;
+    background-color: var(--md-sys-color-surface);
     display: flex;
     align-items: center;
     padding: 0 var(--spacing-lg);
@@ -398,19 +398,19 @@ body {
 }
 
 .status-indicator.status-success {
-    background-color: rgb(76, 175, 80);
+    background-color: var(--md-sys-color-success);
 }
 
 .status-indicator.status-warning {
-    background-color: rgb(255, 152, 0);
+    background-color: var(--md-sys-color-warning);
 }
 
 .status-indicator.status-error {
-    background-color: rgb(244, 67, 54);
+    background-color: var(--md-sys-color-error);
 }
 
 .status-indicator.status-info {
-    background-color: rgb(33, 150, 243);
+    background-color: var(--md-sys-color-info);
 }
 
 /* User Menu */
