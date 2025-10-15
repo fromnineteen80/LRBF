@@ -89,27 +89,41 @@
 <body>
     <div class="app-container">
         <!-- Navigation Drawer (Rail on desktop, drawer on mobile) -->
-        <nav class="nav-rail" role="navigation" aria-label="Main navigation">
-            <!-- Logo/Brand -->
+        <nav class="nav-rail collapsed" role="navigation" aria-label="Main navigation" id="navRail">
+            <!-- Toggle Button -->
+            <div class="nav-rail-toggle">
+                <md-icon-button onclick="toggleNavRail()" aria-label="Toggle navigation menu" id="navToggleBtn">
+                    <span class="material-symbols-outlined">menu</span>
+                </md-icon-button>
+            </div>
+            
+            <!-- Logo/Brand + Title -->
             <div class="nav-rail-header">
-                <span class="material-symbols-outlined nav-rail-logo" aria-label="Railyard Markets">train</span>
+                <a href="{{ url_for('dashboard') }}" class="nav-rail-brand">
+                    <span class="material-symbols-outlined nav-rail-logo">train</span>
+                    <span class="nav-rail-title">
+                        <span class="title-lrb">LRB</span><span class="title-fund">Fund</span>
+                    </span>
+                </a>
             </div>
             
             <!-- Navigation Items -->
             <div class="nav-rail-items">
                 <a href="{{ url_for('dashboard') }}" 
                    class="nav-rail-item {% if request.endpoint == 'dashboard' %}active{% endif %}" 
-                   aria-label="Dashboard"
-                   aria-current="{% if request.endpoint == 'dashboard' %}page{% endif %}">
+                   aria-label="Home"
+                   aria-current="{% if request.endpoint == 'dashboard' %}page{% endif %}"
+                   title="Home">
                     <md-ripple></md-ripple>
-                    <span class="material-symbols-outlined">dashboard</span>
+                    <span class="material-symbols-outlined">train</span>
                     <span class="nav-rail-label">Home</span>
                 </a>
                 
                 <a href="{{ url_for('morning') }}" 
                    class="nav-rail-item {% if request.endpoint == 'morning' %}active{% endif %}" 
                    aria-label="Morning Report"
-                   aria-current="{% if request.endpoint == 'morning' %}page{% endif %}">
+                   aria-current="{% if request.endpoint == 'morning' %}page{% endif %}"
+                   title="Morning Report">
                     <md-ripple></md-ripple>
                     <span class="material-symbols-outlined">wb_twilight</span>
                     <span class="nav-rail-label">Morning</span>
@@ -118,7 +132,8 @@
                 <a href="{{ url_for('live') }}" 
                    class="nav-rail-item {% if request.endpoint == 'live' %}active{% endif %}" 
                    aria-label="Live Monitor"
-                   aria-current="{% if request.endpoint == 'live' %}page{% endif %}">
+                   aria-current="{% if request.endpoint == 'live' %}page{% endif %}"
+                   title="Live Monitor">
                     <md-ripple></md-ripple>
                     <span class="material-symbols-outlined">monitoring</span>
                     <span class="nav-rail-label">Live</span>
@@ -127,7 +142,8 @@
                 <a href="{{ url_for('eod') }}" 
                    class="nav-rail-item {% if request.endpoint == 'eod' %}active{% endif %}" 
                    aria-label="End of Day Report"
-                   aria-current="{% if request.endpoint == 'eod' %}page{% endif %}">
+                   aria-current="{% if request.endpoint == 'eod' %}page{% endif %}"
+                   title="End of Day">
                     <md-ripple></md-ripple>
                     <span class="material-symbols-outlined">nightlight</span>
                     <span class="nav-rail-label">EOD</span>
@@ -138,7 +154,8 @@
                 <a href="{{ url_for('calculator') }}" 
                    class="nav-rail-item {% if request.endpoint == 'calculator' %}active{% endif %}" 
                    aria-label="Performance Calculator"
-                   aria-current="{% if request.endpoint == 'calculator' %}page{% endif %}">
+                   aria-current="{% if request.endpoint == 'calculator' %}page{% endif %}"
+                   title="Calculator">
                     <md-ripple></md-ripple>
                     <span class="material-symbols-outlined">calculate</span>
                     <span class="nav-rail-label">Calculator</span>
@@ -147,7 +164,8 @@
                 <a href="{{ url_for('practice') }}" 
                    class="nav-rail-item {% if request.endpoint == 'practice' %}active{% endif %}" 
                    aria-label="Practice Mode"
-                   aria-current="{% if request.endpoint == 'practice' %}page{% endif %}">
+                   aria-current="{% if request.endpoint == 'practice' %}page{% endif %}"
+                   title="Practice">
                     <md-ripple></md-ripple>
                     <span class="material-symbols-outlined">science</span>
                     <span class="nav-rail-label">Practice</span>
@@ -156,7 +174,8 @@
                 <a href="{{ url_for('history') }}" 
                    class="nav-rail-item {% if request.endpoint == 'history' %}active{% endif %}" 
                    aria-label="Trading History"
-                   aria-current="{% if request.endpoint == 'history' %}page{% endif %}">
+                   aria-current="{% if request.endpoint == 'history' %}page{% endif %}"
+                   title="History">
                     <md-ripple></md-ripple>
                     <span class="material-symbols-outlined">history</span>
                     <span class="nav-rail-label">History</span>
@@ -167,7 +186,8 @@
                 <a href="{{ url_for('about') }}" 
                    class="nav-rail-item {% if request.endpoint == 'about' %}active{% endif %}" 
                    aria-label="About"
-                   aria-current="{% if request.endpoint == 'about' %}page{% endif %}">
+                   aria-current="{% if request.endpoint == 'about' %}page{% endif %}"
+                   title="About">
                     <md-ripple></md-ripple>
                     <span class="material-symbols-outlined">info</span>
                     <span class="nav-rail-label">About</span>
@@ -176,7 +196,8 @@
                 <a href="{{ url_for('how_it_works') }}" 
                    class="nav-rail-item {% if request.endpoint == 'how_it_works' %}active{% endif %}" 
                    aria-label="How It Works"
-                   aria-current="{% if request.endpoint == 'how_it_works' %}page{% endif %}">
+                   aria-current="{% if request.endpoint == 'how_it_works' %}page{% endif %}"
+                   title="How It Works">
                     <md-ripple></md-ripple>
                     <span class="material-symbols-outlined">psychology</span>
                     <span class="nav-rail-label">How It Works</span>
@@ -188,7 +209,8 @@
                 <a href="{{ url_for('settings') }}" 
                    class="nav-rail-item {% if request.endpoint == 'settings' %}active{% endif %}" 
                    aria-label="Settings"
-                   aria-current="{% if request.endpoint == 'settings' %}page{% endif %}">
+                   aria-current="{% if request.endpoint == 'settings' %}page{% endif %}"
+                   title="Settings">
                     <md-ripple></md-ripple>
                     <span class="material-symbols-outlined">settings</span>
                     <span class="nav-rail-label">Settings</span>
@@ -312,6 +334,37 @@
                 console.error('Failed to check system status:', error);
             }
         }
+        
+        // Toggle Navigation Rail (Collapse/Expand)
+        function toggleNavRail() {
+            const navRail = document.getElementById('navRail');
+            const toggleBtn = document.getElementById('navToggleBtn');
+            const icon = toggleBtn.querySelector('.material-symbols-outlined');
+            
+            navRail.classList.toggle('collapsed');
+            
+            // Update icon and save state
+            if (navRail.classList.contains('collapsed')) {
+                icon.textContent = 'menu';
+                localStorage.setItem('navRailCollapsed', 'true');
+            } else {
+                icon.textContent = 'chevron_left';
+                localStorage.setItem('navRailCollapsed', 'false');
+            }
+        }
+        
+        // Restore nav rail state on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const navRail = document.getElementById('navRail');
+            const toggleBtn = document.getElementById('navToggleBtn');
+            const icon = toggleBtn.querySelector('.material-symbols-outlined');
+            const isCollapsed = localStorage.getItem('navRailCollapsed') !== 'false';
+            
+            if (!isCollapsed) {
+                navRail.classList.remove('collapsed');
+                icon.textContent = 'chevron_left';
+            }
+        });
     </script>
     
     {% block scripts %}{% endblock %}
