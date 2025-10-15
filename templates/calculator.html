@@ -2,24 +2,85 @@
 {% block title %}Calculator - Railyard Markets{% endblock %}
 {% block page_title %}Performance Calculator{% endblock %}
 {% block content %}
-<div class="card">
-    <div class="card-header"><h3 class="card-title">Calculate Projections</h3></div>
-    <div class="card-content">
-        <form id="calcForm" class="grid grid-cols-2 gap-4">
-            <div><label class="label-medium">Starting Capital</label><input type="number" id="startCap" value="30000" class="input-field"></div>
-            <div><label class="label-medium">Daily ROI %</label><input type="number" step="0.1" id="dailyRoi" value="3.5" class="input-field"></div>
-            <div><label class="label-medium">Trading Days</label><input type="number" id="tradeDays" value="252" class="input-field"></div>
-            <div><label class="label-medium">Deployment Ratio</label><input type="number" step="0.01" id="deployRatio" value="0.80" class="input-field"></div>
-        </form>
-        <button class="button button-filled mt-4" onclick="calculate()">Calculate</button>
-        <div id="results" style="display:none; margin-top: var(--md-sys-spacing-4);">
-            <h4 class="title-medium mb-4">Results</h4>
-            <p class="body-large">Final Balance: <strong id="finalBalance">-</strong></p>
-            <p class="body-large">Total Gain: <strong id="totalGain">-</strong></p>
-            <p class="body-large">Total ROI: <strong id="totalRoi">-</strong></p>
+<md-elevated-card>
+    <div style="padding: 16px; border-bottom: 1px solid var(--md-sys-color-outline-variant);">
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <md-icon style="color: var(--md-sys-color-primary);">calculate</md-icon>
+            <h3 class="card-title" style="margin: 0;">Calculate Projections</h3>
         </div>
     </div>
-</div>
+    <div style="padding: 24px;">
+        <form id="calcForm" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;">
+            <md-filled-text-field 
+                label="Starting Capital" 
+                type="number" 
+                id="startCap" 
+                value="30000"
+                prefix-text="$">
+                <md-icon slot="leading-icon">account_balance_wallet</md-icon>
+            </md-filled-text-field>
+            <md-filled-text-field 
+                label="Daily ROI %" 
+                type="number" 
+                step="0.1" 
+                id="dailyRoi" 
+                value="3.5"
+                suffix-text="%">
+                <md-icon slot="leading-icon">percent</md-icon>
+            </md-filled-text-field>
+            <md-filled-text-field 
+                label="Trading Days" 
+                type="number" 
+                id="tradeDays" 
+                value="252">
+                <md-icon slot="leading-icon">calendar_today</md-icon>
+            </md-filled-text-field>
+            <md-filled-text-field 
+                label="Deployment Ratio" 
+                type="number" 
+                step="0.01" 
+                id="deployRatio" 
+                value="0.80">
+                <md-icon slot="leading-icon">pie_chart</md-icon>
+            </md-filled-text-field>
+        </form>
+        <div style="margin-top: 24px;">
+            <md-filled-button style="width: 100%;" onclick="calculate()">
+                <md-icon slot="icon">functions</md-icon>
+                Calculate
+            </md-filled-button>
+        </div>
+        <div id="results" style="display:none; margin-top: 24px; padding: 20px; background: var(--md-sys-color-surface-container); border-radius: 12px;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
+                <md-icon style="color: var(--md-sys-color-primary);">assessment</md-icon>
+                <h4 class="title-medium" style="margin: 0;">Results</h4>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px; background: var(--md-sys-color-surface); border-radius: 8px;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <md-icon style="color: var(--md-sys-color-tertiary);">account_balance</md-icon>
+                        <p class="body-large" style="margin: 0;">Final Balance:</p>
+                    </div>
+                    <strong id="finalBalance" class="body-large" style="color: var(--md-sys-color-tertiary);">-</strong>
+                </div>
+                <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px; background: var(--md-sys-color-surface); border-radius: 8px;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <md-icon style="color: var(--md-sys-color-secondary);">trending_up</md-icon>
+                        <p class="body-large" style="margin: 0;">Total Gain:</p>
+                    </div>
+                    <strong id="totalGain" class="body-large" style="color: var(--md-sys-color-secondary);">-</strong>
+                </div>
+                <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px; background: var(--md-sys-color-surface); border-radius: 8px;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <md-icon style="color: var(--md-sys-color-primary);">percent</md-icon>
+                        <p class="body-large" style="margin: 0;">Total ROI:</p>
+                    </div>
+                    <strong id="totalRoi" class="body-large" style="color: var(--md-sys-color-primary);">-</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+</md-elevated-card>
 {% endblock %}
 {% block scripts %}
 <script>
