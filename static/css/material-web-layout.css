@@ -225,7 +225,10 @@ body {
 
 /* Add gap only when expanded so label isn't touching icon */
 .nav-rail:not(.collapsed) .nav-rail-item {
-    gap: 12px;
+    margin: 0px;
+    gap: 0 12px;
+    padding: 0px 18px 0px 4px;
+    min-height: 40px;
 }
 
 .nav-rail:not(.collapsed) .nav-rail-toggle {
