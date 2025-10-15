@@ -241,7 +241,7 @@ body {
 }
 
 .nav-rail-item:hover {
-    background-color: rgba(59, 53, 47, 0.08);
+    background-color: var(--md-sys-color-surface-variant);
 }
 
 .nav-rail-item.active {
@@ -347,7 +347,7 @@ body {
 
 .top-app-bar {
     height: var(--app-bar-height);
-    background-color: var(--md-sys-color-surface);
+    background-color: var(--md-sys-color-background);
     display: flex;
     align-items: center;
     padding: 0 var(--spacing-lg);
