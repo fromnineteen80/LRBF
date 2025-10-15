@@ -107,7 +107,7 @@ body {
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 6px;
+    padding: 6px 6px 6px 3px;
     min-height: 52px;
 }
 
@@ -116,10 +116,13 @@ body {
     --md-icon-button-icon-size: 20px;
     cursor: pointer;
     flex-shrink: 0;
+    margin: 0;
+    padding: 0;
 }
 
 .nav-rail.collapsed .nav-rail-toggle {
     justify-content: center;
+    padding: 6px;
 }
 
 .nav-rail-title {
@@ -169,7 +172,7 @@ body {
 
 /* Section Headers */
 .nav-rail-section-header {
-    padding: 12px 12px 6px 12px;
+    padding: 12px 10px 6px 10px;
     margin-top: 8px;
 }
 
@@ -206,11 +209,12 @@ body {
     white-space: nowrap;
 }
 
+/* Collapsed state - center icons with exact pixel calculation */
+/* Sidebar is 48px wide, icon is 20px, so we need 14px on each side */
 .nav-rail.collapsed .nav-rail-item {
-    justify-content: center;
-    padding: 6px;
-    margin: 0 auto;
-    width: 36px;
+    width: 100%;
+    padding: 6px 14px;
+    justify-content: flex-start;
 }
 
 .nav-rail-item:hover {
@@ -231,10 +235,6 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-}
-
-.nav-rail.collapsed .nav-rail-item .material-symbols-outlined {
-    margin: 0;
 }
 
 .nav-rail-item.active .material-symbols-outlined {
