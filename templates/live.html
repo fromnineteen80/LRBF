@@ -4,43 +4,68 @@
 {% block page_title %}Live Monitor{% endblock %}
 
 {% block content %}
-<div class="grid grid-cols-4 gap-4 mb-4">
-    <div class="card">
-        <div class="card-content">
-            <p class="label-medium" style="color: var(--md-sys-color-on-surface-variant);">Balance</p>
-            <h3 class="headline-medium" id="liveBalance">-</h3>
+<div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 16px;">
+    <md-elevated-card>
+        <div style="padding: 20px;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                <md-icon style="color: var(--md-sys-color-primary);">account_balance_wallet</md-icon>
+                <p class="label-medium" style="color: var(--md-sys-color-on-surface-variant); margin: 0;">Balance</p>
+            </div>
+            <h3 class="headline-medium" id="liveBalance" style="margin: 0; color: var(--md-sys-color-primary);">-</h3>
         </div>
-    </div>
-    <div class="card">
-        <div class="card-content">
-            <p class="label-medium" style="color: var(--md-sys-color-on-surface-variant);">P&L Today</p>
-            <h3 class="headline-medium" id="livePL">-</h3>
+    </md-elevated-card>
+    <md-elevated-card>
+        <div style="padding: 20px;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                <md-icon style="color: var(--md-sys-color-tertiary);">trending_up</md-icon>
+                <p class="label-medium" style="color: var(--md-sys-color-on-surface-variant); margin: 0;">P&L Today</p>
+            </div>
+            <h3 class="headline-medium" id="livePL" style="margin: 0; color: var(--md-sys-color-tertiary);">-</h3>
         </div>
-    </div>
-    <div class="card">
-        <div class="card-content">
-            <p class="label-medium" style="color: var(--md-sys-color-on-surface-variant);">Trades</p>
-            <h3 class="headline-medium" id="liveTradesCount">-</h3>
+    </md-elevated-card>
+    <md-elevated-card>
+        <div style="padding: 20px;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                <md-icon style="color: var(--md-sys-color-secondary);">swap_horiz</md-icon>
+                <p class="label-medium" style="color: var(--md-sys-color-on-surface-variant); margin: 0;">Trades</p>
+            </div>
+            <h3 class="headline-medium" id="liveTradesCount" style="margin: 0; color: var(--md-sys-color-secondary);">-</h3>
         </div>
-    </div>
-    <div class="card">
-        <div class="card-content">
-            <p class="label-medium" style="color: var(--md-sys-color-on-surface-variant);">Win Rate</p>
-            <h3 class="headline-medium" id="liveWinRate">-</h3>
+    </md-elevated-card>
+    <md-elevated-card>
+        <div style="padding: 20px;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                <md-icon style="color: var(--md-sys-color-tertiary);">check_circle</md-icon>
+                <p class="label-medium" style="color: var(--md-sys-color-on-surface-variant); margin: 0;">Win Rate</p>
+            </div>
+            <h3 class="headline-medium" id="liveWinRate" style="margin: 0; color: var(--md-sys-color-tertiary);">-</h3>
         </div>
-    </div>
+    </md-elevated-card>
 </div>
 
-<div class="card">
-    <div class="card-header">
-        <h3 class="card-title">Live Performance</h3>
+<md-elevated-card>
+    <div style="padding: 16px; border-bottom: 1px solid var(--md-sys-color-outline-variant);">
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <md-icon style="color: var(--md-sys-color-primary);">speed</md-icon>
+            <h3 class="card-title" style="margin: 0;">Live Performance</h3>
+        </div>
     </div>
-    <div class="card-content">
-        <p class="body-medium" style="text-align: center; padding: var(--md-sys-spacing-8);">
-            Real-time monitoring active. Data updates every 5 seconds.
-        </p>
+    <div style="padding: 24px;">
+        <div style="display: flex; align-items: center; justify-content: center; gap: 12px; padding: 32px;">
+            <md-icon style="color: var(--md-sys-color-primary); animation: pulse 2s ease-in-out infinite;">wifi</md-icon>
+            <p class="body-medium" style="margin: 0; color: var(--md-sys-color-on-surface-variant);">
+                Real-time monitoring active. Data updates every 5 seconds.
+            </p>
+        </div>
     </div>
-</div>
+</md-elevated-card>
+
+<style>
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+</style>
 {% endblock %}
 
 {% block scripts %}
