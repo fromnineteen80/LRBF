@@ -3,6 +3,300 @@
 {% block page_title %}Settings{% endblock %}
 {% block content %}
 
+<!-- User Profile Card -->
+<md-elevated-card style="margin-bottom: 24px;">
+    <div style="padding: 16px; border-bottom: 1px solid var(--md-sys-color-outline-variant);">
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <span class="material-symbols-outlined" style="color: var(--md-sys-color-primary); font-size: 28px;">account_circle</span>
+                <h3 style="margin: 0;">Co-Founder Profile</h3>
+            </div>
+            <md-text-button onclick="toggleEditMode()" id="editToggleBtn">
+                <span class="material-symbols-outlined" slot="icon">edit</span>
+                Edit Profile
+            </md-text-button>
+        </div>
+    </div>
+    
+    <div style="padding: 32px;">
+        <form id="profileForm">
+            <!-- Personal Information Section -->
+            <div style="margin-bottom: 32px;">
+                <h4 style="margin: 0 0 20px; color: var(--md-sys-color-on-surface-variant); font-weight: 500; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">
+                    Personal Information
+                </h4>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+                    <md-filled-text-field 
+                        label="First Name" 
+                        name="first_name" 
+                        value="{{ user.first_name }}"
+                        disabled
+                        id="field_first_name">
+                    </md-filled-text-field>
+                    
+                    <md-filled-text-field 
+                        label="Last Name" 
+                        name="last_name" 
+                        value="{{ user.last_name }}"
+                        disabled
+                        id="field_last_name">
+                    </md-filled-text-field>
+                    
+                    <md-filled-text-field 
+                        label="Email Address" 
+                        name="email" 
+                        type="email"
+                        value="{{ user.email }}"
+                        disabled
+                        id="field_email">
+                    </md-filled-text-field>
+                    
+                    <md-filled-text-field 
+                        label="Phone Number" 
+                        name="phone_number" 
+                        type="tel"
+                        value="{{ user.phone_number }}"
+                        disabled
+                        id="field_phone_number">
+                    </md-filled-text-field>
+                    
+                    <md-filled-select 
+                        label="Time Zone" 
+                        name="timezone"
+                        disabled
+                        id="field_timezone">
+                        <md-select-option value="America/New_York" {% if user.timezone == 'America/New_York' %}selected{% endif %}>Eastern Time (ET)</md-select-option>
+                        <md-select-option value="America/Chicago" {% if user.timezone == 'America/Chicago' %}selected{% endif %}>Central Time (CT)</md-select-option>
+                        <md-select-option value="America/Denver" {% if user.timezone == 'America/Denver' %}selected{% endif %}>Mountain Time (MT)</md-select-option>
+                        <md-select-option value="America/Los_Angeles" {% if user.timezone == 'America/Los_Angeles' %}selected{% endif %}>Pacific Time (PT)</md-select-option>
+                        <md-select-option value="America/Anchorage" {% if user.timezone == 'America/Anchorage' %}selected{% endif %}>Alaska Time (AKT)</md-select-option>
+                        <md-select-option value="Pacific/Honolulu" {% if user.timezone == 'Pacific/Honolulu' %}selected{% endif %}>Hawaii Time (HST)</md-select-option>
+                    </md-filled-select>
+                    
+                    <md-filled-text-field 
+                        label="Username" 
+                        value="{{ user.username }}"
+                        disabled
+                        supporting-text="Username cannot be changed">
+                    </md-filled-text-field>
+                </div>
+            </div>
+            
+            <!-- Fund Contribution Section -->
+            <div style="margin-bottom: 32px;">
+                <h4 style="margin: 0 0 20px; color: var(--md-sys-color-on-surface-variant); font-weight: 500; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">
+                    Fund Ownership
+                </h4>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+                    <md-filled-text-field 
+                        label="Your Contribution" 
+                        name="fund_contribution" 
+                        type="number"
+                        step="0.01"
+                        prefix-text="$"
+                        value="{{ user.fund_contribution }}"
+                        disabled
+                        id="field_fund_contribution"
+                        supporting-text="Changes affect ownership percentage">
+                    </md-filled-text-field>
+                    
+                    <md-filled-text-field 
+                        label="Ownership Percentage" 
+                        value="{{ user.ownership_pct }}%"
+                        disabled
+                        supporting-text="Automatically calculated">
+                    </md-filled-text-field>
+                    
+                    <md-filled-text-field 
+                        label="Total Fund Value" 
+                        value="${{ '{:,.2f}'.format(total_fund_value) }}"
+                        disabled
+                        supporting-text="Sum of all co-founder contributions">
+                    </md-filled-text-field>
+                    
+                    <md-filled-text-field 
+                        label="Your Fund Value" 
+                        value="${{ '{:,.2f}'.format(user.fund_contribution * current_balance / total_fund_value if total_fund_value > 0 else 0) }}"
+                        disabled
+                        supporting-text="Your ownership × current balance">
+                    </md-filled-text-field>
+                </div>
+            </div>
+            
+            <!-- Account Information -->
+            <div style="margin-bottom: 32px;">
+                <h4 style="margin: 0 0 20px; color: var(--md-sys-color-on-surface-variant); font-weight: 500; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">
+                    Account Information
+                </h4>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+                    <md-filled-text-field 
+                        label="Member Since" 
+                        value="{{ user.created_at[:10] }}"
+                        disabled>
+                    </md-filled-text-field>
+                    
+                    <md-filled-text-field 
+                        label="Last Login" 
+                        value="{{ user.last_login[:10] if user.last_login else 'Never' }}"
+                        disabled>
+                    </md-filled-text-field>
+                    
+                    <md-filled-text-field 
+                        label="Account Status" 
+                        value="{{ 'Active' if user.is_active else 'Inactive' }}"
+                        disabled>
+                    </md-filled-text-field>
+                    
+                    <md-filled-text-field 
+                        label="Phone Verified" 
+                        value="{{ 'Yes' if user.is_verified else 'No' }}"
+                        disabled>
+                    </md-filled-text-field>
+                </div>
+            </div>
+            
+            <!-- Action Buttons -->
+            <div id="editModeButtons" style="display: none; gap: 16px; margin-top: 24px;">
+                <md-filled-button type="button" onclick="saveProfile()">
+                    <span class="material-symbols-outlined" slot="icon">save</span>
+                    Save Changes
+                </md-filled-button>
+                
+                <md-outlined-button type="button" onclick="cancelEdit()">
+                    <span class="material-symbols-outlined" slot="icon">close</span>
+                    Cancel
+                </md-outlined-button>
+            </div>
+        </form>
+        
+        <!-- Danger Zone -->
+        <div style="margin-top: 48px; padding-top: 24px; border-top: 2px solid var(--md-sys-color-error);">
+            <h4 style="margin: 0 0 16px; color: var(--md-sys-color-error); display: flex; align-items: center; gap: 8px;">
+                <span class="material-symbols-outlined">warning</span>
+                Danger Zone
+            </h4>
+            
+            <div style="display: flex; flex-direction: column; gap: 16px;">
+                <div style="background: var(--md-sys-color-error-container); border-radius: 12px; padding: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+                        <div>
+                            <h5 style="margin: 0 0 8px; color: var(--md-sys-color-on-error-container);">Delete Your Account</h5>
+                            <p style="margin: 0; color: var(--md-sys-color-on-error-container); opacity: 0.8; font-size: 14px;">
+                                Permanently delete your co-founder account and withdraw your funds. This action cannot be undone.
+                            </p>
+                        </div>
+                        <md-filled-button onclick="window.location.href='{{ url_for('delete_account') }}'" style="--md-filled-button-container-color: var(--md-sys-color-error);">
+                            <span class="material-symbols-outlined" slot="icon">delete_forever</span>
+                            Delete Account
+                        </md-filled-button>
+                    </div>
+                </div>
+                
+                <div style="background: var(--md-sys-color-secondary-container); border-radius: 12px; padding: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+                        <div>
+                            <h5 style="margin: 0 0 8px; color: var(--md-sys-color-on-secondary-container);">Change Password</h5>
+                            <p style="margin: 0; color: var(--md-sys-color-on-secondary-container); opacity: 0.8; font-size: 14px;">
+                                Update your account password for security.
+                            </p>
+                        </div>
+                        <md-outlined-button onclick="showChangePasswordDialog()">
+                            <span class="material-symbols-outlined" slot="icon">lock_reset</span>
+                            Change Password
+                        </md-outlined-button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</md-elevated-card>
+
+<div id="successMessage" style="display: none; margin-bottom: 24px; padding: 16px; background: var(--md-sys-color-tertiary-container); color: var(--md-sys-color-on-tertiary-container); border-radius: 8px; display: flex; align-items: center; gap: 12px;">
+    <span class="material-symbols-outlined">check_circle</span>
+    <span id="successText"></span>
+</div>
+
+<div id="errorMessage" style="display: none; margin-bottom: 24px; padding: 16px; background: var(--md-sys-color-error-container); color: var(--md-sys-color-on-error-container); border-radius: 8px; display: flex; align-items: center; gap: 12px;">
+    <span class="material-symbols-outlined">error</span>
+    <span id="errorText"></span>
+</div>
+
+<script>
+    let editMode = false;
+    
+    function toggleEditMode() {
+        editMode = !editMode;
+        const fields = ['first_name', 'last_name', 'email', 'phone_number', 'timezone', 'fund_contribution'];
+        
+        fields.forEach(field => {
+            const element = document.getElementById(`field_${field}`);
+            if (element) {
+                element.disabled = !editMode;
+            }
+        });
+        
+        document.getElementById('editModeButtons').style.display = editMode ? 'flex' : 'none';
+        document.getElementById('editToggleBtn').textContent = editMode ? 'Cancel' : 'Edit Profile';
+    }
+    
+    function cancelEdit() {
+        location.reload(); // Simple way to reset form
+    }
+    
+    async function saveProfile() {
+        const formData = new FormData(document.getElementById('profileForm'));
+        const data = Object.fromEntries(formData.entries());
+        
+        try {
+            const response = await fetch('/api/auth/update-profile', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            
+            const result = await response.json();
+            
+            if (response.ok) {
+                showSuccess('Profile updated successfully!');
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                showError(result.error || 'Failed to update profile');
+            }
+        } catch (error) {
+            showError('Network error. Please try again.');
+            console.error('Update error:', error);
+        }
+    }
+    
+    function showChangePasswordDialog() {
+        // TODO: Implement password change dialog
+        alert('Password change dialog coming soon!');
+    }
+    
+    function showSuccess(message) {
+        const successDiv = document.getElementById('successMessage');
+        document.getElementById('successText').textContent = message;
+        successDiv.style.display = 'flex';
+        
+        setTimeout(() => {
+            successDiv.style.display = 'none';
+        }, 5000);
+    }
+    
+    function showError(message) {
+        const errorDiv = document.getElementById('errorMessage');
+        document.getElementById('errorText').textContent = message;
+        errorDiv.style.display = 'flex';
+        
+        setTimeout(() => {
+            errorDiv.style.display = 'none';
+        }, 5000);
+    }
+</script>
+
 <!-- Trading Mode Card -->
 <md-elevated-card style="margin-bottom: 16px;">
     <div style="padding: 16px; border-bottom: 1px solid var(--md-sys-color-outline-variant);">
