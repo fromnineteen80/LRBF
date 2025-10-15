@@ -247,15 +247,15 @@
         position: absolute;
         font-size: 36px;
         transition: all 1s cubic-bezier(0.4, 0, 0.2, 1);
-        animation: trainWiggle 4s ease-in-out infinite;
+        animation: trainWiggle 5s ease-in-out infinite;
         z-index: 6;
     }
     
-    /* Train colors - white during trading, green when closed */
+    /* Train colors - white with green highlights during trading, green when closed */
     .train-icon.market-open {
         color: #ffffff;
-        filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.6))
-                drop-shadow(0 0 3px rgba(38, 106, 73, 0.8)); /* Green glow for windows/lights */
+        filter: drop-shadow(0 0 12px rgba(38, 106, 73, 0.9))
+                drop-shadow(0 0 20px rgba(255, 255, 255, 0.4));
     }
     
     .train-icon.market-closed {
@@ -263,11 +263,11 @@
         filter: drop-shadow(0 0 15px rgba(38, 106, 73, 0.8));
     }
     
-    /* Subtle side-to-side wiggle */
+    /* Very subtle side-to-side wiggle */
     @keyframes trainWiggle {
         0%, 100% { transform: translate(-50%, -50%) translateX(0px); }
-        25% { transform: translate(-50%, -50%) translateX(-3px); }
-        75% { transform: translate(-50%, -50%) translateX(3px); }
+        25% { transform: translate(-50%, -50%) translateX(-1.5px); }
+        75% { transform: translate(-50%, -50%) translateX(1.5px); }
     }
     
     /* City Labels */
@@ -283,12 +283,12 @@
     }
     
     .city-label.denver {
-        left: 5%;
+        left: 2%;
         bottom: -25px;
     }
     
     .city-label.dc {
-        right: 5%;
+        right: 2%;
         bottom: -25px;
     }
     
@@ -332,9 +332,9 @@
     
     .login-logo {
         font-size: 52px !important;
-        color: #266A49; /* Matte green */
+        color: #ffffff; /* White */
         margin-bottom: 16px;
-        filter: drop-shadow(0 0 20px rgba(38, 106, 73, 0.4));
+        filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.3));
     }
     
     .login-title {
@@ -349,7 +349,7 @@
         font-family: 'Roboto Flex', sans-serif;
         font-size: 13px;
         font-weight: 400;
-        color: rgba(255, 255, 255, 0.65);
+        color: rgba(255, 255, 255, 0.8);
         margin: 0;
         letter-spacing: 0.02em;
     }
@@ -371,12 +371,13 @@
     .form-field md-filled-text-field {
         width: 100%;
         display: block;
-        --md-filled-text-field-container-color: rgba(255, 255, 255, 0.08);
-        --md-filled-text-field-label-text-color: rgba(255, 255, 255, 0.7);
+        --md-filled-text-field-container-color: rgba(255, 255, 255, 0.12);
+        --md-filled-text-field-label-text-color: rgba(255, 255, 255, 0.9);
         --md-filled-text-field-input-text-color: #ffffff;
         --md-filled-text-field-active-indicator-color: #266A49; /* Matte green */
         --md-filled-text-field-focus-active-indicator-color: #266A49;
-        --md-filled-text-field-caret-color: #266A49;
+        --md-filled-text-field-caret-color: #ffffff;
+        --md-filled-text-field-supporting-text-color: rgba(255, 255, 255, 0.7);
     }
     
     /* Ensure Material Web Components are fully visible */
@@ -393,6 +394,11 @@
     
     md-checkbox {
         display: inline-block;
+    }
+    
+    /* Make icons white */
+    .material-symbols-outlined {
+        color: #ffffff;
     }
     
     .form-actions {
@@ -681,8 +687,7 @@
                 <!-- Form Footer -->
                 <div class="form-footer">
                     <p>
-                        © 2025 The Luggage Room Boys Fund<br>
-                        VWAP Recovery Trading Platform
+                        © 2025 The Luggage Room Boys Fund
                     </p>
                 </div>
             </div>
@@ -836,21 +841,18 @@
                 const trackPath = document.getElementById('trackBackground');
                 const pathLength = trackPath.getTotalLength();
                 
-                // Offset train slightly (before line at start/end, on line during movement)
-                let offset = 0;
-                if (progress === 0) {
-                    // At Denver - position slightly before the line starts
-                    offset = -20;
-                } else if (progress === 1) {
-                    // At DC - position slightly after the line ends
-                    offset = 20;
-                }
+                // Get point on the arc
+                const point = trackPath.getPointAtLength(pathLength * progress);
                 
-                const point = trackPath.getPointAtLength(Math.max(0, Math.min(pathLength, pathLength * progress + offset)));
+                // When market closed (at start or end), position train slightly ABOVE the line
+                let yOffset = 0;
+                if (progress === 0 || progress === 1) {
+                    yOffset = -15; // Above the line when at Denver or DC
+                }
                 
                 // Position train
                 trainIcon.style.left = `${point.x}px`;
-                trainIcon.style.top = `${point.y}px`;
+                trainIcon.style.top = `${point.y + yOffset}px`;
             }
             
             // Initialize and update every second
