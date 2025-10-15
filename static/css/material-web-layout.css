@@ -100,66 +100,33 @@ body {
     width: var(--rail-width-expanded);
 }
 
-/* Toggle Button */
+/* Toggle Button + Title */
 .nav-rail-toggle {
     width: 100%;
     display: flex;
-    justify-content: flex-start;
     align-items: center;
-    padding: 12px 8px;
-    min-height: 48px;
+    gap: 8px;
+    padding: 8px;
+    min-height: 56px;
 }
 
 .nav-rail-toggle md-icon-button {
     --md-icon-button-state-layer-shape: 12px;
+    cursor: pointer;
+    flex-shrink: 0;
 }
 
 .nav-rail.collapsed .nav-rail-toggle {
     justify-content: center;
 }
 
-/* Logo/Brand Section */
-.nav-rail-header {
-    width: 100%;
-    display: flex;
-    justify-content: flex-start;
-    align-items: center;
-    padding: 8px;
-    margin-bottom: var(--spacing-sm);
-}
-
-.nav-rail.collapsed .nav-rail-header {
-    justify-content: center;
-}
-
-.nav-rail-brand {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    text-decoration: none;
-    padding: 8px;
-    border-radius: var(--md-shape-corner-medium);
-    transition: background-color var(--transition-standard);
-}
-
-.nav-rail-brand:hover {
-    background-color: var(--md-sys-color-surface-variant);
-}
-
-.nav-rail-logo {
-    font-size: 24px !important;
-    color: var(--md-sys-color-primary);
-    font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-    flex-shrink: 0;
-}
-
 .nav-rail-title {
-    font-size: 22px;
+    font-size: 18px;
     white-space: nowrap;
     opacity: 0;
     width: 0;
     overflow: hidden;
-    transition: opacity var(--transition-standard), width var(--transition-standard);
+    transition: opacity var(--transition-standard);
 }
 
 .nav-rail:not(.collapsed) .nav-rail-title {
@@ -185,42 +152,40 @@ body {
     width: 100%;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 2px;
     overflow-y: auto;
     overflow-x: hidden;
-    padding: 0 8px;
+    padding: 4px 6px;
 }
 
 .nav-rail-footer {
     width: 100%;
-    padding: 0 8px;
-    margin-top: var(--spacing-md);
-    padding-bottom: 12px;
+    padding: 4px 6px;
+    margin-top: auto;
+    padding-bottom: 8px;
 }
 
 /* Navigation Rail Items */
 .nav-rail-item {
     position: relative;
-    min-width: 32px;
-    height: 40px;
+    width: 100%;
+    min-height: 36px;
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 0 12px;
+    padding: 6px 12px;
     text-decoration: none;
     color: var(--md-sys-color-on-surface-variant);
-    border-radius: var(--md-shape-corner-full);
+    border-radius: 8px;
     cursor: pointer;
-    transition: background-color var(--transition-standard);
+    transition: background-color 0.2s ease;
     overflow: hidden;
     white-space: nowrap;
 }
 
 .nav-rail.collapsed .nav-rail-item {
     justify-content: center;
-    padding: 0;
-    width: 32px;
-    margin: 0 auto;
+    padding: 6px 0;
 }
 
 .nav-rail-item:hover {
@@ -235,7 +200,12 @@ body {
 .nav-rail-item .material-symbols-outlined {
     font-size: 20px;
     flex-shrink: 0;
-    transition: color var(--transition-standard);
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: none;
 }
 
 .nav-rail-item.active .material-symbols-outlined {
@@ -249,7 +219,7 @@ body {
     opacity: 0;
     width: 0;
     overflow: hidden;
-    transition: opacity var(--transition-standard), width var(--transition-standard);
+    transition: opacity var(--transition-standard);
 }
 
 .nav-rail:not(.collapsed) .nav-rail-label {
@@ -259,28 +229,26 @@ body {
 
 /* Dividers */
 .nav-rail md-divider {
-    margin: 8px 0;
-}
-
-.nav-rail.collapsed md-divider {
-    margin: 8px 12px;
+    margin: 4px 0;
 }
 
 /* Tooltips for collapsed state */
 .nav-rail.collapsed .nav-rail-item[title]:hover::after {
     content: attr(title);
     position: absolute;
-    left: calc(100% + 8px);
+    left: calc(100% + 12px);
+    top: 50%;
+    transform: translateY(-50%);
     background-color: var(--md-sys-color-inverse-surface);
     color: var(--md-sys-color-inverse-on-surface);
     padding: 6px 12px;
-    border-radius: var(--md-shape-corner-small);
+    border-radius: 6px;
     font-size: 12px;
     font-weight: 500;
     white-space: nowrap;
     z-index: 1000;
     pointer-events: none;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
 }
 
 /* ========================================

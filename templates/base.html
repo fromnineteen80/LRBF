@@ -90,21 +90,14 @@
     <div class="app-container">
         <!-- Navigation Drawer (Rail on desktop, drawer on mobile) -->
         <nav class="nav-rail collapsed" role="navigation" aria-label="Main navigation" id="navRail">
-            <!-- Toggle Button -->
+            <!-- Toggle Button + Title -->
             <div class="nav-rail-toggle">
                 <md-icon-button onclick="toggleNavRail()" aria-label="Toggle navigation menu" id="navToggleBtn">
                     <span class="material-symbols-outlined">menu</span>
                 </md-icon-button>
-            </div>
-            
-            <!-- Logo/Brand + Title -->
-            <div class="nav-rail-header">
-                <a href="{{ url_for('dashboard') }}" class="nav-rail-brand">
-                    <span class="material-symbols-outlined nav-rail-logo">train</span>
-                    <span class="nav-rail-title">
-                        <span class="title-lrb">LRB</span><span class="title-fund">Fund</span>
-                    </span>
-                </a>
+                <span class="nav-rail-title">
+                    <span class="title-lrb">LRB</span><span class="title-fund">Fund</span>
+                </span>
             </div>
             
             <!-- Navigation Items -->
