@@ -12,7 +12,7 @@
 
 :root {
     /* Layout spacing */
-    --rail-width-collapsed: 48px;
+    --rail-width-collapsed: 56px;
     --rail-width-expanded: 220px;
     --rail-width: var(--rail-width-collapsed);
     --app-bar-height: 64px;
@@ -130,12 +130,16 @@ body {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 8px 0 8px 10px;
+    padding: 8px 0 8px 18px;
     min-height: 48px;
 }
 
 .nav-rail.collapsed .nav-rail-toggle {
-    padding: 8px 14px;
+    padding: 8px 18px;
+}
+
+.nav-rail:not(.collapsed) .nav-rail-toggle {
+    padding: 8px 0 8px 10px;
 }
 
 .nav-rail-toggle md-icon-button {
@@ -249,10 +253,10 @@ body {
     white-space: nowrap;
 }
 
-/* Collapsed state - perfectly center icons */
-/* Sidebar is 48px, icon is 20px, so (48-20)/2 = 14px padding each side */
+/* Collapsed state - perfectly center icons in 56px sidebar */
+/* Sidebar width: 56px, Icon width: 20px, Padding: (56-20)/2 = 18px each side */
 .nav-rail.collapsed .nav-rail-item {
-    padding: 6px 14px;
+    padding: 6px 18px;
     justify-content: flex-start;
 }
 
