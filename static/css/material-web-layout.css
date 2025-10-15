@@ -213,7 +213,7 @@ body {
     align-items: center;
     gap: 0;
     padding: 0 18px;
-    margin: 4px 0;
+    margin: 0;
     text-decoration: none;
     color: var(--md-sys-color-on-surface-variant);
     border-radius: 0;
@@ -226,8 +226,6 @@ body {
 /* Add gap only when expanded so label isn't touching icon */
 .nav-rail:not(.collapsed) .nav-rail-item {
     gap: 12px;
-    padding: 8px 18px;
-    min-height: 40px;
 }
 
 .nav-rail:not(.collapsed) .nav-rail-toggle {
