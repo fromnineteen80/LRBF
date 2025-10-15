@@ -101,30 +101,60 @@ body {
     width: var(--rail-width-expanded);
 }
 
+/* ========================================
+   NAVIGATION RAIL (Left Sidebar)
+   ======================================== */
+
+.nav-rail {
+    width: var(--rail-width-collapsed);
+    height: 100vh;
+    background-color: var(--md-sys-color-surface);
+    border-right: 1px solid var(--md-sys-color-outline-variant);
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    left: 0;
+    top: 0;
+    z-index: 100;
+    transition: width var(--transition-standard);
+    overflow-x: hidden;
+}
+
+.nav-rail:not(.collapsed) {
+    width: var(--rail-width-expanded);
+}
+
 /* Toggle Button + Title */
 .nav-rail-toggle {
     width: 100%;
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 8px 10px;
+    padding: 8px 0 8px 10px;
     min-height: 48px;
 }
 
 .nav-rail.collapsed .nav-rail-toggle {
-    justify-content: center;
-    padding: 8px 0;
+    padding: 8px 14px;
 }
 
 .nav-rail-toggle md-icon-button {
-    --md-icon-button-state-layer-shape: 10px;
+    --md-icon-button-state-layer-shape: 0;
     --md-icon-button-icon-size: 20px;
-    --md-icon-button-container-width: 20px;
-    --md-icon-button-container-height: 20px;
     cursor: pointer;
     flex-shrink: 0;
     width: 20px;
     height: 20px;
+    margin: 0;
+    padding: 0;
+}
+
+/* Make toggle icons match nav item icons exactly */
+.nav-rail-toggle md-icon-button .material-symbols-outlined {
+    font-size: 20px;
+    font-weight: 300;
+    color: var(--md-sys-color-on-surface-variant);
+    font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
 }
 
 .nav-rail-title {
@@ -160,16 +190,24 @@ body {
     width: 100%;
     display: flex;
     flex-direction: column;
-    gap: 0px;
+    gap: 0;
     overflow-y: auto;
     overflow-x: hidden;
+    padding: 0;
+}
+
+.nav-rail:not(.collapsed) .nav-rail-items {
     padding: 0 6px;
 }
 
 .nav-rail-footer {
     width: 100%;
-    padding: 0 6px 8px 6px;
+    padding: 0;
     margin-top: auto;
+}
+
+.nav-rail:not(.collapsed) .nav-rail-footer {
+    padding: 0 6px 8px 6px;
 }
 
 /* Section Headers */
@@ -211,10 +249,11 @@ body {
     white-space: nowrap;
 }
 
-/* Collapsed state - center icons perfectly */
+/* Collapsed state - perfectly center icons */
+/* Sidebar is 48px, icon is 20px, so (48-20)/2 = 14px padding each side */
 .nav-rail.collapsed .nav-rail-item {
-    padding: 6px 0;
-    justify-content: center;
+    padding: 6px 14px;
+    justify-content: flex-start;
 }
 
 .nav-rail-item:hover {
@@ -254,6 +293,25 @@ body {
 .nav-rail:not(.collapsed) .nav-rail-label {
     opacity: 1;
     width: auto;
+}
+
+/* Tooltips for collapsed state */
+.nav-rail.collapsed .nav-rail-item[title]:hover::after {
+    content: attr(title);
+    position: absolute;
+    left: calc(100% + 10px);
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: var(--md-sys-color-inverse-surface);
+    color: var(--md-sys-color-inverse-on-surface);
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 400;
+    white-space: nowrap;
+    z-index: 1000;
+    pointer-events: none;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
 }
 
 /* Tooltips for collapsed state */
