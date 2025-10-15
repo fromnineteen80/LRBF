@@ -101,29 +101,6 @@ body {
     width: var(--rail-width-expanded);
 }
 
-/* ========================================
-   NAVIGATION RAIL (Left Sidebar)
-   ======================================== */
-
-.nav-rail {
-    width: var(--rail-width-collapsed);
-    height: 100vh;
-    background-color: var(--md-sys-color-surface);
-    border-right: 1px solid var(--md-sys-color-outline-variant);
-    display: flex;
-    flex-direction: column;
-    position: fixed;
-    left: 0;
-    top: 0;
-    z-index: 100;
-    transition: width var(--transition-standard);
-    overflow-x: hidden;
-}
-
-.nav-rail:not(.collapsed) {
-    width: var(--rail-width-expanded);
-}
-
 /* Toggle Button + Title */
 .nav-rail-toggle {
     width: 100%;
