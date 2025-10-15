@@ -85,7 +85,7 @@ body {
 .nav-rail {
     width: var(--rail-width-collapsed);
     height: 100vh;
-    background-color: var(--md-sys-color-primary);
+    background-color: #F4F3EE;
     border-right: 1px solid var(--md-sys-color-outline-variant);
     display: flex;
     flex-direction: column;
@@ -99,8 +99,10 @@ body {
 
 .nav-rail:not(.collapsed) {
     width: var(--rail-width-expanded);
+    background-color: #E7E5E0;
 }
 
+/* Collapsed state explicitly set to match main content */
 .nav-rail.collapsed {
     background-color: #F4F3EE;
 }
@@ -261,6 +263,8 @@ body {
 
 .nav-rail-item.active .material-symbols-outlined {
     color: var(--md-sys-color-on-secondary-container);
+    font-weight: 300;
+    font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
 }
 
 .nav-rail-label {
@@ -271,6 +275,10 @@ body {
     width: 0;
     overflow: hidden;
     transition: opacity 0.2s ease;
+}
+
+.nav-rail-item.active .nav-rail-label {
+    font-weight: 400;
 }
 
 .nav-rail:not(.collapsed) .nav-rail-label {
