@@ -107,7 +107,8 @@ body {
     display: flex;
     align-items: center;
     gap: 0;
-    padding: 0 18px;
+    padding: 18px 0;
+    margin: 6px 0;
     min-height: 48px;
 }
 
@@ -118,8 +119,15 @@ body {
     flex-shrink: 0;
     width: 20px;
     height: 20px;
-    margin: 0;
+    margin: 0 18px;
     padding: 0;
+}
+
+/* When expanded, adjust toggle padding/margin for consistency */
+.nav-rail:not(.collapsed) .nav-rail-toggle {
+    padding: 8px 18px;
+    margin: 4px 0;
+    min-height: 40px;
 }
 
 /* Make toggle icons match nav item icons exactly */
@@ -205,7 +213,7 @@ body {
     align-items: center;
     gap: 0;
     padding: 0 18px;
-    margin: 0;
+    margin: 4px 0;
     text-decoration: none;
     color: var(--md-sys-color-on-surface-variant);
     border-radius: 0;
@@ -218,6 +226,8 @@ body {
 /* Add gap only when expanded so label isn't touching icon */
 .nav-rail:not(.collapsed) .nav-rail-item {
     gap: 12px;
+    padding: 8px 18px;
+    min-height: 40px;
 }
 
 .nav-rail:not(.collapsed) .nav-rail-toggle {
