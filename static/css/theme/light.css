@@ -43,8 +43,8 @@
   --md-sys-color-scrim: rgb(0 0 0);
   
   /* Inverse colors */
-  --md-sys-color-inverse-surface: rgb(59 53 47);
-  --md-sys-color-inverse-on-surface: rgb(250 249 247);
+  --md-sys-color-inverse-surface: rgb(59 53 47); /* #3B352F - User menu button background */
+  --md-sys-color-inverse-on-surface: rgb(250 249 247); /* #FAF9F7 - User menu button text */
   --md-sys-color-inverse-primary: rgb(211 208 200);
   
   /* Fixed colors */
