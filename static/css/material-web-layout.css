@@ -54,7 +54,7 @@ body {
 /* Material Symbols Icons */
 .material-symbols-outlined {
     font-family: 'Material Symbols Outlined';
-    font-weight: 300;
+    font-weight: 200;
     font-style: normal;
     font-size: 24px;
     line-height: 1;
@@ -65,7 +65,7 @@ body {
     word-wrap: normal;
     direction: ltr;
     user-select: none;
-    font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+    font-variation-settings: 'FILL' 0, 'wght' 200, 'GRAD' 0, 'opsz' 24;
 }
 
 /* ========================================
@@ -101,6 +101,10 @@ body {
     width: var(--rail-width-expanded);
 }
 
+.nav-rail.collapsed {
+    background-color: #F4F3EE;
+}
+
 /* Toggle Button + Title */
 .nav-rail-toggle {
     width: 100%;
@@ -133,9 +137,9 @@ body {
 /* Make toggle icons match nav item icons exactly */
 .nav-rail-toggle md-icon-button .material-symbols-outlined {
     font-size: 20px;
-    font-weight: 300;
+    font-weight: 200;
     color: var(--md-sys-color-on-surface-variant);
-    font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+    font-variation-settings: 'FILL' 0, 'wght' 200, 'GRAD' 0, 'opsz' 24;
 }
 
 .nav-rail-title {
@@ -246,7 +250,7 @@ body {
 
 .nav-rail-item .material-symbols-outlined {
     font-size: 20px;
-    font-weight: 300;
+    font-weight: 200;
     flex-shrink: 0;
     width: 20px;
     height: 20px;
@@ -336,8 +340,7 @@ body {
 
 .top-app-bar {
     height: var(--app-bar-height);
-    background-color: var(--md-sys-color-surface);
-    border-bottom: 1px solid var(--md-sys-color-outline-variant);
+    background-color: #F4F3EE;
     display: flex;
     align-items: center;
     padding: 0 var(--spacing-lg);
@@ -355,8 +358,9 @@ body {
 }
 
 .top-app-bar-title {
+    font-family: 'Roboto', sans-serif;
     font-size: 22px;
-    font-weight: 500;
+    font-weight: 700;
     color: var(--md-sys-color-on-surface);
     margin: 0;
 }
