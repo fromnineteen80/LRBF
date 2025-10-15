@@ -2,17 +2,31 @@
 {% block title %}Practice Mode - Railyard Markets{% endblock %}
 {% block page_title %}Practice Mode{% endblock %}
 {% block content %}
-<div class="card">
-    <div class="card-header"><h3 class="card-title">Practice Trading</h3></div>
-    <div class="card-content">
-        <p class="body-large mb-4">Test your strategy with simulated data.</p>
-        <button class="button button-filled" onclick="runPractice()">Run Simulation</button>
-        <div id="practiceResults" style="display:none; margin-top: var(--md-sys-spacing-4);">
-            <h4 class="title-medium mb-4">Simulation Results</h4>
+<md-elevated-card>
+    <div style="padding: 16px; border-bottom: 1px solid var(--md-sys-color-outline-variant);">
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <md-icon style="color: var(--md-sys-color-primary);">school</md-icon>
+            <h3 class="card-title" style="margin: 0;">Practice Trading</h3>
+        </div>
+    </div>
+    <div style="padding: 24px;">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 24px; padding: 16px; background: var(--md-sys-color-surface-container); border-radius: 12px;">
+            <md-icon style="color: var(--md-sys-color-primary);">info</md-icon>
+            <p class="body-large" style="margin: 0;">Test your strategy with simulated data in a safe environment.</p>
+        </div>
+        <md-filled-button style="width: 100%;" onclick="runPractice()">
+            <md-icon slot="icon">play_arrow</md-icon>
+            Run Simulation
+        </md-filled-button>
+        <div id="practiceResults" style="display:none; margin-top: 24px;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
+                <md-icon style="color: var(--md-sys-color-secondary);">assessment</md-icon>
+                <h4 class="title-medium" style="margin: 0;">Simulation Results</h4>
+            </div>
             <div id="practiceStocksList"></div>
         </div>
     </div>
-</div>
+</md-elevated-card>
 {% endblock %}
 {% block scripts %}
 <script>
@@ -20,11 +34,23 @@ async function runPractice() {
     try {
         const data = await apiCall('/api/practice/analyze', {method: 'POST', body: JSON.stringify({tickers: []})});
         const simulate = await apiCall('/api/practice/simulate', {method: 'POST', body: JSON.stringify({selected_stocks: data.selected_stocks, simulation_days: 1})});
-        document.getElementById('practiceStocksList').innerHTML = simulate.simulation_results.map(r => `
-            <div style="padding: var(--md-sys-spacing-3); border-bottom: 1px solid var(--md-sys-color-outline-variant);">
-                <span class="title-medium">${r.ticker}</span>: <span class="body-medium">${formatCurrency(r.simulated_pl)}</span>
+        document.getElementById('practiceStocksList').innerHTML = simulate.simulation_results.map(r => {
+            const isProfit = r.simulated_pl >= 0;
+            const iconColor = isProfit ? 'var(--md-sys-color-tertiary)' : 'var(--md-sys-color-error)';
+            const textColor = isProfit ? 'var(--md-sys-color-tertiary)' : 'var(--md-sys-color-error)';
+            return `
+            <div style="padding: 16px; border-bottom: 1px solid var(--md-sys-color-outline-variant); display: flex; align-items: center; justify-content: space-between;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <md-icon style="color: var(--md-sys-color-primary);">show_chart</md-icon>
+                    <span class="title-medium">${r.ticker}</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <md-icon style="color: ${iconColor};">${isProfit ? 'trending_up' : 'trending_down'}</md-icon>
+                    <span class="body-medium" style="color: ${textColor}; font-weight: 500;">${formatCurrency(r.simulated_pl)}</span>
+                </div>
             </div>
-        `).join('');
+        `;
+        }).join('');
         document.getElementById('practiceResults').style.display = 'block';
         showSnackbar('Simulation complete');
     } catch (error) {
