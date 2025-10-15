@@ -2,15 +2,18 @@
 """
 Railyard Markets - VWAP Recovery Trading Platform
 Material Design 3 Interface with Complete Backend Integration
+SECURE AUTHENTICATION FOR FINANCIAL PLATFORM
 """
 
 from flask import Flask, render_template, jsonify, request, session, redirect, url_for
 from functools import wraps
 from datetime import datetime, date, timedelta
 import os
-import hashlib
+import bcrypt
 import secrets
 import sys
+from collections import defaultdict
+import time
 
 # Add modules directory to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'modules'))
@@ -37,18 +40,52 @@ app = Flask(__name__)
 app.secret_key = secrets.token_hex(32)
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=24)
 
+# Security headers
+@app.after_request
+def set_security_headers(response):
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'DENY'
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+    response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+    response.headers['Content-Security-Policy'] = "default-src 'self' 'unsafe-inline' 'unsafe-eval' https://esm.run https://fonts.googleapis.com https://fonts.gstatic.com data:;"
+    return response
+
 # Initialize database
 if BACKEND_AVAILABLE:
     db = Database()
 
 # ============================================================================
-# AUTHENTICATION
+# AUTHENTICATION & SECURITY
 # ============================================================================
 
+# Production: Store these in environment variables or secure database
+# For now, using bcrypt-hashed passwords (much more secure than SHA256)
 USERS = {
-    'admin': hashlib.sha256('admin123'.encode()).hexdigest(),
-    'cofounder': hashlib.sha256('luggage2025'.encode()).hexdigest()
+    'admin': bcrypt.hashpw('admin123'.encode(), bcrypt.gensalt()).decode('utf-8'),
+    'cofounder': bcrypt.hashpw('luggage2025'.encode(), bcrypt.gensalt()).decode('utf-8')
 }
+
+# Simple rate limiting (production should use Redis)
+login_attempts = defaultdict(list)
+MAX_LOGIN_ATTEMPTS = 5
+LOCKOUT_PERIOD = 300  # 5 minutes
+
+def check_rate_limit(ip_address):
+    """Check if IP has exceeded login attempts"""
+    now = time.time()
+    # Clean old attempts
+    login_attempts[ip_address] = [
+        timestamp for timestamp in login_attempts[ip_address]
+        if now - timestamp < LOCKOUT_PERIOD
+    ]
+    
+    if len(login_attempts[ip_address]) >= MAX_LOGIN_ATTEMPTS:
+        return False
+    return True
+
+def record_login_attempt(ip_address):
+    """Record a failed login attempt"""
+    login_attempts[ip_address].append(time.time())
 
 def login_required(f):
     @wraps(f)
@@ -61,17 +98,51 @@ def login_required(f):
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        data = request.json
-        username = data.get('username')
-        password = data.get('password')
-        password_hash = hashlib.sha256(password.encode()).hexdigest()
+        # Get client IP
+        ip_address = request.headers.get('X-Forwarded-For', request.remote_addr)
         
-        if username in USERS and USERS[username] == password_hash:
-            session['username'] = username
-            session.permanent = True
-            return jsonify({'success': True})
-        return jsonify({'success': False, 'error': 'Invalid credentials'})
+        # Check rate limit
+        if not check_rate_limit(ip_address):
+            return jsonify({
+                'success': False, 
+                'error': 'Too many login attempts. Please try again in 5 minutes.'
+            }), 429
+        
+        data = request.json
+        username = data.get('username', '').strip()
+        password = data.get('password', '')
+        
+        # Input validation
+        if not username or not password:
+            record_login_attempt(ip_address)
+            return jsonify({'success': False, 'error': 'Username and password required'}), 400
+        
+        # Verify credentials with bcrypt
+        if username in USERS:
+            try:
+                stored_hash = USERS[username]
+                # For newly created hashes (during this session)
+                if isinstance(stored_hash, str):
+                    stored_hash = stored_hash.encode('utf-8')
+                
+                if bcrypt.checkpw(password.encode('utf-8'), stored_hash):
+                    # Success! Clear rate limit for this IP
+                    login_attempts[ip_address] = []
+                    
+                    # Set session
+                    session['username'] = username
+                    session.permanent = True
+                    session['login_time'] = datetime.now().isoformat()
+                    
+                    return jsonify({'success': True})
+            except Exception as e:
+                print(f"Login error: {e}")
+        
+        # Failed login
+        record_login_attempt(ip_address)
+        return jsonify({'success': False, 'error': 'Invalid credentials'}), 401
     
+    # GET request - show login page
     return render_template('login.html')
 
 @app.route('/logout')

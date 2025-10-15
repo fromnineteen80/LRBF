@@ -207,10 +207,10 @@
         position: absolute;
         left: 50%;
         transform: translateX(-50%);
-        top: calc(66.666vh - 250px); /* Position above login card in lower 2/3 */
+        top: calc(66.666vh - 150px); /* Closer to login card */
         width: 90%;
         max-width: 700px;
-        height: 180px;
+        height: 140px;
         z-index: 5;
     }
     
@@ -246,16 +246,28 @@
     .train-icon {
         position: absolute;
         font-size: 36px;
-        color: #266A49; /* Matte green */
-        filter: drop-shadow(0 0 15px rgba(38, 106, 73, 0.8));
         transition: all 1s cubic-bezier(0.4, 0, 0.2, 1);
-        animation: trainBob 3s ease-in-out infinite;
+        animation: trainWiggle 4s ease-in-out infinite;
         z-index: 6;
     }
     
-    @keyframes trainBob {
-        0%, 100% { transform: translate(-50%, -50%) translateY(0px); }
-        50% { transform: translate(-50%, -50%) translateY(-8px); }
+    /* Train colors - white during trading, green when closed */
+    .train-icon.market-open {
+        color: #ffffff;
+        filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.6))
+                drop-shadow(0 0 3px rgba(38, 106, 73, 0.8)); /* Green glow for windows/lights */
+    }
+    
+    .train-icon.market-closed {
+        color: #266A49; /* Matte green */
+        filter: drop-shadow(0 0 15px rgba(38, 106, 73, 0.8));
+    }
+    
+    /* Subtle side-to-side wiggle */
+    @keyframes trainWiggle {
+        0%, 100% { transform: translate(-50%, -50%) translateX(0px); }
+        25% { transform: translate(-50%, -50%) translateX(-3px); }
+        75% { transform: translate(-50%, -50%) translateX(3px); }
     }
     
     /* City Labels */
@@ -272,30 +284,12 @@
     
     .city-label.denver {
         left: 5%;
-        bottom: -30px;
+        bottom: -25px;
     }
     
     .city-label.dc {
         right: 5%;
-        bottom: -30px;
-    }
-    
-    /* Market Status Badge */
-    .market-status {
-        position: absolute;
-        top: -50px;
-        left: 50%;
-        transform: translateX(-50%);
-        font-family: 'Roboto Flex', sans-serif;
-        font-size: 12px;
-        font-weight: 600;
-        padding: 8px 20px;
-        border-radius: 24px;
-        background: rgba(38, 106, 73, 0.2); /* Matte green */
-        color: #266A49;
-        border: 1px solid rgba(38, 106, 73, 0.4);
-        backdrop-filter: blur(10px);
-        z-index: 6;
+        bottom: -25px;
     }
     
     /* ===================================================================== */
@@ -376,12 +370,29 @@
     
     .form-field md-filled-text-field {
         width: 100%;
+        display: block;
         --md-filled-text-field-container-color: rgba(255, 255, 255, 0.08);
         --md-filled-text-field-label-text-color: rgba(255, 255, 255, 0.7);
         --md-filled-text-field-input-text-color: #ffffff;
         --md-filled-text-field-active-indicator-color: #266A49; /* Matte green */
         --md-filled-text-field-focus-active-indicator-color: #266A49;
         --md-filled-text-field-caret-color: #266A49;
+    }
+    
+    /* Ensure Material Web Components are fully visible */
+    md-filled-text-field {
+        display: block;
+        width: 100%;
+    }
+    
+    md-filled-button,
+    md-text-button {
+        display: block;
+        width: 100%;
+    }
+    
+    md-checkbox {
+        display: inline-block;
     }
     
     .form-actions {
@@ -577,13 +588,9 @@
         
         <!-- Trading Clock & Train Track -->
         <div class="trading-clock-wrapper">
-            <!-- Market Status Badge -->
-            <div class="market-status" id="marketStatus">Market Closed</div>
-            
             <!-- SVG Track -->
-            <svg class="track-svg" viewBox="0 0 700 180" preserveAspectRatio="xMidYMid meet">
+            <svg class="track-svg" viewBox="0 0 700 140" preserveAspectRatio="xMidYMid meet">
                 <defs>
-                    <!-- Gradient for track (not used anymore, kept for compatibility) -->
                     <linearGradient id="trackGradient" x1="0%" y1="0%" x2="100%" y2="0%">
                         <stop offset="0%" style="stop-color:#266A49;stop-opacity:1" />
                         <stop offset="50%" style="stop-color:#3a8a5e;stop-opacity:1" />
@@ -593,15 +600,15 @@
                 
                 <!-- Background track (full arc) -->
                 <path class="track-background" id="trackBackground" 
-                      d="M 50 160 Q 350 10, 650 160" />
+                      d="M 50 120 Q 350 10, 650 120" />
                 
                 <!-- Progress track (animated) -->
                 <path class="track-progress" id="trackProgress" 
-                      d="M 50 160 Q 350 10, 650 160" />
+                      d="M 50 120 Q 350 10, 650 120" />
             </svg>
             
             <!-- Train Icon -->
-            <span class="material-symbols-outlined train-icon" id="trainIcon">train</span>
+            <span class="material-symbols-outlined train-icon market-closed" id="trainIcon">train</span>
             
             <!-- City Labels -->
             <div class="city-label denver">Denver, CO</div>
@@ -736,7 +743,6 @@
         function initTradingClock() {
             const trackProgress = document.getElementById('trackProgress');
             const trainIcon = document.getElementById('trainIcon');
-            const marketStatus = document.getElementById('marketStatus');
             
             // Market hours (Eastern Time)
             const MARKET_OPEN_HOUR = 9;
@@ -754,13 +760,13 @@
                 const dayOfWeek = eastern.getDay();
                 
                 // Calculate market progress (0 to 1)
-                const marketOpenMinutes = MARKET_OPEN_HOUR * 60 + MARKET_OPEN_MINUTE;
-                const marketCloseMinutes = MARKET_CLOSE_HOUR * 60 + MARKET_CLOSE_MINUTE;
+                const marketOpenMinutes = MARKET_OPEN_HOUR * 60 + MARKET_OPEN_MINUTE; // 571
+                const marketCloseMinutes = MARKET_CLOSE_HOUR * 60 + MARKET_CLOSE_MINUTE; // 960
                 const currentMinutes = hours * 60 + minutes;
                 
                 let progress = 0;
-                let statusText = '';
                 let isMarketOpen = false;
+                let isBeforeHours = false;
                 
                 // Check if weekend
                 const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
@@ -771,40 +777,50 @@
                 if (isWeekend || isHoliday) {
                     // Weekend or holiday - train at Denver (start)
                     progress = 0;
-                    statusText = isWeekend ? 'Weekend - Market Closed' : 'Holiday - Market Closed';
+                    isBeforeHours = true;
                 } else if (currentMinutes < marketOpenMinutes) {
-                    // Before market open - train at Denver (start)
+                    // Before market open (before 9:31 AM) - train at Denver (start)
                     progress = 0;
-                    const minutesUntilOpen = marketOpenMinutes - currentMinutes;
-                    const hoursUntilOpen = Math.floor(minutesUntilOpen / 60);
-                    const minsUntilOpen = minutesUntilOpen % 60;
-                    statusText = `Opens in ${hoursUntilOpen}h ${minsUntilOpen}m`;
+                    isBeforeHours = true;
                 } else if (currentMinutes >= marketOpenMinutes && currentMinutes < marketCloseMinutes) {
-                    // Market is open - train moves along track
+                    // Market is OPEN - train moves along track
                     const elapsedMinutes = currentMinutes - marketOpenMinutes;
-                    const totalMarketMinutes = marketCloseMinutes - marketOpenMinutes;
+                    const totalMarketMinutes = marketCloseMinutes - marketOpenMinutes; // 389 minutes
                     progress = elapsedMinutes / totalMarketMinutes;
-                    
-                    const minutesRemaining = marketCloseMinutes - currentMinutes;
-                    const hoursRemaining = Math.floor(minutesRemaining / 60);
-                    const minsRemaining = minutesRemaining % 60;
-                    statusText = `Market Open · ${hoursRemaining}h ${minsRemaining}m left`;
                     isMarketOpen = true;
                     
-                    // Track is WHITE when time remaining
+                    // Track is WHITE when market open
                     trackProgress.classList.add('time-remaining');
+                    trainIcon.classList.remove('market-closed');
+                    trainIcon.classList.add('market-open');
                 } else {
-                    // After market close - train at DC (end)
-                    progress = 1;
-                    statusText = 'Market Closed';
+                    // After market close (after 4:00 PM) - train at DC (end)
+                    // BUT: Switch back to "before hours" at 12:01 AM
+                    if (hours === 0 && minutes >= 1) {
+                        // It's past midnight (12:01 AM or later) - switch to before hours
+                        progress = 0;
+                        isBeforeHours = true;
+                    } else {
+                        // Still "after hours" (4:00 PM - 11:59 PM)
+                        progress = 1;
+                        isBeforeHours = false;
+                    }
+                    
                     trackProgress.classList.remove('time-remaining');
+                    trainIcon.classList.remove('market-open');
+                    trainIcon.classList.add('market-closed');
+                }
+                
+                // If before hours (not after hours), ensure train is at start
+                if (isBeforeHours && !isMarketOpen) {
+                    progress = 0;
+                    trackProgress.classList.remove('time-remaining');
+                    trainIcon.classList.remove('market-open');
+                    trainIcon.classList.add('market-closed');
                 }
                 
                 // Clamp progress between 0 and 1
                 progress = Math.max(0, Math.min(1, progress));
-                
-                // Update market status badge
-                marketStatus.textContent = statusText;
                 
                 // Update SVG track progress
                 const pathLength = trackProgress.getTotalLength();
@@ -812,14 +828,25 @@
                 trackProgress.style.strokeDasharray = pathLength;
                 trackProgress.style.strokeDashoffset = dashOffset;
                 
-                // Position train icon along the arc
+                // Position train icon along the arc (slightly offset from line)
                 positionTrainOnArc(progress);
             }
             
             function positionTrainOnArc(progress) {
                 const trackPath = document.getElementById('trackBackground');
                 const pathLength = trackPath.getTotalLength();
-                const point = trackPath.getPointAtLength(pathLength * progress);
+                
+                // Offset train slightly (before line at start/end, on line during movement)
+                let offset = 0;
+                if (progress === 0) {
+                    // At Denver - position slightly before the line starts
+                    offset = -20;
+                } else if (progress === 1) {
+                    // At DC - position slightly after the line ends
+                    offset = 20;
+                }
+                
+                const point = trackPath.getPointAtLength(Math.max(0, Math.min(pathLength, pathLength * progress + offset)));
                 
                 // Position train
                 trainIcon.style.left = `${point.x}px`;
