@@ -133,6 +133,16 @@ def settings():
 def api_credentials():
     return render_template('api_credentials.html', username=session.get('username'))
 
+@app.route('/about')
+@login_required
+def about():
+    return render_template('about.html', username=session.get('username'))
+
+@app.route('/how-it-works')
+@login_required
+def how_it_works():
+    return render_template('how_it_works.html', username=session.get('username'))
+
 # ============================================================================
 # API - MORNING REPORT
 # ============================================================================

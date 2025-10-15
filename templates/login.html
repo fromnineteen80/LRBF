@@ -1,13 +1,47 @@
-{% extends "base_new.html" %}
-
-{% block title %}Login - Railyard Markets{% endblock %}
-{% block page_title %}Welcome Back{% endblock %}
-
-{% block extra_css %}
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Railyard Markets</title>
+    
+    <!-- Material Design 3 Theme -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/theme/light.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/theme/dark.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Material Web Components -->
+    <script type="importmap">
+    {
+      "imports": {
+        "@material/web/": "https://esm.run/@material/web/"
+      }
+    }
+    </script>
+    <script type="module">
+        import '@material/web/all.js';
+        import '@material/web/button/filled-button.js';
+        import '@material/web/button/text-button.js';
+        import '@material/web/textfield/filled-text-field.js';
+        import '@material/web/checkbox/checkbox.js';
+        import '@material/web/card/elevated-card.js';
+    </script>
+    
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/material-web-layout.css') }}">
+    
 <style>
     /* Login Page Specific Styles */
+    body {
+        margin: 0;
+        padding: 0;
+        font-family: 'Roboto', sans-serif;
+        background-color: var(--md-sys-color-background);
+        color: var(--md-sys-color-on-background);
+    }
+    
     .login-container {
-        min-height: calc(100vh - 64px);
+        min-height: 100vh;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -138,8 +172,7 @@
         {% endif %}
         
         <!-- Login Form -->
-        <form method="POST" action="{{ url_for('login') }}" class="login-form" id="loginForm">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <form class="login-form" id="loginForm" onsubmit="handleLogin(event); return false;">
             
             <!-- Username Field -->
             <md-filled-text-field 
@@ -221,64 +254,89 @@
         <md-filled-button form="forgotPasswordForm" value="reset">Send Reset Link</md-filled-button>
     </div>
 </md-dialog>
-{% endblock %}
+</div>
+</body>
 
-{% block scripts %}
 <script>
+    // Handle login with AJAX
+    async function handleLogin(e) {
+        e.preventDefault();
+        
+        const form = document.getElementById('loginForm');
+        const username = form.querySelector('[name="username"]').value;
+        const password = form.querySelector('[name="password"]').value;
+        const loginButton = form.querySelector('md-filled-button');
+        
+        // Disable button during login
+        loginButton.disabled = true;
+        loginButton.innerHTML = '<md-circular-progress indeterminate></md-circular-progress> Signing in...';
+        
+        try {
+            const response = await fetch('/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ username, password })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                // Success! Redirect to dashboard
+                showMessage('Login successful! Redirecting...', 'success');
+                setTimeout(() => {
+                    window.location.href = '/dashboard';
+                }, 500);
+            } else {
+                // Failed login
+                showMessage(data.error || 'Invalid credentials', 'error');
+                loginButton.disabled = false;
+                loginButton.innerHTML = '<span slot="icon" class="material-symbols-outlined">login</span> Sign In';
+            }
+        } catch (error) {
+            showMessage('Connection error. Please try again.', 'error');
+            loginButton.disabled = false;
+            loginButton.innerHTML = '<span slot="icon" class="material-symbols-outlined">login</span> Sign In';
+        }
+    }
+    
+    // Show message
+    function showMessage(message, type) {
+        const errorDiv = document.querySelector('.error-message');
+        const successDiv = document.querySelector('.success-message');
+        
+        if (type === 'error') {
+            errorDiv.querySelector('span:last-child').textContent = message;
+            errorDiv.classList.add('show');
+            successDiv.classList.remove('show');
+        } else {
+            successDiv.querySelector('span:last-child').textContent = message;
+            successDiv.classList.add('show');
+            errorDiv.classList.remove('show');
+        }
+    }
+    
     // Show forgot password dialog
     function showForgotPassword() {
         const dialog = document.getElementById('forgotPasswordDialog');
         dialog.show();
     }
     
-    // Handle forgot password dialog close
+    // Handle forgot password dialog
     const forgotPasswordDialog = document.getElementById('forgotPasswordDialog');
-    forgotPasswordDialog.addEventListener('close', (e) => {
+    forgotPasswordDialog?.addEventListener('close', (e) => {
         if (e.target.returnValue === 'reset') {
-            // Show success message
-            showSnackbar('Password reset link sent! Check your email.');
+            showMessage('Password reset link sent! Check your email.', 'success');
         }
     });
     
-    // Form validation
-    const loginForm = document.getElementById('loginForm');
-    loginForm.addEventListener('submit', (e) => {
-        const username = loginForm.querySelector('[name="username"]');
-        const password = loginForm.querySelector('[name="password"]');
-        
-        if (!username.value || !password.value) {
-            e.preventDefault();
-            showSnackbar('Please fill in all fields');
-            return false;
-        }
-    });
-    
-    // Auto-focus username field
+    // Auto-focus username field on load
     window.addEventListener('load', () => {
         const usernameField = document.querySelector('[name="username"]');
         if (usernameField) {
             setTimeout(() => usernameField.focus(), 100);
         }
     });
-    
-    // Show snackbar notification
-    function showSnackbar(message) {
-        const snackbar = document.getElementById('snackbar');
-        const text = snackbar.querySelector('.snackbar-text');
-        const closeBtn = snackbar.querySelector('.snackbar-action');
-        
-        text.textContent = message;
-        snackbar.classList.add('show');
-        
-        // Auto-hide after 5 seconds
-        setTimeout(() => {
-            snackbar.classList.remove('show');
-        }, 5000);
-        
-        // Close button
-        closeBtn.addEventListener('click', () => {
-            snackbar.classList.remove('show');
-        }, { once: true });
-    }
 </script>
-{% endblock %}
+</html>

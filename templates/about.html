@@ -1,0 +1,331 @@
+{% extends "base.html" %}
+
+{% block title %}About - Railyard Markets{% endblock %}
+{% block page_title %}About The Fund{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Blog Layout */
+    .blog-container {
+        display: grid;
+        grid-template-columns: 1fr 340px;
+        gap: var(--spacing-xl);
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: var(--spacing-xl);
+    }
+    
+    /* Main Content Column - Roboto Serif for longform reading */
+    .blog-content {
+        font-family: 'Roboto Serif', serif;
+        font-size: 18px;
+        line-height: 1.8;
+        color: var(--md-sys-color-on-surface);
+    }
+    
+    .blog-content h1 {
+        font-family: 'Roboto Serif', serif;
+        font-size: 42px;
+        font-weight: 700;
+        line-height: 1.2;
+        margin: 0 0 var(--spacing-md) 0;
+        color: var(--md-sys-color-on-surface);
+    }
+    
+    .blog-content h2 {
+        font-family: 'Roboto Serif', serif;
+        font-size: 32px;
+        font-weight: 600;
+        line-height: 1.3;
+        margin: var(--spacing-xl) 0 var(--spacing-md) 0;
+        color: var(--md-sys-color-on-surface);
+    }
+    
+    .blog-content h3 {
+        font-family: 'Roboto Serif', serif;
+        font-size: 24px;
+        font-weight: 600;
+        line-height: 1.4;
+        margin: var(--spacing-lg) 0 var(--spacing-sm) 0;
+        color: var(--md-sys-color-on-surface);
+    }
+    
+    .blog-content p {
+        margin: 0 0 var(--spacing-lg) 0;
+        font-optical-sizing: auto;
+    }
+    
+    .blog-content strong {
+        font-weight: 600;
+        color: var(--md-sys-color-primary);
+    }
+    
+    .blog-content blockquote {
+        border-left: 4px solid var(--md-sys-color-primary);
+        padding-left: var(--spacing-lg);
+        margin: var(--spacing-xl) 0;
+        font-style: italic;
+        color: var(--md-sys-color-on-surface-variant);
+    }
+    
+    .blog-content ul, .blog-content ol {
+        margin: var(--spacing-md) 0 var(--spacing-lg) var(--spacing-lg);
+        padding-left: var(--spacing-lg);
+    }
+    
+    .blog-content li {
+        margin-bottom: var(--spacing-sm);
+    }
+    
+    .blog-meta {
+        font-family: 'Roboto Flex', sans-serif;
+        font-size: 14px;
+        color: var(--md-sys-color-on-surface-variant);
+        margin-bottom: var(--spacing-xl);
+        padding-bottom: var(--spacing-lg);
+        border-bottom: 1px solid var(--md-sys-color-outline-variant);
+    }
+    
+    .blog-meta-item {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--spacing-xs);
+        margin-right: var(--spacing-lg);
+    }
+    
+    /* Right Sidebar - Roboto Flex for UI elements */
+    .blog-sidebar {
+        font-family: 'Roboto Flex', sans-serif;
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-lg);
+        position: sticky;
+        top: var(--spacing-lg);
+        height: fit-content;
+    }
+    
+    .sidebar-card {
+        padding: var(--spacing-lg);
+    }
+    
+    .sidebar-card h4 {
+        font-family: 'Roboto Flex', sans-serif;
+        font-size: 16px;
+        font-weight: 600;
+        margin: 0 0 var(--spacing-md) 0;
+        color: var(--md-sys-color-on-surface);
+    }
+    
+    .sidebar-card p {
+        font-size: 14px;
+        line-height: 1.5;
+        margin: 0 0 var(--spacing-sm) 0;
+        color: var(--md-sys-color-on-surface-variant);
+    }
+    
+    .sidebar-stat {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: var(--spacing-sm) 0;
+        border-bottom: 1px solid var(--md-sys-color-outline-variant);
+    }
+    
+    .sidebar-stat:last-child {
+        border-bottom: none;
+    }
+    
+    .stat-label {
+        font-size: 13px;
+        color: var(--md-sys-color-on-surface-variant);
+    }
+    
+    .stat-value {
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--md-sys-color-primary);
+    }
+    
+    .sidebar-link {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+        padding: var(--spacing-sm) 0;
+        color: var(--md-sys-color-primary);
+        text-decoration: none;
+        font-size: 14px;
+        transition: color 0.2s;
+    }
+    
+    .sidebar-link:hover {
+        color: var(--md-sys-color-primary);
+        text-decoration: underline;
+    }
+    
+    /* Responsive */
+    @media (max-width: 1024px) {
+        .blog-container {
+            grid-template-columns: 1fr;
+        }
+        
+        .blog-sidebar {
+            position: static;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="blog-container">
+    <!-- Main Content Column -->
+    <article class="blog-content">
+        <h1>Building Railyard Markets</h1>
+        
+        <div class="blog-meta">
+            <span class="blog-meta-item">
+                <span class="material-symbols-outlined" style="font-size: 18px;">calendar_today</span>
+                <span>Last updated: January 2025</span>
+            </span>
+            <span class="blog-meta-item">
+                <span class="material-symbols-outlined" style="font-size: 18px;">schedule</span>
+                <span>15 min read</span>
+            </span>
+        </div>
+        
+        <p><strong>We are scaling a structural advantage</strong> already identified through extensive modeling and prototype testing: a repeatable opportunity within market microstructures. Specifically, our unique trading strategy captures short, naturally occurring price recoveries created when institutional algorithms rebalance toward the Volume Weighted Average Price (VWAP).</p>
+        
+        <h2>Our Mission</h2>
+        
+        <p>Microstructured events occur across all market conditions and liquid instruments, forming a consistent and predictable environment for disciplined micro-trade execution. Through automation, statistical control, and risk management, the system converts these recoveries into a series of small, repeatable gains while maintaining capital protection through defined stops, reserve ratios, and daily exposure limits.</p>
+        
+        <p>The value uncovered is the ability to isolate and repeatedly act on this structural behavior in the market with AI-driven precision.</p>
+        
+        <blockquote>
+            "When deployed, our Recovery Engine trading strategy captures predictable micro-reversions created by institutional order flow and executes them through precise automation that removes human bias."
+        </blockquote>
+        
+        <h2>The Technology Stack</h2>
+        
+        <p>Using AI-driven analytics and Python-based predictive modeling, <strong>Railyard.ai</strong> can identify VWAP recovery formations in real time across any liquid market. The combination of analytics, automation, and strict capital governance has demonstrated mathematically stable compounding potential.</p>
+        
+        <p>In 2025, our co-founders launched <strong>The Luggage Room Boys Fund</strong>, a private family fund set to capitalize on the unique trading strategy and proven value available within market microstructures.</p>
+        
+        <h3>What We're Building</h3>
+        
+        <ul>
+            <li><strong>The Luggage Room Boys Fund:</strong> The private fund owned by the co-founders that serves as an investment vehicle to own the IP, trading strategy, AI infrastructure, and brokerage.</li>
+            <li><strong>Recovery Engine:</strong> The quantitative trading strategy that powers returns through VWAP recovery cycles.</li>
+            <li><strong>Railyard.ai:</strong> The predictive analytics, Python library, and AI tools that analyze data, forecast daily ROI, and integrate with brokers.</li>
+            <li><strong>Railyard Markets:</strong> The brokerage and future execution platform that will eventually route orders internally, removing external brokerage fees and latency.</li>
+        </ul>
+        
+        <h2>Mining Value With AI & Structured Discipline</h2>
+        
+        <p>Artificial intelligence is already at the center of modern market structure. Every day, AI models decide how billions of dollars are routed, matched, and filled across exchanges. Research shows up to 70% of the market derives from automation, AI, and custom algorithms.</p>
+        
+        <p>The technology itself is no longer a differentiator. What separates lasting success from noise is the ability to combine automation with a fixed probabilistic framework and compound its advantages over time.</p>
+        
+        <h2>Our Approach</h2>
+        
+        <p>Our Recovery Engine was built around a simple philosophy: use AI automation to mine intraday inefficiencies that arise from institutional trading behavior, translating short, controlled micro-trades into continuous compounded alpha. Each trade is small, independent, and executed by code that never changes its decision pattern.</p>
+        
+        <p>The design goal is not to predict markets, but to harvest the inevitable recoveries that occur when large players rebalance their orders against the Volume Weighted Average Price (VWAP).</p>
+        
+        <h3>The Advantage</h3>
+        
+        <p>Most desks use VWAP to measure execution quality rather than to extract profit — they follow the flow instead of anticipating it. Our Recovery Engine is positioned on the other side of that behavior, using automation to trade the rebalancing itself.</p>
+        
+        <p>By operating with smaller capital, faster decision cycles, and zero discretionary bias, it captures the inefficiency large institutions create when they correct toward VWAP. This structural asymmetry gives the system a durable edge and allows consistent compounding on a controlled risk curve.</p>
+        
+        <h2>Looking Forward</h2>
+        
+        <p>As the Fund matures, the co-founders will work to scale their trading strategy, technology, and capital infrastructure required to compete at institutional speeds and volumes with an AI-powered brokerage, Railyard Markets.</p>
+        
+        <p>This paper outlines our phased approach, algorithm, tools, and market execution with a forecasted result that can become firm KPIs in a short period of market maturity. We predict challenges and solutions that protect our equity and curve as the fund grows exponentially with plans to develop new proprietary tools that boost efficiency and reduce fees.</p>
+    </article>
+    
+    <!-- Right Sidebar -->
+    <aside class="blog-sidebar">
+        <!-- Quick Stats Card -->
+        <md-elevated-card class="sidebar-card">
+            <h4>Fund Overview</h4>
+            <div class="sidebar-stat">
+                <span class="stat-label">Launch Year</span>
+                <span class="stat-value">2025</span>
+            </div>
+            <div class="sidebar-stat">
+                <span class="stat-label">Strategy</span>
+                <span class="stat-value">VWAP Recovery</span>
+            </div>
+            <div class="sidebar-stat">
+                <span class="stat-label">Technology</span>
+                <span class="stat-value">AI-Driven</span>
+            </div>
+            <div class="sidebar-stat">
+                <span class="stat-label">Trade Style</span>
+                <span class="stat-value">Micro-trades</span>
+            </div>
+        </md-elevated-card>
+        
+        <!-- Related Links Card -->
+        <md-elevated-card class="sidebar-card">
+            <h4>Learn More</h4>
+            <a href="{{ url_for('how_it_works') }}" class="sidebar-link">
+                <span class="material-symbols-outlined" style="font-size: 18px;">psychology</span>
+                <span>How It Works</span>
+            </a>
+            <a href="{{ url_for('morning') }}" class="sidebar-link">
+                <span class="material-symbols-outlined" style="font-size: 18px;">wb_twilight</span>
+                <span>Morning Analysis</span>
+            </a>
+            <a href="{{ url_for('live') }}" class="sidebar-link">
+                <span class="material-symbols-outlined" style="font-size: 18px;">monitoring</span>
+                <span>Live Monitoring</span>
+            </a>
+            <a href="{{ url_for('eod') }}" class="sidebar-link">
+                <span class="material-symbols-outlined" style="font-size: 18px;">nightlight</span>
+                <span>EOD Reports</span>
+            </a>
+        </md-elevated-card>
+        
+        <!-- System Status Card -->
+        <md-elevated-card class="sidebar-card">
+            <h4>System Status</h4>
+            <p style="margin-bottom: var(--spacing-lg);">Real-time system health and market status.</p>
+            <div class="sidebar-stat">
+                <span class="stat-label">Mode</span>
+                <span class="stat-value" id="systemMode">Loading...</span>
+            </div>
+            <div class="sidebar-stat">
+                <span class="stat-label">Market Status</span>
+                <span class="stat-value" id="marketStatus">Loading...</span>
+            </div>
+        </md-elevated-card>
+        
+        <!-- Contact Card -->
+        <md-elevated-card class="sidebar-card">
+            <h4>Questions?</h4>
+            <p>Contact the co-founders for more information about The Luggage Room Boys Fund and Railyard Markets.</p>
+        </md-elevated-card>
+    </aside>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Fetch system status for sidebar
+    async function loadSystemStatus() {
+        try {
+            const response = await fetch('/api/system/status');
+            const data = await response.json();
+            
+            document.getElementById('systemMode').textContent = data.mode || 'Unknown';
+            document.getElementById('marketStatus').textContent = data.market_open ? 'Open' : 'Closed';
+        } catch (error) {
+            console.error('Failed to load system status:', error);
+        }
+    }
+    
+    loadSystemStatus();
+</script>
+{% endblock %}
