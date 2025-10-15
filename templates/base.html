@@ -286,34 +286,23 @@
                         
                         <!-- User Menu -->
                         <div class="user-menu">
-                            <md-icon-button onclick="toggleUserMenu()" aria-label="Account menu" aria-haspopup="true" aria-expanded="false" id="userMenuButton">
-                                <span class="material-symbols-outlined">account_circle</span>
-                            </md-icon-button>
+                            <button class="user-menu-button" onclick="toggleUserMenu()" aria-label="Account menu" aria-haspopup="true" aria-expanded="false" id="userMenuButton">
+                                {{ username }}
+                            </button>
                             
                             <!-- User Menu Dropdown -->
-                            <md-menu 
-                                id="userMenu" 
-                                anchor="userMenuButton"
-                                positioning="popover"
-                                quick>
-                                <md-menu-item>
-                                    <div slot="headline">{{ username }}</div>
-                                </md-menu-item>
-                                <md-divider></md-divider>
-                                <md-menu-item href="{{ url_for('api_credentials') }}">
-                                    <span slot="start" class="material-symbols-outlined">vpn_key</span>
-                                    <div slot="headline">API Credentials</div>
-                                </md-menu-item>
-                                <md-menu-item href="{{ url_for('settings') }}">
-                                    <span slot="start" class="material-symbols-outlined">settings</span>
-                                    <div slot="headline">Settings</div>
-                                </md-menu-item>
-                                <md-divider></md-divider>
-                                <md-menu-item href="{{ url_for('logout') }}">
-                                    <span slot="start" class="material-symbols-outlined">logout</span>
-                                    <div slot="headline">Logout</div>
-                                </md-menu-item>
-                            </md-menu>
+                            <div class="user-menu-dropdown" id="userMenu">
+                                <a href="{{ url_for('api_credentials') }}" class="user-menu-item">
+                                    API Credentials
+                                </a>
+                                <a href="{{ url_for('settings') }}" class="user-menu-item">
+                                    Settings
+                                </a>
+                                <div class="user-menu-divider"></div>
+                                <a href="{{ url_for('logout') }}" class="user-menu-item">
+                                    Logout
+                                </a>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -346,11 +335,25 @@
         function toggleUserMenu() {
             const menu = document.getElementById('userMenu');
             const button = document.getElementById('userMenuButton');
-            menu.open = !menu.open;
-            button.setAttribute('aria-expanded', menu.open);
+            
+            // Toggle dropdown
+            menu.classList.toggle('open');
+            
+            // Update aria-expanded
+            const isOpen = menu.classList.contains('open');
+            button.setAttribute('aria-expanded', isOpen);
         }
         
-        // Close user menu when clicking outside (handled by md-menu)
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            const userMenu = document.querySelector('.user-menu');
+            const dropdown = document.getElementById('userMenu');
+            
+            if (userMenu && !userMenu.contains(event.target)) {
+                dropdown.classList.remove('open');
+                document.getElementById('userMenuButton').setAttribute('aria-expanded', 'false');
+            }
+        });
         
         // System status check
         async function checkSystemStatus() {
