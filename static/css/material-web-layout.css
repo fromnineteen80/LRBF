@@ -107,7 +107,7 @@ body {
     display: flex;
     align-items: center;
     gap: 0;
-    margin: 12px 0 18px 0;
+    margin: 12px 0 24px 0;
     padding: 0 18px;
     min-height: 48px;
 }
@@ -127,7 +127,7 @@ body {
 .nav-rail:not(.collapsed) .nav-rail-toggle {
     gap: 0 8px;
     margin: 12px 18px 24px 18px;
-    padding: 0 14px;
+    padding: 0px;
 }
 
 /* Make toggle icons match nav item icons exactly */
@@ -232,7 +232,7 @@ body {
 }
 
 .nav-rail:not(.collapsed) .nav-rail-toggle {
-    gap: 12px;
+    gap: 10px;
 }
 
 .nav-rail-item:hover {
