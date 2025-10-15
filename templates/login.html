@@ -999,11 +999,11 @@
             const form = document.getElementById('loginForm');
             const username = form.querySelector('[name="username"]').value;
             const password = form.querySelector('[name="password"]').value;
-            const loginButton = form.querySelector('md-filled-button');
+            const loginButton = form.querySelector('.btn-filled');
             
             // Disable button during login
             loginButton.disabled = true;
-            loginButton.innerHTML = 'Signing in...';
+            loginButton.innerHTML = '<span class="material-symbols-outlined">hourglass_empty</span> Signing in...';
             
             // Hide any existing messages
             document.getElementById('errorMessage').classList.remove('show');
@@ -1030,12 +1030,12 @@
                     // Failed login
                     showMessage(data.error || 'Invalid credentials', 'error');
                     loginButton.disabled = false;
-                    loginButton.innerHTML = '<span slot="icon" class="material-symbols-outlined">login</span> Sign In';
+                    loginButton.innerHTML = '<span class="material-symbols-outlined">login</span> Sign In';
                 }
             } catch (error) {
                 showMessage('Connection error. Please try again.', 'error');
                 loginButton.disabled = false;
-                loginButton.innerHTML = '<span slot="icon" class="material-symbols-outlined">login</span> Sign In';
+                loginButton.innerHTML = '<span class="material-symbols-outlined">login</span> Sign In';
             }
         }
         
