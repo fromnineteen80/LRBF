@@ -419,6 +419,130 @@ body {
 }
 
 /* ========================================
+   MARKET PROGRESS LINE (Denver to DC)
+   ======================================== */
+
+.market-progress-container {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    z-index: 1;
+}
+
+.market-progress-track {
+    position: relative;
+    width: min(400px, 30vw);
+    height: 4px;
+    background-color: rgba(var(--md-sys-color-outline-rgb, 121, 116, 126), 0.38);
+    border-radius: 2px;
+    overflow: visible;
+}
+
+.market-progress-bar {
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    background-color: var(--md-sys-color-primary);
+    border-radius: 2px;
+    width: 0%;
+    transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Green when market closed, white when open */
+.market-progress-bar.market-open {
+    background-color: #ffffff;
+    box-shadow: 0 0 8px rgba(255, 255, 255, 0.6);
+}
+
+.market-progress-bar.market-closed {
+    background-color: var(--md-sys-color-primary);
+    box-shadow: 0 0 8px rgba(var(--md-sys-color-primary-rgb, 38, 106, 73), 0.4);
+}
+
+.market-progress-indicator {
+    position: absolute;
+    left: 0%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    transition: left 1s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 2;
+}
+
+.market-train-icon {
+    font-size: 20px;
+    color: var(--md-sys-color-primary);
+    animation: trainPulse 3s ease-in-out infinite;
+}
+
+.market-train-icon.market-open {
+    color: #ffffff;
+    filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.8));
+}
+
+.market-train-icon.market-closed {
+    color: var(--md-sys-color-primary);
+    filter: drop-shadow(0 0 6px rgba(var(--md-sys-color-primary-rgb, 38, 106, 73), 0.6));
+}
+
+@keyframes trainPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+.market-progress-labels {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: var(--md-sys-color-on-surface-variant);
+    opacity: 0.7;
+}
+
+.market-label-start {
+    margin-left: -2px;
+}
+
+.market-label-end {
+    margin-right: -2px;
+}
+
+/* Responsive sizing */
+@media (max-width: 1200px) {
+    .market-progress-track {
+        width: min(350px, 35vw);
+    }
+}
+
+@media (max-width: 900px) {
+    .market-progress-track {
+        width: min(280px, 40vw);
+    }
+    
+    .market-train-icon {
+        font-size: 18px;
+    }
+    
+    .market-progress-labels {
+        font-size: 9px;
+    }
+}
+
+@media (max-width: 768px) {
+    .market-progress-container {
+        display: none; /* Hide on mobile to save space */
+    }
+}
+
+/* ========================================
    MAIN CONTENT
    ======================================== */
 

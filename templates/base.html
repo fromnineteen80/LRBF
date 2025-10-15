@@ -254,6 +254,20 @@
                 <div class="top-app-bar-content">
                     <h1 class="top-app-bar-title">{% block page_title %}Dashboard{% endblock %}</h1>
                     
+                    <!-- Market Progress Line (Denver to DC) -->
+                    <div class="market-progress-container" title="Market Progress: Denver to DC">
+                        <div class="market-progress-track">
+                            <div class="market-progress-bar" id="marketProgressBar"></div>
+                            <div class="market-progress-indicator" id="marketProgressIndicator">
+                                <span class="material-symbols-outlined market-train-icon" id="marketTrainIcon">train</span>
+                            </div>
+                        </div>
+                        <div class="market-progress-labels">
+                            <span class="market-label market-label-start">DEN</span>
+                            <span class="market-label market-label-end">DCA</span>
+                        </div>
+                    </div>
+                    
                     <div class="top-app-bar-actions">
                         <!-- System Status Chip -->
                         <div class="status-chip" id="systemStatus" role="status" aria-live="polite">
@@ -363,6 +377,96 @@
                 console.error('Failed to check system status:', error);
             }
         }
+        
+        // ========================================================================
+        // MARKET PROGRESS LINE (Denver to DC)
+        // ========================================================================
+        
+        function initMarketProgress() {
+            const progressBar = document.getElementById('marketProgressBar');
+            const progressIndicator = document.getElementById('marketProgressIndicator');
+            const trainIcon = document.getElementById('marketTrainIcon');
+            
+            if (!progressBar || !progressIndicator || !trainIcon) {
+                return; // Elements not present on this page
+            }
+            
+            // Market hours (Eastern Time)
+            const MARKET_OPEN_HOUR = 9;
+            const MARKET_OPEN_MINUTE = 31;
+            const MARKET_CLOSE_HOUR = 16;
+            const MARKET_CLOSE_MINUTE = 0;
+            
+            function updateMarketProgress() {
+                const now = new Date();
+                
+                // Convert to Eastern Time
+                const eastern = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+                const hours = eastern.getHours();
+                const minutes = eastern.getMinutes();
+                const dayOfWeek = eastern.getDay();
+                
+                // Calculate market progress (0 to 1)
+                const marketOpenMinutes = MARKET_OPEN_HOUR * 60 + MARKET_OPEN_MINUTE; // 571
+                const marketCloseMinutes = MARKET_CLOSE_HOUR * 60 + MARKET_CLOSE_MINUTE; // 960
+                const currentMinutes = hours * 60 + minutes;
+                
+                let progress = 0;
+                let isMarketOpen = false;
+                
+                // Check if weekend
+                const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+                
+                if (isWeekend) {
+                    // Weekend - train at Denver (start)
+                    progress = 0;
+                } else if (currentMinutes < marketOpenMinutes) {
+                    // Before market open (before 9:31 AM) - train at Denver
+                    progress = 0;
+                } else if (currentMinutes >= marketOpenMinutes && currentMinutes < marketCloseMinutes) {
+                    // Market is OPEN - train moves along track
+                    const elapsedMinutes = currentMinutes - marketOpenMinutes;
+                    const totalMarketMinutes = marketCloseMinutes - marketOpenMinutes; // 389 minutes
+                    progress = elapsedMinutes / totalMarketMinutes;
+                    isMarketOpen = true;
+                } else {
+                    // After market close (after 4:00 PM)
+                    // Switch back to "before hours" at 12:01 AM
+                    if (hours === 0 && minutes >= 1) {
+                        progress = 0;
+                    } else {
+                        progress = 1;
+                    }
+                }
+                
+                // Clamp progress between 0 and 1
+                progress = Math.max(0, Math.min(1, progress));
+                
+                // Update progress bar
+                progressBar.style.width = `${progress * 100}%`;
+                progressIndicator.style.left = `${progress * 100}%`;
+                
+                // Update colors based on market status
+                if (isMarketOpen) {
+                    progressBar.classList.add('market-open');
+                    progressBar.classList.remove('market-closed');
+                    trainIcon.classList.add('market-open');
+                    trainIcon.classList.remove('market-closed');
+                } else {
+                    progressBar.classList.add('market-closed');
+                    progressBar.classList.remove('market-open');
+                    trainIcon.classList.add('market-closed');
+                    trainIcon.classList.remove('market-open');
+                }
+            }
+            
+            // Initialize and update every second
+            updateMarketProgress();
+            setInterval(updateMarketProgress, 1000);
+        }
+        
+        // Initialize market progress on page load
+        document.addEventListener('DOMContentLoaded', initMarketProgress);
         
         // Toggle Navigation Rail (Collapse/Expand)
         function toggleNavRail() {
