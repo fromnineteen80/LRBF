@@ -443,6 +443,58 @@ def update_settings():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/settings/trading-mode')
+@login_required
+def get_trading_mode():
+    """Get current trading mode (live or simulation)"""
+    try:
+        from modules.simulation_helper import get_simulation_status
+        
+        # Get mode from session (defaults to 'live')
+        mode = session.get('trading_mode', 'live')
+        
+        response = {'mode': mode}
+        
+        # If simulation mode, include simulation status
+        if mode == 'simulation':
+            response['simulation_status'] = get_simulation_status()
+        
+        return jsonify(response)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/settings/trading-mode', methods=['POST'])
+@login_required
+def set_trading_mode():
+    """Set trading mode (live or simulation)"""
+    try:
+        data = request.json
+        mode = data.get('mode', 'live')
+        
+        # Validate mode
+        if mode not in ['live', 'simulation']:
+            return jsonify({'error': 'Invalid mode. Must be "live" or "simulation"'}), 400
+        
+        # Store in session
+        session['trading_mode'] = mode
+        session.modified = True
+        
+        return jsonify({'success': True, 'mode': mode})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/settings/simulation-status')
+@login_required
+def get_simulation_status_api():
+    """Get simulation status information"""
+    try:
+        from modules.simulation_helper import get_simulation_status
+        
+        status = get_simulation_status()
+        return jsonify(status)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 # ============================================================================
 # API - CREDENTIALS
 # ============================================================================

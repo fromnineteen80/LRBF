@@ -105,12 +105,20 @@ class TradingConfig:
     # ========================================================================
     
     USE_SIMULATION = False  # PRODUCTION: Set to False to use real yfinance data
-                            # DEVELOPMENT: Set to True when testing in Claude container
+                            # DEVELOPMENT: Set to True for testing with historical data
                             # 
                             # NOTE: yfinance is blocked in Claude container (403 errors)
                             # but will work correctly in production deployment (Railway)
-                            
+    
+    # Simulation data source
+    SIMULATION_MODE = "last_trading_day"  # Options:
+                                          # "last_trading_day" - Use real data from last completed trading day
+                                          # "synthetic" - Generate fake data (old behavior)
+                                          
     SIMULATION_STARTING_BALANCE = 30000.0  # Starting balance for simulation mode
+    
+    # Simulation playback speed (for Live Monitor)
+    SIMULATION_SPEED = 1.0  # 1.0 = real-time, 10.0 = 10x speed, 0.1 = slow motion
     
     # ========================================================================
     # PHASE 5 ENHANCEMENT FLAGS (Future Features - Not Yet Implemented)

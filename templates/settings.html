@@ -2,6 +2,76 @@
 {% block title %}Settings - Railyard Markets{% endblock %}
 {% block page_title %}Settings{% endblock %}
 {% block content %}
+
+<!-- Trading Mode Card -->
+<md-elevated-card style="margin-bottom: 16px;">
+    <div style="padding: 16px; border-bottom: 1px solid var(--md-sys-color-outline-variant);">
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <md-icon style="color: var(--md-sys-color-tertiary);">power_settings_new</md-icon>
+            <h3 class="card-title" style="margin: 0;">Trading Mode</h3>
+        </div>
+    </div>
+    <div style="padding: 24px;">
+        <div style="display: flex; flex-direction: column; gap: 16px;">
+            <!-- Live Trading Option -->
+            <div style="padding: 20px; background: var(--md-sys-color-surface-container); border-radius: 12px; cursor: pointer;" onclick="selectMode('live')" id="liveModeCard">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <md-icon style="color: var(--md-sys-color-primary); font-size: 32px;">trending_up</md-icon>
+                        <div>
+                            <h4 class="title-medium" style="margin: 0;">Live Trading</h4>
+                            <p class="body-small" style="margin: 4px 0 0 0; color: var(--md-sys-color-on-surface-variant);">Use current market data (real-time)</p>
+                        </div>
+                    </div>
+                    <md-radio name="trading_mode" value="live" id="radioLive"></md-radio>
+                </div>
+                <div style="padding-left: 44px;">
+                    <p class="body-medium" style="color: var(--md-sys-color-on-surface-variant); margin: 0;">
+                        • Downloads real-time 1-minute bars from yfinance<br>
+                        • Executes trades during market hours (9:31 AM - 4:00 PM ET)<br>
+                        • Best for: Active trading during market hours
+                    </p>
+                </div>
+            </div>
+
+            <!-- Simulation Option -->
+            <div style="padding: 20px; background: var(--md-sys-color-surface-container); border-radius: 12px; cursor: pointer;" onclick="selectMode('simulation')" id="simulationModeCard">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <md-icon style="color: var(--md-sys-color-secondary); font-size: 32px;">history</md-icon>
+                        <div>
+                            <h4 class="title-medium" style="margin: 0;">Simulation Mode</h4>
+                            <p class="body-small" style="margin: 4px 0 0 0; color: var(--md-sys-color-on-surface-variant);">Use last trading day's data</p>
+                        </div>
+                    </div>
+                    <md-radio name="trading_mode" value="simulation" id="radioSimulation"></md-radio>
+                </div>
+                <div style="padding-left: 44px;">
+                    <p class="body-medium" style="color: var(--md-sys-color-on-surface-variant); margin: 0;">
+                        • Uses real historical data from last completed trading day<br>
+                        • Full workflow: Morning analysis → Live replay → EOD report<br>
+                        • Best for: Testing after-hours, weekends, holidays
+                    </p>
+                    <div id="simulationInfo" style="margin-top: 12px; padding: 12px; background: var(--md-sys-color-secondary-container); border-radius: 8px; display: none;">
+                        <p class="body-small" style="margin: 0; color: var(--md-sys-color-on-secondary-container);">
+                            <strong>Last Trading Day:</strong> <span id="lastTradingDay">-</span><br>
+                            <strong>Analysis Period:</strong> <span id="analysisPeriod">-</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; margin-top: 16px;">
+                <md-filled-button onclick="saveTradingMode()">
+                    <md-icon slot="icon">save</md-icon>
+                    Save Trading Mode
+                </md-filled-button>
+            </div>
+        </div>
+    </div>
+</md-elevated-card>
+
+<!-- Trading Configuration Card -->
 <md-elevated-card>
     <div style="padding: 16px; border-bottom: 1px solid var(--md-sys-color-outline-variant);">
         <div style="display: flex; align-items: center; gap: 12px;">
@@ -48,6 +118,95 @@ const settingIcons = {
     'min_expected_value': 'attach_money',
     'min_entries_per_day': 'input'
 };
+
+let currentMode = 'live';
+
+async function loadTradingMode() {
+    try {
+        const data = await apiCall('/api/settings/trading-mode');
+        currentMode = data.mode;
+        
+        // Update radio buttons
+        if (currentMode === 'live') {
+            document.getElementById('radioLive').checked = true;
+            highlightCard('live');
+        } else {
+            document.getElementById('radioSimulation').checked = true;
+            highlightCard('simulation');
+            
+            // Load and show simulation info
+            if (data.simulation_status) {
+                document.getElementById('lastTradingDay').textContent = new Date(data.simulation_status.last_trading_day).toLocaleDateString('en-US', {
+                    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+                });
+                document.getElementById('analysisPeriod').textContent = 
+                    `${data.simulation_status.simulation_analysis_start} to ${data.simulation_status.simulation_analysis_end}`;
+                document.getElementById('simulationInfo').style.display = 'block';
+            }
+        }
+    } catch (error) {
+        console.error('Failed to load trading mode:', error);
+        // Default to live
+        document.getElementById('radioLive').checked = true;
+        highlightCard('live');
+    }
+}
+
+function selectMode(mode) {
+    if (mode === 'live') {
+        document.getElementById('radioLive').checked = true;
+        document.getElementById('simulationInfo').style.display = 'none';
+    } else {
+        document.getElementById('radioSimulation').checked = true;
+        // Load simulation info
+        loadSimulationInfo();
+    }
+    highlightCard(mode);
+    currentMode = mode;
+}
+
+function highlightCard(mode) {
+    const liveCard = document.getElementById('liveModeCard');
+    const simCard = document.getElementById('simulationModeCard');
+    
+    if (mode === 'live') {
+        liveCard.style.border = '2px solid var(--md-sys-color-primary)';
+        liveCard.style.background = 'var(--md-sys-color-primary-container)';
+        simCard.style.border = 'none';
+        simCard.style.background = 'var(--md-sys-color-surface-container)';
+    } else {
+        simCard.style.border = '2px solid var(--md-sys-color-secondary)';
+        simCard.style.background = 'var(--md-sys-color-secondary-container)';
+        liveCard.style.border = 'none';
+        liveCard.style.background = 'var(--md-sys-color-surface-container)';
+    }
+}
+
+async function loadSimulationInfo() {
+    try {
+        const data = await apiCall('/api/settings/simulation-status');
+        document.getElementById('lastTradingDay').textContent = new Date(data.last_trading_day).toLocaleDateString('en-US', {
+            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+        });
+        document.getElementById('analysisPeriod').textContent = 
+            `${data.simulation_analysis_start} to ${data.simulation_analysis_end}`;
+        document.getElementById('simulationInfo').style.display = 'block';
+    } catch (error) {
+        console.error('Failed to load simulation info:', error);
+    }
+}
+
+async function saveTradingMode() {
+    try {
+        await apiCall('/api/settings/trading-mode', {
+            method: 'POST',
+            body: JSON.stringify({ mode: currentMode })
+        });
+        showSnackbar(`Trading mode set to: ${currentMode === 'live' ? 'Live Trading' : 'Simulation Mode'}`);
+    } catch (error) {
+        showSnackbar('Failed to save trading mode');
+    }
+}
 
 async function loadSettings() {
     try {
@@ -104,6 +263,8 @@ async function saveSettings() {
     }
 }
 
+// Load both trading mode and settings on page load
+loadTradingMode();
 loadSettings();
 </script>
 {% endblock %}
