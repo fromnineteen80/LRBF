@@ -4,36 +4,55 @@
 {% block page_title %}Morning Report{% endblock %}
 
 {% block content %}
-<div class="card mb-4">
-    <div class="card-header">
-        <div class="flex items-center justify-between">
-            <h3 class="card-title">Stock Selection & Forecast</h3>
-            <button class="button button-filled" onclick="generateReport()">Generate Report</button>
+<md-elevated-card style="margin-bottom: 16px;">
+    <div style="padding: 16px; border-bottom: 1px solid var(--md-sys-color-outline-variant);">
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <md-icon style="color: var(--md-sys-color-primary);">wb_sunny</md-icon>
+                <h3 class="card-title" style="margin: 0;">Stock Selection & Forecast</h3>
+            </div>
+            <md-filled-button onclick="generateReport()">
+                <md-icon slot="icon">analytics</md-icon>
+                Generate Report
+            </md-filled-button>
         </div>
     </div>
-    <div class="card-content">
-        <div id="loadingState" style="display: none; text-align: center; padding: var(--md-sys-spacing-8);">
-            <p class="body-large">Analyzing stocks...</p>
+    <div style="padding: 24px;">
+        <div id="loadingState" style="display: none; text-align: center; padding: 32px;">
+            <md-circular-progress indeterminate></md-circular-progress>
+            <p class="body-large" style="margin-top: 16px;">Analyzing stocks...</p>
         </div>
         <div id="reportContent" style="display: none;">
-            <div class="grid grid-cols-2 gap-4 mb-4">
-                <div>
-                    <p class="label-medium" style="color: var(--md-sys-color-on-surface-variant);">Expected Trades</p>
-                    <p class="title-large" id="expectedTrades">-</p>
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 24px;">
+                <div style="padding: 16px; background: var(--md-sys-color-surface-container); border-radius: 12px;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                        <md-icon style="color: var(--md-sys-color-primary);">trending_up</md-icon>
+                        <p class="label-medium" style="color: var(--md-sys-color-on-surface-variant); margin: 0;">Expected Trades</p>
+                    </div>
+                    <p class="title-large" id="expectedTrades" style="margin: 0; color: var(--md-sys-color-primary);">-</p>
                 </div>
-                <div>
-                    <p class="label-medium" style="color: var(--md-sys-color-on-surface-variant);">Expected P&L</p>
-                    <p class="title-large" id="expectedPL">-</p>
+                <div style="padding: 16px; background: var(--md-sys-color-surface-container); border-radius: 12px;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                        <md-icon style="color: var(--md-sys-color-tertiary);">attach_money</md-icon>
+                        <p class="label-medium" style="color: var(--md-sys-color-on-surface-variant); margin: 0;">Expected P&L</p>
+                    </div>
+                    <p class="title-large" id="expectedPL" style="margin: 0; color: var(--md-sys-color-tertiary);">-</p>
                 </div>
             </div>
-            <h4 class="title-medium mb-4">Selected Stocks</h4>
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
+                <md-icon style="color: var(--md-sys-color-secondary);">list</md-icon>
+                <h4 class="title-medium" style="margin: 0;">Selected Stocks</h4>
+            </div>
             <div id="stocksList"></div>
         </div>
     </div>
-    <div class="card-actions">
-        <button class="button button-outlined" onclick="downloadPrompts()">Download Prompts</button>
+    <div style="padding: 16px; border-top: 1px solid var(--md-sys-color-outline-variant); display: flex; justify-content: flex-end;">
+        <md-outlined-button onclick="downloadPrompts()">
+            <md-icon slot="icon">download</md-icon>
+            Download Prompts
+        </md-outlined-button>
     </div>
-</div>
+</md-elevated-card>
 {% endblock %}
 
 {% block scripts %}
@@ -50,14 +69,34 @@ async function generateReport() {
         
         const stocksList = document.getElementById('stocksList');
         stocksList.innerHTML = data.selected_stocks.map(stock => `
-            <div style="padding: var(--md-sys-spacing-3); border-bottom: 1px solid var(--md-sys-color-outline-variant);">
-                <div class="flex justify-between">
-                    <span class="title-medium">${stock.ticker}</span>
-                    <span class="label-large">${stock.category}</span>
+            <div style="padding: 16px; border-bottom: 1px solid var(--md-sys-color-outline-variant); display: flex; flex-direction: column; gap: 8px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <md-icon style="color: var(--md-sys-color-primary);">show_chart</md-icon>
+                        <span class="title-medium">${stock.ticker}</span>
+                    </div>
+                    <span class="label-large" style="padding: 4px 12px; background: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-secondary-container); border-radius: 8px;">${stock.category}</span>
                 </div>
-                <p class="body-small" style="color: var(--md-sys-color-on-surface-variant);">
-                    Expected Entries: ${stock.expected_daily_entries} | Win Rate: ${stock.win_rate}% | Expected P&L: ${formatCurrency(stock.expected_daily_pl)}
-                </p>
+                <div style="display: flex; gap: 24px;">
+                    <div style="display: flex; align-items: center; gap: 4px;">
+                        <md-icon style="font-size: 16px; color: var(--md-sys-color-on-surface-variant);">input</md-icon>
+                        <p class="body-small" style="color: var(--md-sys-color-on-surface-variant); margin: 0;">
+                            Entries: ${stock.expected_daily_entries}
+                        </p>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 4px;">
+                        <md-icon style="font-size: 16px; color: var(--md-sys-color-on-surface-variant);">check_circle</md-icon>
+                        <p class="body-small" style="color: var(--md-sys-color-on-surface-variant); margin: 0;">
+                            Win Rate: ${stock.win_rate}%
+                        </p>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 4px;">
+                        <md-icon style="font-size: 16px; color: var(--md-sys-color-on-surface-variant);">payments</md-icon>
+                        <p class="body-small" style="color: var(--md-sys-color-on-surface-variant); margin: 0;">
+                            P&L: ${formatCurrency(stock.expected_daily_pl)}
+                        </p>
+                    </div>
+                </div>
             </div>
         `).join('');
         
