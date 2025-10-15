@@ -107,7 +107,7 @@ body {
     display: flex;
     align-items: center;
     gap: 0;
-    padding: 8px 0;
+    padding: 0 18px;
     min-height: 48px;
 }
 
@@ -177,7 +177,7 @@ body {
 
 /* Section Headers */
 .nav-rail-section-header {
-    padding: 10px 0 4px 0;
+    padding: 10px 18px 4px 18px;
     margin: 6px 0 0 0;
 }
 
@@ -204,7 +204,7 @@ body {
     display: flex;
     align-items: center;
     gap: 0;
-    padding: 6px 0;
+    padding: 0 18px;
     margin: 0;
     text-decoration: none;
     color: var(--md-sys-color-on-surface-variant);
