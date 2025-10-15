@@ -106,23 +106,25 @@ body {
     width: 100%;
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 6px 6px 6px 3px;
-    min-height: 52px;
+    gap: 10px;
+    padding: 8px 10px;
+    min-height: 48px;
+}
+
+.nav-rail.collapsed .nav-rail-toggle {
+    justify-content: center;
+    padding: 8px 0;
 }
 
 .nav-rail-toggle md-icon-button {
     --md-icon-button-state-layer-shape: 10px;
     --md-icon-button-icon-size: 20px;
+    --md-icon-button-container-width: 20px;
+    --md-icon-button-container-height: 20px;
     cursor: pointer;
     flex-shrink: 0;
-    margin: 0;
-    padding: 0;
-}
-
-.nav-rail.collapsed .nav-rail-toggle {
-    justify-content: center;
-    padding: 6px;
+    width: 20px;
+    height: 20px;
 }
 
 .nav-rail-title {
@@ -158,22 +160,22 @@ body {
     width: 100%;
     display: flex;
     flex-direction: column;
-    gap: 1px;
+    gap: 0px;
     overflow-y: auto;
     overflow-x: hidden;
-    padding: 4px 6px;
+    padding: 0 6px;
 }
 
 .nav-rail-footer {
     width: 100%;
-    padding: 4px 6px 8px 6px;
+    padding: 0 6px 8px 6px;
     margin-top: auto;
 }
 
 /* Section Headers */
 .nav-rail-section-header {
-    padding: 12px 10px 6px 10px;
-    margin-top: 8px;
+    padding: 10px 10px 4px 10px;
+    margin-top: 6px;
 }
 
 .nav-rail.collapsed .nav-rail-section-header {
@@ -209,12 +211,10 @@ body {
     white-space: nowrap;
 }
 
-/* Collapsed state - center icons with exact pixel calculation */
-/* Sidebar is 48px wide, icon is 20px, so we need 14px on each side */
+/* Collapsed state - center icons perfectly */
 .nav-rail.collapsed .nav-rail-item {
-    width: 100%;
-    padding: 6px 14px;
-    justify-content: flex-start;
+    padding: 6px 0;
+    justify-content: center;
 }
 
 .nav-rail-item:hover {
