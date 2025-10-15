@@ -654,6 +654,88 @@ def system_status():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/market/calendar')
+def market_calendar():
+    """Get accurate market calendar info using pandas_market_calendars"""
+    try:
+        import pandas_market_calendars as mcal
+        from datetime import timezone
+        
+        # Get NYSE calendar
+        nyse = mcal.get_calendar('NYSE')
+        
+        # Get current Eastern Time
+        now_utc = datetime.now(timezone.utc)
+        eastern = now_utc.astimezone(mcal.get_calendar('NYSE').tz)
+        today = eastern.date()
+        
+        # Check if today is a trading day
+        schedule = nyse.schedule(start_date=today, end_date=today)
+        is_trading_day = len(schedule) > 0
+        
+        response = {}
+        
+        if is_trading_day:
+            # Get market open/close times
+            market_open = schedule['market_open'].iloc[0]
+            market_close = schedule['market_close'].iloc[0]
+            
+            response = {
+                'is_trading_day': True,
+                'market_open_hour': market_open.hour,
+                'market_open_minute': market_open.minute,
+                'market_close_hour': market_close.hour,
+                'market_close_minute': market_close.minute,
+                'is_early_close': market_close.hour < 16 or (market_close.hour == 16 and market_close.minute < 0),
+                'next_trading_day': None
+            }
+        else:
+            # Find next trading day
+            next_schedule = nyse.schedule(start_date=today, end_date=today + timedelta(days=10))
+            if len(next_schedule) > 0:
+                next_date = next_schedule.index[0]
+                next_day_name = next_date.strftime('%a')  # Mon, Tue, Wed, etc.
+                
+                response = {
+                    'is_trading_day': False,
+                    'market_open_hour': 9,
+                    'market_open_minute': 31,
+                    'market_close_hour': 16,
+                    'market_close_minute': 0,
+                    'is_early_close': False,
+                    'next_trading_day': next_day_name
+                }
+            else:
+                # Fallback if no trading days found
+                response = {
+                    'is_trading_day': False,
+                    'market_open_hour': 9,
+                    'market_open_minute': 31,
+                    'market_close_hour': 16,
+                    'market_close_minute': 0,
+                    'is_early_close': False,
+                    'next_trading_day': 'Mon'
+                }
+        
+        return jsonify(response)
+    except Exception as e:
+        # Fallback to basic logic if pandas_market_calendars fails
+        print(f"⚠️  Market calendar error: {e}")
+        now = datetime.now()
+        is_weekend = now.weekday() >= 5
+        
+        return jsonify({
+            'is_trading_day': not is_weekend,
+            'market_open_hour': 9,
+            'market_open_minute': 31,
+            'market_close_hour': 16,
+            'market_close_minute': 0,
+            'is_early_close': False,
+            'next_trading_day': 'Mon' if is_weekend else None,
+            'error': 'Using fallback calendar logic'
+        })
+
+
 # ============================================================================
 # ERROR HANDLERS
 # ============================================================================

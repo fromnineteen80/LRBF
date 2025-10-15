@@ -391,20 +391,27 @@
                 return; // Elements not present on this page
             }
             
-            // Market hours (Eastern Time)
-            const MARKET_OPEN_HOUR = 9;
-            const MARKET_OPEN_MINUTE = 31;
-            const MARKET_CLOSE_HOUR = 16;
-            const MARKET_CLOSE_MINUTE = 0;
+            // Market calendar data from backend
+            let marketCalendar = {
+                is_trading_day: true,
+                market_open_hour: 9,
+                market_open_minute: 31,
+                market_close_hour: 16,
+                market_close_minute: 0,
+                is_early_close: false,
+                next_trading_day: 'Mon'
+            };
             
-            const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-            
-            function getNextTradingDay(currentDay) {
-                // Returns the next trading day (Mon-Fri)
-                if (currentDay === 5) return 'Mon'; // Friday -> Monday
-                if (currentDay === 6) return 'Mon'; // Saturday -> Monday
-                if (currentDay === 0) return 'Mon'; // Sunday -> Monday
-                return dayNames[currentDay + 1]; // Next weekday
+            // Fetch market calendar from backend on page load
+            async function loadMarketCalendar() {
+                try {
+                    const response = await fetch('/api/market/calendar');
+                    const data = await response.json();
+                    marketCalendar = data;
+                    console.log('📅 Market calendar loaded:', marketCalendar);
+                } catch (error) {
+                    console.error('⚠️  Failed to load market calendar, using defaults:', error);
+                }
             }
             
             function formatTimeRemaining(minutes) {
@@ -425,42 +432,41 @@
                 const hours = eastern.getHours();
                 const minutes = eastern.getMinutes();
                 const seconds = eastern.getSeconds();
-                const dayOfWeek = eastern.getDay();
                 
-                // Calculate market progress (0 to 1)
-                const marketOpenMinutes = MARKET_OPEN_HOUR * 60 + MARKET_OPEN_MINUTE; // 571
-                const marketCloseMinutes = MARKET_CLOSE_HOUR * 60 + MARKET_CLOSE_MINUTE; // 960
+                // Use backend calendar data for market hours
+                const marketOpenMinutes = marketCalendar.market_open_hour * 60 + marketCalendar.market_open_minute;
+                const marketCloseMinutes = marketCalendar.market_close_hour * 60 + marketCalendar.market_close_minute;
                 const currentMinutes = hours * 60 + minutes + seconds / 60;
                 
                 let progress = 0;
                 let remainingMinutes = 0;
                 
-                // Check if weekend
-                const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-                
-                if (isWeekend) {
-                    // Weekend - train at Denver (start), show next trading day
+                if (!marketCalendar.is_trading_day) {
+                    // Holiday or weekend - train at Denver
                     progress = 0;
-                    timeRemaining.textContent = 'Markets Closed until Mon';
+                    timeRemaining.textContent = 'Markets Closed until ' + marketCalendar.next_trading_day;
                 } else if (currentMinutes < marketOpenMinutes) {
                     // Before market open (12:01 AM - 9:30 AM on trading day)
-                    // Train at Denver, countdown to market open
                     progress = 0;
                     remainingMinutes = marketOpenMinutes - currentMinutes;
                     timeRemaining.textContent = 'Markets Open in ' + formatTimeRemaining(remainingMinutes);
                 } else if (currentMinutes >= marketOpenMinutes && currentMinutes < marketCloseMinutes) {
-                    // Market is OPEN (9:31 AM - 4:00 PM) - train moves along track
+                    // Market is OPEN - train moves along track
                     const elapsedMinutes = currentMinutes - marketOpenMinutes;
-                    const totalMarketMinutes = marketCloseMinutes - marketOpenMinutes; // 389 minutes
+                    const totalMarketMinutes = marketCloseMinutes - marketOpenMinutes;
                     progress = elapsedMinutes / totalMarketMinutes;
                     remainingMinutes = totalMarketMinutes - elapsedMinutes;
-                    timeRemaining.textContent = formatTimeRemaining(remainingMinutes);
+                    
+                    // Show early close warning if applicable
+                    if (marketCalendar.is_early_close) {
+                        timeRemaining.textContent = formatTimeRemaining(remainingMinutes) + ' (Early Close)';
+                    } else {
+                        timeRemaining.textContent = formatTimeRemaining(remainingMinutes);
+                    }
                 } else {
-                    // After market close (4:00 PM - 11:59 PM)
-                    // Train at DC (end), show markets closed until next trading day
+                    // After market close
                     progress = 1;
-                    const nextDay = getNextTradingDay(dayOfWeek);
-                    timeRemaining.textContent = 'Markets Closed until ' + nextDay;
+                    timeRemaining.textContent = 'Markets Closed until ' + marketCalendar.next_trading_day;
                 }
                 
                 // Clamp progress between 0 and 1
@@ -473,9 +479,14 @@
                 progressIndicator.style.left = `${progress * 100}%`;
             }
             
-            // Initialize and update every second
-            updateMarketProgress();
-            setInterval(updateMarketProgress, 1000);
+            // Load market calendar, then start updating
+            loadMarketCalendar().then(() => {
+                updateMarketProgress();
+                setInterval(updateMarketProgress, 1000);
+            });
+            
+            // Refresh calendar data once per hour (in case of day change or early close updates)
+            setInterval(loadMarketCalendar, 3600000); // 1 hour
         }
         
         // Initialize market progress on page load
