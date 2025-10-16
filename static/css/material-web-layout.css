@@ -336,8 +336,8 @@ body {
 }
 
 .md3-nav-rail:not(.collapsed) .nav-rail-item {
-    gap: 12px; /* Only gap changes, not justify-content */
-    padding: 0 18px 0 4px; /* Adjust padding for gap */
+    gap: 12px;
+    padding: 0 18px 0 4px;
     min-height: 40px;
 }
 
@@ -370,9 +370,7 @@ body {
 }
 
 /* When collapsed, center the icon within the 56px width */
-.md3-nav-rail.collapsed .nav-icon {
-    margin-left: calc((56px - 20px - 36px) / 2); /* Center within collapsed width */
-}
+
 
 .nav-rail-item:hover .nav-icon {
     font-weight: 300;
@@ -391,8 +389,8 @@ body {
 
 .nav-label {
     font-family: 'Roboto', sans-serif;
-    font-size: 14px; /* FIX #9 - restore original size */
-    font-weight: 400; /* FIX #9 - restore original weight */
+    font-size: 14px;
+    font-weight: 200;
     opacity: 0;
     width: 0;
     overflow: hidden;
@@ -450,7 +448,7 @@ body {
     align-items: center;
     justify-content: center;
     gap: 0;
-    padding: 0;
+    padding: 0 18px;
     min-height: 32px;
     transition: gap 200ms, justify-content 200ms, padding 200ms;
 }
@@ -458,7 +456,7 @@ body {
 .md3-nav-rail:not(.collapsed) .profile-content {
     justify-content: flex-start;
     gap: 12px;
-    padding: 0 18px 0 18px;
+    padding: 0 18px 0 4px;
 }
 
 /* Profile Avatar - FIX #4 & #13 */
@@ -555,10 +553,10 @@ body {
 
 /* Profile Dropdown Menu - FIX #5 */
 .profile-menu {
-    position: fixed;
-    bottom: calc(8px + 32px + 8px);
+    position: absolute;
+    bottom: 100%;
     left: 8px;
-    width: calc(var(--rail-width-collapsed) - 16px);
+    right: 8px;
     background-color: #FFFFFF;
     border-radius: 4px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
@@ -566,14 +564,9 @@ body {
     opacity: 0;
     transform: translateY(4px);
     pointer-events: none;
-    transition: opacity 200ms, transform 200ms, left 200ms, width 200ms;
+    transition: opacity 200ms, transform 200ms;
     z-index: 102;
     margin-bottom: 4px;
-}
-
-.md3-nav-rail:not(.collapsed) .profile-menu {
-    left: 8px;
-    width: calc(var(--rail-width-expanded) - 16px);
 }
 
 .profile-menu.active {
