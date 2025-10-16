@@ -299,7 +299,7 @@
                     <h1 class="top-app-bar-title">{% block page_title %}Dashboard{% endblock %}</h1>
                     
                     <!-- Market Progress Line (Denver to DC) -->
-                    <div class="market-progress-container" title="Market Progress: Denver to DC">
+                    <div class="market-progress-container" id="marketProgressContainer" title="Market Progress: Denver to DC">
                         <span class="market-city-label">DEN</span>
                         <div class="market-progress-track">
                             <div class="market-progress-bar" id="marketProgressBar"></div>
@@ -309,6 +309,7 @@
                         </div>
                         <span class="market-city-label">DCA</span>
                         <span class="market-time-remaining" id="marketTimeRemaining">0:00:00</span>
+                        <span class="market-time-remaining-mobile" id="marketTimeRemainingMobile">0:00:00</span>
                     </div>
                     
                     <div class="top-app-bar-actions">
@@ -543,12 +544,12 @@
                 if (!marketCalendar.is_trading_day) {
                     // Holiday or weekend - train at Denver
                     progress = 0;
-                    timeRemaining.textContent = 'Markets Closed until ' + marketCalendar.next_trading_day;
+                    timeRemaining.textContent = 'Closed until ' + marketCalendar.next_trading_day;
                 } else if (currentMinutes < marketOpenMinutes) {
                     // Before market open (12:01 AM - 9:30 AM on trading day)
                     progress = 0;
                     remainingMinutes = marketOpenMinutes - currentMinutes;
-                    timeRemaining.textContent = 'Markets Open in ' + formatTimeRemaining(remainingMinutes);
+                    timeRemaining.textContent = 'Opens in ' + formatTimeRemaining(remainingMinutes);
                 } else if (currentMinutes >= marketOpenMinutes && currentMinutes < marketCloseMinutes) {
                     // Market is OPEN - train moves along track
                     const elapsedMinutes = currentMinutes - marketOpenMinutes;
@@ -565,7 +566,7 @@
                 } else {
                     // After market close
                     progress = 1;
-                    timeRemaining.textContent = 'Markets Closed until ' + marketCalendar.next_trading_day;
+                    timeRemaining.textContent = 'Closed until ' + marketCalendar.next_trading_day;
                 }
                 
                 // Clamp progress between 0 and 1
@@ -576,6 +577,26 @@
                 
                 // Position indicator
                 progressIndicator.style.left = `${progress * 100}%`;
+                
+                // Update CSS variable for track mask cutout
+                const progressTrack = document.querySelector('.market-progress-track');
+                if (progressTrack) {
+                    progressTrack.style.setProperty('--train-position', `${progress * 100}%`);
+                }
+                
+                // Update mobile time display
+                const timeRemainingMobile = document.getElementById('marketTimeRemainingMobile');
+                if (timeRemainingMobile) {
+                    timeRemainingMobile.textContent = timeRemaining.textContent;
+                }
+            }
+            
+            // Toggle mobile time display on click
+            const container = document.getElementById('marketProgressContainer');
+            if (container) {
+                container.addEventListener('click', function() {
+                    this.classList.toggle('show-mobile-time');
+                });
             }
             
             // Load market calendar, then start updating
