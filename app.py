@@ -153,10 +153,166 @@ def login():
     # GET request - show login page
     return render_template('login.html')
 
+@app.route('/signup')
+def signup():
+    """Signup page for new co-founders"""
+    return render_template('signup.html')
+
 @app.route('/logout')
 def logout():
     session.clear()
     return redirect(url_for('login'))
+
+# ============================================================================
+# AUTHENTICATION API ENDPOINTS
+# ============================================================================
+
+@app.route('/api/auth/signup', methods=['POST'])
+def api_signup():
+    """
+    User signup endpoint.
+    Creates a new user account with phone verification.
+    """
+    try:
+        data = request.json
+        
+        # Import auth helper
+        from modules.auth_helper import AuthHelper, NotificationService
+        
+        # Extract and validate data
+        required_fields = ['first_name', 'last_name', 'email', 'phone_number', 
+                          'timezone', 'fund_contribution', 'username', 'password']
+        
+        for field in required_fields:
+            if field not in data or not data[field]:
+                return jsonify({'error': f'Missing required field: {field}'}), 400
+        
+        # Validate username
+        valid, msg = AuthHelper.validate_username(data['username'])
+        if not valid:
+            return jsonify({'error': msg}), 400
+        
+        # Validate email
+        valid, msg = AuthHelper.validate_email(data['email'])
+        if not valid:
+            return jsonify({'error': msg}), 400
+        
+        # Validate phone
+        valid, msg = AuthHelper.validate_phone(data['phone_number'])
+        if not valid:
+            return jsonify({'error': msg}), 400
+        
+        # Validate password strength
+        valid, msg = AuthHelper.validate_password_strength(data['password'])
+        if not valid:
+            return jsonify({'error': msg}), 400
+        
+        # Hash password
+        password_hash = AuthHelper.hash_password(data['password'])
+        
+        # Generate verification code
+        verification_code = AuthHelper.generate_verification_code()
+        
+        # Calculate ownership percentage
+        # For now, set to 0.0 (admin will update after verifying contribution)
+        ownership_pct = 0.0
+        
+        # Insert user into database
+        if BACKEND_AVAILABLE:
+            cursor = db.conn.cursor()
+            
+            # Check if username or email already exists
+            cursor.execute("SELECT username, email FROM users WHERE username = ? OR email = ?", 
+                          (data['username'], data['email']))
+            existing = cursor.fetchone()
+            
+            if existing:
+                if existing[0] == data['username']:
+                    return jsonify({'error': 'Username already exists'}), 400
+                else:
+                    return jsonify({'error': 'Email already registered'}), 400
+            
+            # Insert new user
+            cursor.execute("""
+                INSERT INTO users (
+                    username, password_hash, first_name, last_name, 
+                    email, phone_number, timezone, fund_contribution,
+                    ownership_pct, is_verified, verification_code
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)
+            """, (
+                data['username'],
+                password_hash,
+                data['first_name'],
+                data['last_name'],
+                data['email'],
+                data['phone_number'],
+                data['timezone'],
+                float(data['fund_contribution']),
+                ownership_pct,
+                verification_code
+            ))
+            
+            db.conn.commit()
+            
+            # Send verification code via SMS
+            notification_service = NotificationService()
+            notification_service.send_verification_code(data['phone_number'], verification_code)
+            
+            # Send welcome email
+            notification_service.send_welcome_email(
+                data['email'], 
+                data['first_name'],
+                data['username']
+            )
+            
+            return jsonify({
+                'success': True,
+                'requires_verification': True,
+                'message': 'Account created! Verification code sent to your phone.'
+            }), 201
+        else:
+            return jsonify({'error': 'Backend not available'}), 500
+            
+    except Exception as e:
+        print(f"Signup error: {e}")
+        return jsonify({'error': 'Failed to create account. Please try again.'}), 500
+
+@app.route('/api/auth/resend-code', methods=['POST'])
+def api_resend_code():
+    """
+    Resend verification code to user's phone.
+    """
+    try:
+        data = request.json
+        phone_number = data.get('phone_number')
+        
+        if not phone_number:
+            return jsonify({'error': 'Phone number required'}), 400
+        
+        if BACKEND_AVAILABLE:
+            from modules.auth_helper import AuthHelper, NotificationService
+            
+            cursor = db.conn.cursor()
+            cursor.execute("SELECT verification_code FROM users WHERE phone_number = ? AND is_verified = 0", 
+                          (phone_number,))
+            result = cursor.fetchone()
+            
+            if not result:
+                return jsonify({'error': 'User not found or already verified'}), 404
+            
+            verification_code = result[0]
+            
+            # Resend code
+            notification_service = NotificationService()
+            notification_service.send_verification_code(phone_number, verification_code)
+            
+            return jsonify({'success': True, 'message': 'Code resent!'}), 200
+        else:
+            return jsonify({'error': 'Backend not available'}), 500
+            
+    except Exception as e:
+        print(f"Resend code error: {e}")
+        return jsonify({'error': 'Failed to resend code'}), 500
 
 # ============================================================================
 # PAGE ROUTES
