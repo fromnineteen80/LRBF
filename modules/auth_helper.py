@@ -337,6 +337,115 @@ class NotificationService:
         print(f"   (In production, this will be sent via SendGrid)")
         
         return True  # Simulated success in development
+    
+    def send_contribution_change_notification(self, email: str, recipient_first_name: str, 
+                                              changed_user_first_name: str, changed_user_last_name: str,
+                                              new_contribution: float, new_ownership_pct: float) -> bool:
+        """
+        Send email notification when a co-founder changes their fund contribution.
+        
+        Args:
+            email: Recipient email
+            recipient_first_name: Name of person receiving notification
+            changed_user_first_name: First name of user who changed contribution
+            changed_user_last_name: Last name of user who changed contribution
+            new_contribution: New contribution amount
+            new_ownership_pct: Recipient's updated ownership percentage
+            
+        Returns:
+            True if successful
+        """
+        print(f"📧 CONTRIBUTION CHANGE NOTIFICATION to {email}")
+        print(f"   Dear {recipient_first_name},")
+        print(f"   {changed_user_first_name} {changed_user_last_name} has updated their fund contribution to ${new_contribution:,.2f}")
+        print(f"   Your new ownership percentage is {new_ownership_pct:.2f}%")
+        print(f"   (In production, this will be sent via SendGrid)")
+        
+        # Uncomment when SendGrid is configured:
+        # try:
+        #     from sendgrid import SendGridAPIClient
+        #     from sendgrid.helpers.mail import Mail
+        #     
+        #     message = Mail(
+        #         from_email=self.from_email,
+        #         to_emails=email,
+        #         subject="Fund Contribution Update",
+        #         html_content=f"""
+        #         <h2>Fund Contribution Update</h2>
+        #         <p>Dear {recipient_first_name},</p>
+        #         <p><strong>{changed_user_first_name} {changed_user_last_name}</strong> has updated their fund contribution to <strong>${new_contribution:,.2f}</strong>.</p>
+        #         <p>Your ownership percentage has been automatically recalculated to <strong>{new_ownership_pct:.2f}%</strong>.</p>
+        #         <p>Log in to your dashboard to view updated fund details.</p>
+        #         <p>Best regards,<br>The Luggage Room Boys Fund</p>
+        #         """
+        #     )
+        #     
+        #     sg = SendGridAPIClient(self.sendgrid_api_key)
+        #     response = sg.send(message)
+        #     return response.status_code == 202
+        # except Exception as e:
+        #     print(f"Error sending email: {e}")
+        #     return False
+        
+        return True  # Simulated success in development
+    
+    def send_deletion_notification(self, email: str, recipient_first_name: str,
+                                   deleted_user_first_name: str, deleted_user_last_name: str,
+                                   payout_amount: float, new_ownership_pct: float) -> bool:
+        """
+        Send email notification when a co-founder deletes their account.
+        
+        Args:
+            email: Recipient email
+            recipient_first_name: Name of person receiving notification
+            deleted_user_first_name: First name of user deleting account
+            deleted_user_last_name: Last name of user deleting account
+            payout_amount: Amount being paid out
+            new_ownership_pct: Recipient's updated ownership percentage
+            
+        Returns:
+            True if successful
+        """
+        print(f"📧 ACCOUNT DELETION NOTIFICATION to {email}")
+        print(f"   Dear {recipient_first_name},")
+        print(f"   {deleted_user_first_name} {deleted_user_last_name} has deleted their account")
+        print(f"   Payout amount: ${payout_amount:,.2f}")
+        print(f"   Your new ownership percentage: {new_ownership_pct:.2f}%")
+        print(f"   (In production, this will be sent via SendGrid)")
+        
+        # Uncomment when SendGrid is configured:
+        # try:
+        #     from sendgrid import SendGridAPIClient
+        #     from sendgrid.helpers.mail import Mail
+        #     
+        #     message = Mail(
+        #         from_email=self.from_email,
+        #         to_emails=email,
+        #         subject="Co-Founder Account Deletion",
+        #         html_content=f"""
+        #         <h2>Co-Founder Account Deletion</h2>
+        #         <p>Dear {recipient_first_name},</p>
+        #         <p><strong>{deleted_user_first_name} {deleted_user_last_name}</strong> has requested to delete their account from The Luggage Room Boys Fund.</p>
+        #         <h3>Details:</h3>
+        #         <ul>
+        #             <li>Payout Amount: <strong>${payout_amount:,.2f}</strong></li>
+        #             <li>Processing Time: 10-15 business days</li>
+        #             <li>Your New Ownership: <strong>{new_ownership_pct:.2f}%</strong></li>
+        #         </ul>
+        #         <p>The account has been immediately deactivated. Fund ownership percentages have been automatically recalculated among remaining co-founders.</p>
+        #         <p>If you have questions about this deletion, please contact the other co-founders.</p>
+        #         <p>Best regards,<br>The Luggage Room Boys Fund</p>
+        #         """
+        #     )
+        #     
+        #     sg = SendGridAPIClient(self.sendgrid_api_key)
+        #     response = sg.send(message)
+        #     return response.status_code == 202
+        # except Exception as e:
+        #     print(f"Error sending email: {e}")
+        #     return False
+        
+        return True  # Simulated success in development
 
 
 # ============================================================================

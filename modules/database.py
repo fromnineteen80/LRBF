@@ -1032,3 +1032,6 @@ if __name__ == "__main__":
     print("\n" + "=" * 60)
     print("✅ All database tests passed!")
     print(f"Test database: {test_db}")
+
+# Alias for backwards compatibility
+Database = TradingDatabase

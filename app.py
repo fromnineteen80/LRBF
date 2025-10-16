@@ -354,6 +354,349 @@ def api_resend_code():
         print(f"Resend code error: {e}")
         return jsonify({'error': 'Failed to resend code'}), 500
 
+@app.route('/api/auth/verify-phone', methods=['POST'])
+def api_verify_phone():
+    """
+    Verify phone number with 6-digit code.
+    Marks user as verified in database after successful verification.
+    """
+    try:
+        data = request.json
+        phone_number = data.get('phone_number')
+        code = data.get('code')
+        
+        if not phone_number or not code:
+            return jsonify({'error': 'Phone number and code required'}), 400
+        
+        if BACKEND_AVAILABLE:
+            from modules.auth_helper import NotificationService
+            
+            cursor = db.conn.cursor()
+            
+            # Get user by phone number
+            cursor.execute("""
+                SELECT id, verification_code, first_name, email, username 
+                FROM users 
+                WHERE phone_number = ? AND is_verified = 0
+            """, (phone_number,))
+            result = cursor.fetchone()
+            
+            if not result:
+                return jsonify({'error': 'User not found or already verified'}), 404
+            
+            user_id, stored_code, first_name, email, username = result
+            
+            # Verify code matches
+            if stored_code != code:
+                return jsonify({'error': 'Invalid verification code'}), 400
+            
+            # Mark user as verified
+            db.verify_user(user_id)
+            
+            # Send welcome email
+            notification_service = NotificationService()
+            notification_service.send_welcome_email(email, first_name, username)
+            
+            return jsonify({
+                'success': True,
+                'message': 'Phone verified! You can now log in.'
+            }), 200
+        else:
+            return jsonify({'error': 'Backend not available'}), 500
+            
+    except Exception as e:
+        print(f"Verify phone error: {e}")
+        return jsonify({'error': 'Failed to verify phone'}), 500
+
+@app.route('/api/auth/update-profile', methods=['POST'])
+@login_required
+def api_update_profile():
+    """
+    Update user profile information.
+    Handles: first_name, last_name, email, phone_number, timezone, fund_contribution.
+    Auto-recalculates ownership percentages if fund_contribution changes.
+    """
+    try:
+        if not BACKEND_AVAILABLE or 'user_id' not in session:
+            return jsonify({'error': 'Not authenticated'}), 401
+        
+        data = request.json
+        user_id = session['user_id']
+        
+        # Validate allowed fields
+        allowed_fields = ['first_name', 'last_name', 'email', 'phone_number', 'timezone', 'fund_contribution']
+        updates = {}
+        
+        for field in allowed_fields:
+            if field in data:
+                value = data[field]
+                
+                # Validate email if provided
+                if field == 'email' and value:
+                    from modules.auth_helper import AuthHelper
+                    valid, msg = AuthHelper.validate_email(value)
+                    if not valid:
+                        return jsonify({'error': msg}), 400
+                    
+                    # Check if email already exists (for different user)
+                    cursor = db.conn.cursor()
+                    cursor.execute("SELECT id FROM users WHERE email = ? AND id != ?", (value, user_id))
+                    if cursor.fetchone():
+                        return jsonify({'error': 'Email already in use'}), 400
+                
+                # Validate phone if provided
+                if field == 'phone_number' and value:
+                    from modules.auth_helper import AuthHelper
+                    valid, msg = AuthHelper.validate_phone(value)
+                    if not valid:
+                        return jsonify({'error': msg}), 400
+                    
+                    # Check if phone already exists (for different user)
+                    cursor = db.conn.cursor()
+                    cursor.execute("SELECT id FROM users WHERE phone_number = ? AND id != ?", (value, user_id))
+                    if cursor.fetchone():
+                        return jsonify({'error': 'Phone number already in use'}), 400
+                
+                # Validate fund contribution
+                if field == 'fund_contribution':
+                    try:
+                        value = float(value)
+                        if value < 0:
+                            return jsonify({'error': 'Fund contribution cannot be negative'}), 400
+                    except ValueError:
+                        return jsonify({'error': 'Invalid fund contribution amount'}), 400
+                
+                updates[field] = value
+        
+        if not updates:
+            return jsonify({'error': 'No valid fields to update'}), 400
+        
+        # Update profile
+        success = db.update_user_profile(user_id, updates)
+        
+        if success:
+            # If fund_contribution changed, notify other co-founders
+            if 'fund_contribution' in updates:
+                from modules.auth_helper import NotificationService
+                notification_service = NotificationService()
+                
+                # Get updated user info
+                user = db.get_user_by_id(user_id)
+                
+                # Get all other active co-founders
+                all_users = db.get_all_users()
+                other_users = [u for u in all_users if u['id'] != user_id]
+                
+                # Send notification emails to other co-founders
+                for other_user in other_users:
+                    notification_service.send_contribution_change_notification(
+                        other_user['email'],
+                        other_user['first_name'],
+                        user['first_name'],
+                        user['last_name'],
+                        updates['fund_contribution'],
+                        other_user['ownership_pct']
+                    )
+            
+            return jsonify({
+                'success': True,
+                'message': 'Profile updated successfully'
+            }), 200
+        else:
+            return jsonify({'error': 'Failed to update profile'}), 500
+            
+    except Exception as e:
+        print(f"Update profile error: {e}")
+        return jsonify({'error': 'Failed to update profile'}), 500
+
+@app.route('/api/auth/change-password', methods=['POST'])
+@login_required
+def api_change_password():
+    """
+    Change user password.
+    Requires current password verification before setting new password.
+    Optionally invalidates all existing sessions for security.
+    """
+    try:
+        if not BACKEND_AVAILABLE or 'user_id' not in session:
+            return jsonify({'error': 'Not authenticated'}), 401
+        
+        data = request.json
+        current_password = data.get('current_password')
+        new_password = data.get('new_password')
+        
+        if not current_password or not new_password:
+            return jsonify({'error': 'Current and new passwords required'}), 400
+        
+        from modules.auth_helper import AuthHelper
+        
+        user_id = session['user_id']
+        
+        # Get user to verify current password
+        user = db.get_user_by_id(user_id)
+        
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+        
+        # Verify current password
+        if not AuthHelper.verify_password(current_password, user['password_hash']):
+            return jsonify({'error': 'Current password is incorrect'}), 401
+        
+        # Validate new password strength
+        valid, msg = AuthHelper.validate_password_strength(new_password)
+        if not valid:
+            return jsonify({'error': msg}), 400
+        
+        # Hash new password
+        new_password_hash = AuthHelper.hash_password(new_password)
+        
+        # Update password in database
+        success = db.update_password(user_id, new_password_hash)
+        
+        if success:
+            # Optional: Invalidate all existing sessions except current one
+            # (Enhanced security - user must log in again on other devices)
+            # Uncomment below to enable:
+            # cursor = db.conn.cursor()
+            # cursor.execute("DELETE FROM sessions WHERE user_id = ? AND session_token != ?", 
+            #                (user_id, session.get('session_token')))
+            # db.conn.commit()
+            
+            return jsonify({
+                'success': True,
+                'message': 'Password changed successfully'
+            }), 200
+        else:
+            return jsonify({'error': 'Failed to change password'}), 500
+            
+    except Exception as e:
+        print(f"Change password error: {e}")
+        return jsonify({'error': 'Failed to change password'}), 500
+
+@app.route('/delete-account')
+@login_required
+def delete_account_page():
+    """
+    Render account deletion page with payout calculation.
+    Shows current fund value, ownership percentage, and calculated payout amount.
+    """
+    try:
+        if not BACKEND_AVAILABLE or 'user_id' not in session:
+            return redirect(url_for('settings'))
+        
+        user_id = session['user_id']
+        user = db.get_user_by_id(user_id)
+        
+        if not user:
+            return redirect(url_for('settings'))
+        
+        # Get current fund value (from IBKR or last EOD balance)
+        # Try to get from IBKR first
+        try:
+            ibkr = IBKRConnector()
+            current_fund_value = ibkr.get_account_balance()
+        except Exception as e:
+            print(f"Could not get IBKR balance: {e}")
+            # Fallback: Use total fund contributions as estimate
+            current_fund_value = db.get_total_fund_value()
+        
+        # Calculate payout based on ownership percentage
+        payout_amount = (user['ownership_pct'] / 100) * current_fund_value
+        
+        # Check if there's already a pending deletion request
+        existing_request = db.get_deletion_request(user_id)
+        
+        return render_template(
+            'delete_account.html',
+            username=session.get('username'),
+            user=user,
+            current_fund_value=current_fund_value,
+            payout_amount=payout_amount,
+            pending_request=existing_request
+        )
+        
+    except Exception as e:
+        print(f"Delete account page error: {e}")
+        return redirect(url_for('settings'))
+
+@app.route('/api/auth/delete-account', methods=['POST'])
+@login_required
+def api_delete_account():
+    """
+    Handle account deletion request.
+    Creates deletion request in database with payout calculation.
+    Sends notifications to all co-founders about account deletion.
+    """
+    try:
+        if not BACKEND_AVAILABLE or 'user_id' not in session:
+            return jsonify({'error': 'Not authenticated'}), 401
+        
+        user_id = session['user_id']
+        user = db.get_user_by_id(user_id)
+        
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+        
+        # Check if user has confirmed (from request)
+        data = request.json
+        confirmed = data.get('confirmed', False)
+        
+        if not confirmed:
+            return jsonify({'error': 'Must confirm account deletion'}), 400
+        
+        # Get current fund value
+        try:
+            ibkr = IBKRConnector()
+            current_fund_value = ibkr.get_account_balance()
+        except Exception as e:
+            print(f"Could not get IBKR balance: {e}")
+            current_fund_value = db.get_total_fund_value()
+        
+        # Calculate payout
+        payout_amount = (user['ownership_pct'] / 100) * current_fund_value
+        
+        # Create deletion request
+        notes = f"User {user['username']} requested account deletion. Payout: ${payout_amount:,.2f}"
+        request_id = db.create_deletion_request(user_id, current_fund_value, payout_amount, notes)
+        
+        # Send notifications to all other co-founders
+        from modules.auth_helper import NotificationService
+        notification_service = NotificationService()
+        
+        all_users = db.get_all_users()
+        other_users = [u for u in all_users if u['id'] != user_id]
+        
+        for other_user in other_users:
+            notification_service.send_deletion_notification(
+                other_user['email'],
+                other_user['first_name'],
+                user['first_name'],
+                user['last_name'],
+                payout_amount,
+                other_user['ownership_pct']  # Updated ownership after this user leaves
+            )
+        
+        # Immediately mark user as inactive (but keep in database for records)
+        cursor = db.conn.cursor()
+        cursor.execute("UPDATE users SET is_active = 0 WHERE id = ?", (user_id,))
+        db.conn.commit()
+        
+        # Confirm deletion request automatically (since we deactivate immediately)
+        db.confirm_deletion_request(request_id)
+        
+        # Log out user
+        session.clear()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Account deletion request submitted. You will be logged out.',
+            'redirect': url_for('login')
+        }), 200
+        
+    except Exception as e:
+        print(f"Delete account error: {e}")
+        return jsonify({'error': 'Failed to delete account'}), 500
+
 # ============================================================================
 # PAGE ROUTES
 # ============================================================================
