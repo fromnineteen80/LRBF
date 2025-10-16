@@ -300,17 +300,55 @@
                 
                 <!-- Profile Dropdown Menu -->
                 <div class="profile-menu" id="profileMenu">
+                    <!-- Menu Header -->
+                    <div class="profile-menu-header">
+                        <div class="profile-menu-email">admin@lrbfund.com</div>
+                        <div class="profile-menu-user">
+                            <div class="profile-menu-avatar">
+                                <span>A</span>
+                            </div>
+                            <div class="profile-menu-info">
+                                <div class="profile-menu-name">
+                                    <span>admin</span>
+                                    <span class="profile-menu-badge">✓</span>
+                                </div>
+                                <div class="profile-menu-role">Co-Founder</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="profile-menu-divider"></div>
+                    
+                    <!-- Menu Items -->
                     <a href="{{ url_for('profile') }}" class="profile-menu-item">
                         <span>Profile</span>
                     </a>
-                    {% if session.get('role') == 'admin' %}
+                    
+                    <div class="profile-menu-item profile-menu-expandable">
+                        <span>Fund Details</span>
+                        <span class="material-symbols-outlined profile-menu-arrow">chevron_right</span>
+                    </div>
+                    
                     <a href="{{ url_for('settings') }}" class="profile-menu-item">
-                        <span>Settings</span>
+                        <span>App Settings</span>
                     </a>
-                    {% endif %}
+                    
+                    <a href="#" class="profile-menu-item">
+                        <span>Get Help</span>
+                    </a>
+                    
+                    <div class="profile-menu-item profile-menu-expandable">
+                        <span>Learn More</span>
+                        <span class="material-symbols-outlined profile-menu-arrow">chevron_right</span>
+                    </div>
+                    
+                    <a href="#" class="profile-menu-item">
+                        <span>Contact</span>
+                    </a>
+                    
                     <div class="profile-menu-divider"></div>
+                    
                     <a href="{{ url_for('logout') }}" class="profile-menu-item">
-                        <span class="material-symbols-outlined">logout</span>
                         <span>Log Out</span>
                     </a>
                 </div>
