@@ -94,7 +94,7 @@
             <!-- App Title Header (Fixed) -->
             <div class="nav-rail-header">
                 <button class="nav-rail-toggle-btn" onclick="toggleNavRail()" aria-label="Toggle navigation menu" id="navToggleBtn">
-                    <span class="material-symbols-outlined">menu</span>
+                    <span class="material-symbols-outlined">thumbnail_bar</span>
                 </button>
                 <div class="nav-rail-title">
                     <span class="title-lrb">LRB</span><span class="title-fund">Fund</span>
@@ -583,8 +583,6 @@
         // Toggle Navigation Rail (Expand/Collapse)
         function toggleNavRail() {
             const navRail = document.getElementById('navRail');
-            const toggleBtn = document.getElementById('navToggleBtn');
-            const icon = toggleBtn.querySelector('.material-symbols-outlined');
             
             navRail.classList.toggle('collapsed');
             
@@ -593,13 +591,8 @@
                 navRail.classList.remove('bundle-open');
             }
             
-            // Update icon and save state
-            if (navRail.classList.contains('collapsed')) {
-                localStorage.setItem('navRailCollapsed', 'true');
-            } else {
-                icon.textContent = 'keyboard_tab_rtl';
-                localStorage.setItem('navRailCollapsed', 'false');
-            }
+            // Save state
+            localStorage.setItem('navRailCollapsed', navRail.classList.contains('collapsed'));
         }
         
         // Toggle Sections Bundle (Collapsed State Only)
