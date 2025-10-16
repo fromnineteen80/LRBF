@@ -366,6 +366,44 @@
                 </div>
             </header>
             
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="flash-messages-container" style="padding: 16px 24px 0;">
+                        {% for category, message in messages %}
+                            <div class="flash-message flash-{{ category }}" style="
+                                padding: 12px 16px;
+                                margin-bottom: 16px;
+                                border-radius: 8px;
+                                display: flex;
+                                align-items: center;
+                                gap: 12px;
+                                background-color: {% if category == 'error' %}var(--md-sys-color-error-container){% elif category == 'success' %}var(--md-sys-color-primary-container){% else %}var(--md-sys-color-surface-variant){% endif %};
+                                color: {% if category == 'error' %}var(--md-sys-color-on-error-container){% elif category == 'success' %}var(--md-sys-color-on-primary-container){% else %}var(--md-sys-color-on-surface-variant){% endif %};
+                                animation: slideIn 0.3s ease;
+                            ">
+                                <span class="material-symbols-outlined">
+                                    {% if category == 'error' %}error{% elif category == 'success' %}check_circle{% else %}info{% endif %}
+                                </span>
+                                <span style="flex: 1;">{{ message }}</span>
+                                <button onclick="this.parentElement.remove()" style="
+                                    background: none;
+                                    border: none;
+                                    cursor: pointer;
+                                    padding: 4px;
+                                    border-radius: 50%;
+                                    display: flex;
+                                    align-items: center;
+                                    justify-content: center;
+                                " onmouseover="this.style.background='rgba(0,0,0,0.1)'" onmouseout="this.style.background='none'">
+                                    <span class="material-symbols-outlined" style="font-size: 20px;">close</span>
+                                </button>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+            
             <!-- Page Content -->
             <main class="main-content" role="main">
                 {% block content %}

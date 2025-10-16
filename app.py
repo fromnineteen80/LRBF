@@ -5,7 +5,7 @@ Material Design 3 Interface with Complete Backend Integration
 SECURE AUTHENTICATION FOR FINANCIAL PLATFORM
 """
 
-from flask import Flask, render_template, jsonify, request, session, redirect, url_for
+from flask import Flask, render_template, jsonify, request, session, redirect, url_for, flash
 from functools import wraps
 from datetime import datetime, date, timedelta
 import os
@@ -117,10 +117,16 @@ def admin_required(f):
         
         # Check if user has admin role
         if session.get('role') != 'admin':
-            return jsonify({
-                'success': False,
-                'error': 'Access denied. Admin privileges required.'
-            }), 403
+            # For API routes, return JSON error
+            if request.path.startswith('/api/'):
+                return jsonify({
+                    'success': False,
+                    'error': 'Access denied. Admin privileges required.'
+                }), 403
+            
+            # For page routes, redirect to dashboard with error message
+            flash('Access denied. This page requires administrator privileges.', 'error')
+            return redirect(url_for('dashboard'))
         
         return f(*args, **kwargs)
     return decorated_function
@@ -1446,6 +1452,7 @@ def documents():
 
 @app.route('/settings')
 @login_required
+@admin_required
 def settings():
     # Get full user data from database
     user_data = None
@@ -1470,6 +1477,7 @@ def settings():
 
 @app.route('/api-credentials')
 @login_required
+@admin_required
 def api_credentials():
     return render_template('api_credentials.html', username=session.get('username'))
 
