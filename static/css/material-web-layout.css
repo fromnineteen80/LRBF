@@ -474,8 +474,7 @@ body {
 .profile-info {
     display: none;
     flex-direction: column;
-    gap: 0;
-    transition: opacity 200ms ease;
+    gap: 2px;
 }
 
 .md3-nav-rail:not(.collapsed) .profile-info {
