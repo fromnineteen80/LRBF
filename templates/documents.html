@@ -127,7 +127,7 @@
         </div>
     </div>
     
-    {% if user.role == 'admin' %}
+    {% if session.get('role') == 'admin' %}
     <!-- Audit Trail (Admin Only) -->
     <div class="surface elevation-1" style="padding: 24px; border-radius: 12px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 16px;">
