@@ -79,15 +79,20 @@ body {
 }
 
 /* ========================================
-   MD3 NAVIGATION RAIL
+   MD3 NAVIGATION RAIL - CORRECTED
    Material Design 3 Compliant Navigation
    ======================================== */
 
+:root {
+    --rail-width-collapsed: 56px;  /* Compact for financial platform */
+    --rail-width-expanded: 220px;
+}
+
 /* MD3 Navigation Rail Container */
 .md3-nav-rail {
-    width: 80px; /* MD3 collapsed width */
+    width: var(--rail-width-collapsed);
     height: 100vh;
-    background-color: #F4F3EE;
+    background-color: #FAF9F7;  /* Collapsed color */
     border-right: 1px solid var(--md-sys-color-outline-variant);
     display: flex;
     flex-direction: column;
@@ -100,7 +105,8 @@ body {
 }
 
 .md3-nav-rail:not(.collapsed) {
-    width: 240px; /* MD3 expanded width */
+    width: var(--rail-width-expanded);
+    background-color: #F4F3EE;  /* Expanded color */
 }
 
 /* ========================================
@@ -109,69 +115,74 @@ body {
 
 .nav-rail-header {
     display: flex;
-    flex-direction: column;
     align-items: center;
-    padding: 8px 0;
+    gap: 0;
+    padding: 0 18px;
+    margin: 12px 0 24px 0;
+    min-height: 32px;
     flex-shrink: 0;
-    border-bottom: 1px solid var(--md-sys-color-outline-variant);
+    border-bottom: 1px solid var(--md-sys-color-outline-variant); /* FIX #1 */
 }
 
-/* Toggle Button - Perfectly Centered */
+.md3-nav-rail:not(.collapsed) .nav-rail-header {
+    gap: 8px;
+    margin: 12px 18px 24px 18px;
+    padding: 0;
+}
+
+/* Toggle Button - NO circular hover */
 .nav-rail-toggle-btn {
-    width: 48px;
-    height: 48px;
+    width: 20px;
+    height: 20px;
     display: flex;
     align-items: center;
     justify-content: center;
     background: none;
     border: none;
-    border-radius: 24px;
+    border-radius: 0; /* FIX #12 - no circle */
     cursor: pointer;
-    margin: 4px 0 8px 0;
+    padding: 0;
+    margin: 0;
+    flex-shrink: 0;
     transition: background-color 200ms;
 }
 
 .nav-rail-toggle-btn:hover {
-    background-color: #E7E5E0;
+    background-color: rgba(0, 0, 0, 0.04); /* Subtle, not circular */
+    border-radius: 0; /* FIX #12 */
 }
 
 .nav-rail-toggle-btn .material-symbols-outlined {
-    font-size: 24px;
-    font-weight: 300;
+    font-size: 20px; /* FIX #7 - restore original size */
+    font-weight: 200;
     color: var(--md-sys-color-on-surface-variant);
 }
 
-/* App Title - Centered in Collapsed, Left-Aligned in Expanded */
+/* App Title - Original Size */
 .nav-rail-title {
     font-family: 'Roboto', sans-serif;
-    text-align: center;
+    font-size: 18px; /* FIX #7 - restore original size */
     white-space: nowrap;
     opacity: 0;
     width: 0;
     overflow: hidden;
     transition: opacity 200ms, width 200ms;
-    padding: 0 16px;
-    margin-bottom: 8px;
+    line-height: 1;
 }
 
 .md3-nav-rail:not(.collapsed) .nav-rail-title {
     opacity: 1;
     width: auto;
-    text-align: left;
-    padding-left: 16px;
 }
 
 .title-lrb {
-    font-size: 20px;
-    font-weight: 500;
-    letter-spacing: 0.15px;
+    font-weight: 700;
     color: var(--md-sys-color-on-surface);
 }
 
 .title-fund {
-    font-size: 20px;
+    font-family: 'Roboto Serif', serif;
     font-weight: 300;
-    letter-spacing: 0.15px;
     color: var(--md-sys-color-on-surface);
 }
 
@@ -181,19 +192,19 @@ body {
 
 .nav-rail-trading {
     flex-shrink: 0;
-    padding: 4px 0;
+    padding: 0;
     position: relative;
 }
 
-/* Blur effect at bottom of Trading section */
+/* Subtle blur effect at bottom - FIX #6 */
 .nav-rail-trading::after {
     content: '';
     position: absolute;
     bottom: 0;
     left: 0;
     right: 0;
-    height: 16px;
-    background: linear-gradient(to bottom, transparent, #F4F3EE);
+    height: 8px;
+    background: linear-gradient(to bottom, transparent, rgba(244, 243, 238, 0.3));
     pointer-events: none;
     z-index: 1;
 }
@@ -204,7 +215,7 @@ body {
 
 .nav-rail-bundle-toggle {
     width: 100%;
-    min-height: 56px;
+    min-height: 32px; /* FIX #2 - compact like other items */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -218,7 +229,6 @@ body {
     margin: 0;
 }
 
-/* Hide bundle toggle when expanded */
 .md3-nav-rail:not(.collapsed) .nav-rail-bundle-toggle {
     display: none;
 }
@@ -237,40 +247,36 @@ body {
     overflow-x: hidden;
     padding: 0;
     position: relative;
-    /* Hidden when collapsed, shown when bundle clicked or rail expanded */
     max-height: 0;
     opacity: 0;
     transition: max-height 300ms cubic-bezier(0.4, 0, 0.2, 1), opacity 200ms;
 }
 
-/* Show scrollable when expanded */
 .md3-nav-rail:not(.collapsed) .nav-rail-scrollable {
     max-height: none;
     opacity: 1;
 }
 
-/* Show scrollable when bundle is open (collapsed state) */
 .md3-nav-rail.collapsed.bundle-open .nav-rail-scrollable {
-    max-height: calc(100vh - 300px); /* Adjust based on fixed elements */
+    max-height: calc(100vh - 250px);
     opacity: 1;
 }
 
-/* Blur effect at top where scrollable content goes behind Trading */
+/* Subtle blur at top - FIX #6 */
 .nav-rail-scrollable::before {
     content: '';
     position: sticky;
     top: 0;
     left: 0;
     right: 0;
-    height: 16px;
-    background: linear-gradient(to top, transparent, #F4F3EE);
+    height: 8px;
+    background: linear-gradient(to top, transparent, rgba(244, 243, 238, 0.3));
     pointer-events: none;
     z-index: 2;
 }
 
-/* Custom scrollbar for the scrollable area */
 .nav-rail-scrollable::-webkit-scrollbar {
-    width: 4px;
+    width: 3px;
 }
 
 .nav-rail-scrollable::-webkit-scrollbar-track {
@@ -287,12 +293,12 @@ body {
    ======================================== */
 
 .nav-rail-section-group {
-    padding: 12px 0;
+    padding: 8px 0; /* FIX #2 - reduce padding */
 }
 
 .nav-rail-section-header {
     padding: 0 16px;
-    margin: 8px 0 4px 0;
+    margin: 4px 0 2px 0; /* FIX #2 - reduce margin */
     opacity: 0;
     width: 0;
     overflow: hidden;
@@ -315,18 +321,18 @@ body {
 }
 
 /* ========================================
-   NAVIGATION ITEMS (CRITICAL POSITIONING)
+   NAVIGATION ITEMS - FIX #9 & #10
    ======================================== */
 
 .nav-rail-item {
     position: relative;
     width: 100%;
-    min-height: 56px; /* MD3 standard */
+    min-height: 32px; /* FIX #9 - restore original compact size */
     display: flex;
     align-items: center;
-    justify-content: center; /* Center icons in collapsed state */
+    justify-content: flex-start; /* FIX #10 - always left-aligned */
     gap: 0;
-    padding: 0;
+    padding: 0 18px; /* FIX #9 - restore original padding */
     margin: 0;
     text-decoration: none;
     color: var(--md-sys-color-on-surface-variant);
@@ -336,11 +342,10 @@ body {
     overflow: hidden;
 }
 
-/* Expanded state: left-align with gap */
 .md3-nav-rail:not(.collapsed) .nav-rail-item {
-    justify-content: flex-start;
-    gap: 12px;
-    padding: 0 16px;
+    gap: 12px; /* Only gap changes, not justify-content */
+    padding: 0 18px 0 4px; /* Adjust padding for gap */
+    min-height: 40px;
 }
 
 .nav-rail-item:hover {
@@ -353,31 +358,34 @@ body {
 }
 
 /* ========================================
-   ICONS (CRITICAL: FIXED POSITIONING)
+   ICONS - FIX #9 & #10 (CRITICAL)
    ======================================== */
 
 .nav-icon {
-    font-size: 24px;
-    font-weight: 300;
+    font-size: 20px; /* FIX #9 - restore original size */
+    font-weight: 300; /* FIX #9 - restore original weight */
     font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
     flex-shrink: 0;
-    width: 24px;
-    height: 24px;
+    width: 20px;
+    height: 20px;
     display: flex;
     align-items: center;
     justify-content: center;
-    /* CRITICAL: Icon position is FIXED */
-    transform: none;
+    /* FIX #10 - fixed position, no transform */
+    margin-left: 0;
     transition: font-weight 150ms, font-variation-settings 150ms;
 }
 
-/* Hover state - one weight heavier */
+/* When collapsed, center the icon within the 56px width */
+.md3-nav-rail.collapsed .nav-icon {
+    margin-left: calc((56px - 20px - 36px) / 2); /* Center within collapsed width */
+}
+
 .nav-rail-item:hover .nav-icon {
     font-weight: 400;
     font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
 }
 
-/* Active state */
 .nav-rail-item.active .nav-icon {
     font-weight: 400;
     font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
@@ -385,13 +393,13 @@ body {
 }
 
 /* ========================================
-   LABELS (HIDE/SHOW, NO ICON MOVEMENT)
+   LABELS - FIX #9
    ======================================== */
 
 .nav-label {
     font-family: 'Roboto', sans-serif;
-    font-size: 14px;
-    font-weight: 400;
+    font-size: 14px; /* FIX #9 - restore original size */
+    font-weight: 400; /* FIX #9 - restore original weight */
     opacity: 0;
     width: 0;
     overflow: hidden;
@@ -399,43 +407,40 @@ body {
     transition: opacity 200ms, width 200ms;
 }
 
-/* Show labels when expanded */
 .md3-nav-rail:not(.collapsed) .nav-label {
     opacity: 1;
     width: auto;
 }
 
-/* Hover state - one weight heavier */
 .nav-rail-item:hover .nav-label {
     font-weight: 500;
 }
 
-/* Active state */
 .nav-rail-item.active .nav-label {
     font-weight: 500;
 }
 
 /* ========================================
-   PROFILE BAR (FIXED AT BOTTOM)
+   PROFILE BAR - FIX #3, #4, #5, #13
    ======================================== */
 
 .nav-rail-profile-bar {
     flex-shrink: 0;
     border-top: 1px solid var(--md-sys-color-outline-variant);
-    padding: 8px 0;
+    padding: 8px 0; /* FIX #3 - reduce height */
     position: relative;
-    background-color: #F4F3EE;
+    background-color: inherit;
 }
 
-/* Blur effect at top where scrollable goes behind */
+/* Subtle blur at top - FIX #6 */
 .nav-rail-profile-bar::before {
     content: '';
     position: absolute;
-    top: -16px;
+    top: -8px;
     left: 0;
     right: 0;
-    height: 16px;
-    background: linear-gradient(to bottom, transparent, #F4F3EE);
+    height: 8px;
+    background: linear-gradient(to bottom, transparent, rgba(244, 243, 238, 0.3));
     pointer-events: none;
     z-index: 1;
 }
@@ -443,31 +448,31 @@ body {
 .profile-content {
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: center; /* Centered when collapsed */
     gap: 0;
-    padding: 8px;
-    transition: gap 200ms, justify-content 200ms;
+    padding: 4px 8px; /* FIX #2 & #3 - reduce padding */
+    transition: gap 200ms, justify-content 200ms, padding 200ms;
 }
 
 .md3-nav-rail:not(.collapsed) .profile-content {
     justify-content: flex-start;
     gap: 12px;
-    padding: 8px 16px;
+    padding: 4px 16px;
 }
 
-/* Profile Avatar */
+/* Profile Avatar - FIX #4 & #13 */
 .profile-avatar {
-    width: 40px;
-    height: 40px;
+    width: 32px; /* FIX #4 - reduce from 40px */
+    height: 32px;
     border-radius: 50%;
-    background-color: var(--md-sys-color-surface-variant);
+    background-color: #000000; /* FIX #4 - black circle as specified */
     display: flex;
     align-items: center;
     justify-content: center;
     font-family: 'Roboto', sans-serif;
-    font-size: 16px;
+    font-size: 14px; /* FIX #4 - smaller text */
     font-weight: 500;
-    color: var(--md-sys-color-on-surface-variant);
+    color: #FFFFFF; /* FIX #4 - white text */
     flex-shrink: 0;
     overflow: hidden;
 }
@@ -482,6 +487,7 @@ body {
 .profile-info {
     display: flex;
     flex-direction: column;
+    gap: 2px; /* FIX #2 - add small gap */
     opacity: 0;
     width: 0;
     overflow: hidden;
@@ -513,8 +519,8 @@ body {
 
 /* Profile Menu Toggle Button */
 .profile-menu-toggle {
-    width: 24px;
-    height: 24px;
+    width: 20px;
+    height: 20px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -531,11 +537,11 @@ body {
 }
 
 .profile-menu-toggle:hover {
-    background-color: #E7E5E0;
+    background-color: rgba(0, 0, 0, 0.04);
 }
 
 .profile-menu-toggle .material-symbols-outlined {
-    font-size: 20px;
+    font-size: 18px;
     font-weight: 300;
     color: var(--md-sys-color-on-surface-variant);
     transition: transform 200ms;
@@ -545,22 +551,22 @@ body {
     transform: rotate(180deg);
 }
 
-/* Profile Dropdown Menu */
+/* Profile Dropdown Menu - FIX #5 */
 .profile-menu {
     position: absolute;
     bottom: 100%;
-    left: 16px;
-    right: 16px;
-    background-color: var(--md-sys-color-surface-container-high);
-    border-radius: 12px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-    padding: 8px 0;
+    left: 8px;
+    right: 8px;
+    background-color: #FFFFFF; /* FIX #5 - white background */
+    border-radius: 4px; /* FIX #5 - subtle rounded corners */
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    padding: 4px 0; /* FIX #5 - reduce padding */
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(4px);
     pointer-events: none;
     transition: opacity 200ms, transform 200ms;
     z-index: 10;
-    margin-bottom: 8px;
+    margin-bottom: 4px;
 }
 
 .profile-menu.active {
@@ -573,15 +579,16 @@ body {
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 12px 16px;
+    padding: 8px 16px; /* FIX #5 - reduce padding */
     text-decoration: none;
     color: var(--md-sys-color-on-surface);
     transition: background-color 150ms;
     cursor: pointer;
+    min-height: 32px;
 }
 
 .profile-menu-item:hover {
-    background-color: var(--md-sys-color-surface-container-highest);
+    background-color: #F5F5F5;
 }
 
 .profile-menu-item .material-symbols-outlined {
@@ -599,7 +606,7 @@ body {
 .profile-menu-divider {
     height: 1px;
     background-color: var(--md-sys-color-outline-variant);
-    margin: 8px 0;
+    margin: 4px 0; /* FIX #5 - reduce margin */
 }
 
 /* ========================================
@@ -618,16 +625,13 @@ body {
    ======================================== */
 
 @media (max-width: 900px) {
-    .md3-nav-rail {
-        width: 72px;
-    }
-    
-    .md3-nav-rail:not(.collapsed) {
-        width: 220px;
+    :root {
+        --rail-width-collapsed: 56px;
+        --rail-width-expanded: 200px;
     }
     
     .nav-rail-item {
-        min-height: 48px;
+        min-height: 32px;
     }
     
     .nav-icon {
@@ -636,14 +640,12 @@ body {
 }
 
 @media (max-width: 768px) {
-    .md3-nav-rail {
-        width: 64px;
-    }
-    
-    .md3-nav-rail:not(.collapsed) {
-        width: 200px;
+    :root {
+        --rail-width-collapsed: 56px;
+        --rail-width-expanded: 180px;
     }
 }
+
 /* ========================================
    MAIN CONTENT AREA
    ======================================== */
@@ -658,7 +660,7 @@ body {
     transition: margin-left var(--transition-standard);
 }
 
-.nav-rail:not(.collapsed) ~ .app-content {
+.md3-nav-rail:not(.collapsed) ~ .app-content {
     margin-left: var(--rail-width-expanded);
 }
 
@@ -1245,12 +1247,12 @@ md-divider {
         --rail-width-expanded: 256px;
     }
     
-    .nav-rail {
+    .md3-nav-rail {
         width: 0;
         transform: translateX(-100%);
     }
     
-    .nav-rail:not(.collapsed) {
+    .md3-nav-rail:not(.collapsed) {
         width: var(--rail-width-expanded);
         transform: translateX(0);
     }
@@ -1282,7 +1284,7 @@ html.dark {
     color-scheme: dark;
 }
 
-html.dark .nav-rail {
+html.dark .md3-nav-rail {
     background-color: var(--md-sys-color-surface);
     border-right-color: var(--md-sys-color-outline-variant);
 }
