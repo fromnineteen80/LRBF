@@ -242,6 +242,8 @@ body {
    ======================================== */
 
 .nav-rail-scrollable {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
     flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
@@ -276,16 +278,7 @@ body {
 }
 
 .nav-rail-scrollable::-webkit-scrollbar {
-    width: 3px;
-}
-
-.nav-rail-scrollable::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-.nav-rail-scrollable::-webkit-scrollbar-thumb {
-    background-color: var(--md-sys-color-outline-variant);
-    border-radius: 2px;
+    display: none;
 }
 
 /* ========================================
