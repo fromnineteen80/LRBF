@@ -603,14 +603,11 @@ body {
    ======================================== */
 
 .market-progress-container {
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%);
+    position: relative;
     display: flex;
     align-items: center;
     gap: 12px;
-    z-index: 1;
+    margin-left: var(--md-sys-spacing-6);
     font-family: 'Roboto', sans-serif;
 }
 
@@ -632,8 +629,6 @@ body {
     border-radius: 2px;
     overflow: visible;
     padding: 0 20px;
-    mask-image: radial-gradient(circle at var(--train-position, 0%) center, transparent 20px, black 24px);
-    -webkit-mask-image: radial-gradient(circle at var(--train-position, 0%) center, transparent 20px, black 24px);
 }
 
 .market-progress-bar {
@@ -645,6 +640,8 @@ body {
     border-radius: 2px;
     width: 0%;
     transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+    mask-image: radial-gradient(circle at var(--train-position, 0%) center, transparent 18px, black 22px);
+    -webkit-mask-image: radial-gradient(circle at var(--train-position, 0%) center, transparent 18px, black 22px);
 }
 
 .market-progress-indicator {
