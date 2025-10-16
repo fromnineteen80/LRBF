@@ -926,6 +926,538 @@ class TradingDatabase:
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Context manager exit - closes connection."""
         self.close()
+    
+    # ========================================================================
+    # INVITATION MANAGEMENT
+    # ========================================================================
+    
+    def create_invitation(self, email: str, first_name: str, invite_token: str, 
+                          invited_by: int, expires_at: datetime) -> int:
+        """
+        Create a new invitation record.
+        
+        Args:
+            email: Invitee's email address
+            first_name: Invitee's first name
+            invite_token: Unique invitation token
+            invited_by: User ID of admin sending invite
+            expires_at: Token expiration datetime
+            
+        Returns:
+            int: ID of created invitation
+        """
+        cursor = self.conn.cursor()
+        cursor.execute("""
+            INSERT INTO invitations 
+            (email, first_name, invite_token, invited_by, expires_at)
+            VALUES (?, ?, ?, ?, ?)
+        """, (email, first_name, invite_token, invited_by, expires_at))
+        self.conn.commit()
+        return cursor.lastrowid
+    
+    def get_invitation_by_token(self, token: str) -> Optional[Dict]:
+        """
+        Get invitation by token.
+        
+        Args:
+            token: Invitation token
+            
+        Returns:
+            dict: Invitation data or None if not found
+        """
+        cursor = self.conn.cursor()
+        cursor.execute("""
+            SELECT * FROM invitations WHERE invite_token = ?
+        """, (token,))
+        row = cursor.fetchone()
+        return dict(row) if row else None
+    
+    def mark_invitation_used(self, token: str, user_id: int):
+        """
+        Mark invitation as used.
+        
+        Args:
+            token: Invitation token
+            user_id: ID of user who used the invitation
+        """
+        cursor = self.conn.cursor()
+        cursor.execute("""
+            UPDATE invitations
+            SET used = 1, used_at = ?, used_by = ?
+            WHERE invite_token = ?
+        """, (datetime.now(), user_id, token))
+        self.conn.commit()
+    
+    def get_pending_invitations(self, invited_by: int) -> List[Dict]:
+        """
+        Get all pending invitations sent by a user.
+        
+        Args:
+            invited_by: User ID who sent the invitations
+            
+        Returns:
+            list: List of pending invitation dicts
+        """
+        cursor = self.conn.cursor()
+        cursor.execute("""
+            SELECT email, first_name, created_at, expires_at
+            FROM invitations
+            WHERE invited_by = ? AND used = 0
+            ORDER BY created_at DESC
+        """, (invited_by,))
+        return [dict(row) for row in cursor.fetchall()]
+    
+    def check_invitation_exists(self, email: str) -> bool:
+        """
+        Check if an invitation already exists for an email.
+        
+        Args:
+            email: Email address to check
+            
+        Returns:
+            bool: True if invitation exists
+        """
+        cursor = self.conn.cursor()
+        cursor.execute("""
+            SELECT COUNT(*) FROM invitations 
+            WHERE email = ? AND used = 0
+        """, (email,))
+        return cursor.fetchone()[0] > 0
+    
+    # ========================================================================
+    # CAPITAL TRANSACTIONS
+    # ========================================================================
+    
+    def record_transaction(self, user_id: int, transaction_date: date, 
+                          transaction_type: str, amount: float, 
+                          notes: str = "", created_by: Optional[int] = None) -> int:
+        """
+        Record a capital transaction and update user's balance.
+        
+        Args:
+            user_id: User ID
+            transaction_date: Date of transaction
+            transaction_type: 'contribution', 'distribution', or 'withdrawal'
+            amount: Transaction amount (positive)
+            notes: Optional transaction notes
+            created_by: Optional admin user ID who recorded it
+            
+        Returns:
+            int: ID of created transaction
+        """
+        cursor = self.conn.cursor()
+        
+        # Get current balance
+        cursor.execute("SELECT fund_contribution FROM users WHERE id = ?", (user_id,))
+        current_balance = cursor.fetchone()[0] or 0.0
+        
+        # Calculate new balance
+        if transaction_type == 'contribution':
+            new_balance = current_balance + amount
+        elif transaction_type in ['distribution', 'withdrawal']:
+            new_balance = current_balance - amount
+        else:
+            raise ValueError(f"Invalid transaction type: {transaction_type}")
+        
+        # Insert transaction
+        cursor.execute("""
+            INSERT INTO capital_transactions 
+            (user_id, transaction_date, transaction_type, amount, balance_after, notes, created_by)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (user_id, transaction_date, transaction_type, amount, new_balance, notes, created_by))
+        
+        # Update user's fund_contribution
+        cursor.execute("""
+            UPDATE users SET fund_contribution = ? WHERE id = ?
+        """, (new_balance, user_id))
+        
+        # Recalculate ownership percentages
+        self._recalculate_ownership()
+        
+        self.conn.commit()
+        return cursor.lastrowid
+    
+    def get_user_transactions(self, user_id: int, limit: Optional[int] = None) -> List[Dict]:
+        """
+        Get capital transactions for a user.
+        
+        Args:
+            user_id: User ID
+            limit: Optional limit on number of results
+            
+        Returns:
+            list: List of transaction dicts
+        """
+        cursor = self.conn.cursor()
+        query = """
+            SELECT transaction_date, transaction_type, amount, balance_after, notes, created_at
+            FROM capital_transactions
+            WHERE user_id = ?
+            ORDER BY transaction_date DESC, created_at DESC
+        """
+        
+        if limit:
+            query += f" LIMIT {limit}"
+        
+        cursor.execute(query, (user_id,))
+        return [dict(row) for row in cursor.fetchall()]
+    
+    def get_all_transactions(self, limit: Optional[int] = None) -> List[Dict]:
+        """
+        Get all capital transactions (admin only).
+        
+        Args:
+            limit: Optional limit on number of results
+            
+        Returns:
+            list: List of transaction dicts with user info
+        """
+        cursor = self.conn.cursor()
+        query = """
+            SELECT 
+                ct.transaction_date,
+                ct.transaction_type,
+                ct.amount,
+                ct.balance_after,
+                ct.notes,
+                u.first_name || ' ' || u.last_name as user_name,
+                u.email as user_email
+            FROM capital_transactions ct
+            JOIN users u ON ct.user_id = u.id
+            ORDER BY ct.transaction_date DESC, ct.created_at DESC
+        """
+        
+        if limit:
+            query += f" LIMIT {limit}"
+        
+        cursor.execute(query)
+        return [dict(row) for row in cursor.fetchall()]
+    
+    def get_user_ledger_summary(self, user_id: int) -> Dict:
+        """
+        Get summary of user's capital ledger.
+        
+        Args:
+            user_id: User ID
+            
+        Returns:
+            dict: Summary with balance, contributions, distributions, etc.
+        """
+        cursor = self.conn.cursor()
+        
+        # Current balance and ownership
+        cursor.execute("""
+            SELECT fund_contribution, ownership_pct 
+            FROM users WHERE id = ?
+        """, (user_id,))
+        row = cursor.fetchone()
+        current_balance = row[0] if row else 0.0
+        ownership_pct = row[1] if row else 0.0
+        
+        # Total contributions
+        cursor.execute("""
+            SELECT COALESCE(SUM(amount), 0) 
+            FROM capital_transactions
+            WHERE user_id = ? AND transaction_type = 'contribution'
+        """, (user_id,))
+        total_contributions = cursor.fetchone()[0]
+        
+        # Total distributions
+        cursor.execute("""
+            SELECT COALESCE(SUM(amount), 0)
+            FROM capital_transactions
+            WHERE user_id = ? AND transaction_type IN ('distribution', 'withdrawal')
+        """, (user_id,))
+        total_distributions = cursor.fetchone()[0]
+        
+        # YTD profit/loss (placeholder - will be calculated from daily_summaries later)
+        ytd_pl = current_balance - (total_contributions - total_distributions)
+        
+        return {
+            'current_balance': current_balance,
+            'ownership_pct': ownership_pct,
+            'total_contributions': total_contributions,
+            'total_distributions': total_distributions,
+            'ytd_pl': ytd_pl
+        }
+    
+    # ========================================================================
+    # FUND OVERVIEW
+    # ========================================================================
+    
+    def get_fund_overview(self) -> Dict:
+        """
+        Get fund-level overview data.
+        
+        Returns:
+            dict: Total capital, co-founder count, etc.
+        """
+        cursor = self.conn.cursor()
+        
+        # Total capital
+        cursor.execute("SELECT COALESCE(SUM(fund_contribution), 0) FROM users")
+        total_capital = cursor.fetchone()[0]
+        
+        # Co-founder count
+        cursor.execute("SELECT COUNT(*) FROM users WHERE is_active = 1")
+        cofounder_count = cursor.fetchone()[0]
+        
+        # Admin count
+        cursor.execute("SELECT COUNT(*) FROM users WHERE role = 'admin' AND is_active = 1")
+        admin_count = cursor.fetchone()[0]
+        
+        return {
+            'total_capital': total_capital,
+            'cofounder_count': cofounder_count,
+            'admin_count': admin_count
+        }
+    
+    def get_all_cofounders(self) -> List[Dict]:
+        """
+        Get list of all co-founders with their contributions.
+        
+        Returns:
+            list: List of co-founder dicts
+        """
+        cursor = self.conn.cursor()
+        cursor.execute("""
+            SELECT 
+                id,
+                first_name,
+                last_name,
+                email,
+                fund_contribution,
+                ownership_pct,
+                role,
+                created_at
+            FROM users
+            WHERE is_active = 1
+            ORDER BY created_at ASC
+        """)
+        return [dict(row) for row in cursor.fetchall()]
+    
+    # ========================================================================
+    # MONTHLY STATEMENTS
+    # ========================================================================
+    
+    def generate_monthly_statement(self, user_id: int, statement_date: date) -> int:
+        """
+        Generate a monthly statement for a user.
+        
+        Args:
+            user_id: User ID
+            statement_date: First day of the month for this statement
+            
+        Returns:
+            int: ID of created statement
+        """
+        cursor = self.conn.cursor()
+        
+        # Get opening balance (closing balance from previous month)
+        prev_month = datetime(statement_date.year, statement_date.month, 1) - timedelta(days=1)
+        cursor.execute("""
+            SELECT closing_balance FROM monthly_statements
+            WHERE user_id = ? AND statement_date = ?
+        """, (user_id, prev_month.date()))
+        prev_statement = cursor.fetchone()
+        opening_balance = prev_statement[0] if prev_statement else 0.0
+        
+        # Get transactions for this month
+        next_month = (statement_date.replace(day=28) + timedelta(days=4)).replace(day=1)
+        cursor.execute("""
+            SELECT transaction_type, COALESCE(SUM(amount), 0)
+            FROM capital_transactions
+            WHERE user_id = ? 
+            AND transaction_date >= ? 
+            AND transaction_date < ?
+            GROUP BY transaction_type
+        """, (user_id, statement_date, next_month))
+        
+        transactions = {row[0]: row[1] for row in cursor.fetchall()}
+        contributions = transactions.get('contribution', 0.0)
+        distributions = transactions.get('distribution', 0.0) + transactions.get('withdrawal', 0.0)
+        
+        # Calculate profit/loss (simplified - will be more accurate with daily_summaries)
+        cursor.execute("""
+            SELECT fund_contribution, ownership_pct 
+            FROM users WHERE id = ?
+        """, (user_id,))
+        row = cursor.fetchone()
+        closing_balance = row[0] if row else 0.0
+        ownership_pct = row[1] if row else 0.0
+        
+        profit_loss = closing_balance - opening_balance - contributions + distributions
+        
+        # Insert or replace statement
+        cursor.execute("""
+            INSERT OR REPLACE INTO monthly_statements
+            (user_id, statement_date, opening_balance, contributions, 
+             distributions, profit_loss, closing_balance, ownership_pct)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, (user_id, statement_date, opening_balance, contributions, 
+              distributions, profit_loss, closing_balance, ownership_pct))
+        
+        self.conn.commit()
+        return cursor.lastrowid
+    
+    def get_monthly_statement(self, user_id: int, statement_date: date) -> Optional[Dict]:
+        """
+        Get a monthly statement for a user.
+        
+        Args:
+            user_id: User ID
+            statement_date: Statement month (first day)
+            
+        Returns:
+            dict: Statement data or None
+        """
+        cursor = self.conn.cursor()
+        cursor.execute("""
+            SELECT * FROM monthly_statements
+            WHERE user_id = ? AND statement_date = ?
+        """, (user_id, statement_date))
+        row = cursor.fetchone()
+        return dict(row) if row else None
+    
+    def get_user_statements(self, user_id: int, limit: Optional[int] = 12) -> List[Dict]:
+        """
+        Get recent monthly statements for a user.
+        
+        Args:
+            user_id: User ID
+            limit: Number of months to retrieve
+            
+        Returns:
+            list: List of statement dicts
+        """
+        cursor = self.conn.cursor()
+        query = """
+            SELECT * FROM monthly_statements
+            WHERE user_id = ?
+            ORDER BY statement_date DESC
+        """
+        
+        if limit:
+            query += f" LIMIT {limit}"
+        
+        cursor.execute(query, (user_id,))
+        return [dict(row) for row in cursor.fetchall()]
+    
+    # ========================================================================
+    # AUDIT LOG
+    # ========================================================================
+    
+    def log_audit_event(self, user_id: int, action: str, details: Optional[str] = None,
+                       ip_address: Optional[str] = None):
+        """
+        Log an audit event.
+        
+        Args:
+            user_id: User ID who performed the action
+            action: Action type (e.g., 'invite_sent', 'transaction_recorded')
+            details: Optional JSON string with additional details
+            ip_address: Optional IP address of user
+        """
+        cursor = self.conn.cursor()
+        cursor.execute("""
+            INSERT INTO audit_log (user_id, action, details, ip_address)
+            VALUES (?, ?, ?, ?)
+        """, (user_id, action, details, ip_address))
+        self.conn.commit()
+    
+    def get_audit_log(self, user_id: Optional[int] = None, 
+                     limit: int = 100) -> List[Dict]:
+        """
+        Get audit log entries.
+        
+        Args:
+            user_id: Optional filter by user ID
+            limit: Maximum number of entries to return
+            
+        Returns:
+            list: List of audit log dicts with user info
+        """
+        cursor = self.conn.cursor()
+        
+        if user_id:
+            query = """
+                SELECT 
+                    a.timestamp,
+                    a.action,
+                    a.details,
+                    a.ip_address,
+                    u.first_name || ' ' || u.last_name as user_name,
+                    u.email as user_email
+                FROM audit_log a
+                JOIN users u ON a.user_id = u.id
+                WHERE a.user_id = ?
+                ORDER BY a.timestamp DESC
+                LIMIT ?
+            """
+            cursor.execute(query, (user_id, limit))
+        else:
+            query = """
+                SELECT 
+                    a.timestamp,
+                    a.action,
+                    a.details,
+                    a.ip_address,
+                    u.first_name || ' ' || u.last_name as user_name,
+                    u.email as user_email
+                FROM audit_log a
+                JOIN users u ON a.user_id = u.id
+                ORDER BY a.timestamp DESC
+                LIMIT ?
+            """
+            cursor.execute(query, (limit,))
+        
+        return [dict(row) for row in cursor.fetchall()]
+    
+    def get_recent_audit_events(self, action_type: Optional[str] = None,
+                               days: int = 7) -> List[Dict]:
+        """
+        Get recent audit events.
+        
+        Args:
+            action_type: Optional filter by action type
+            days: Number of days to look back
+            
+        Returns:
+            list: List of recent audit log dicts
+        """
+        cursor = self.conn.cursor()
+        cutoff = datetime.now() - timedelta(days=days)
+        
+        if action_type:
+            query = """
+                SELECT 
+                    a.timestamp,
+                    a.action,
+                    a.details,
+                    a.ip_address,
+                    u.first_name || ' ' || u.last_name as user_name
+                FROM audit_log a
+                JOIN users u ON a.user_id = u.id
+                WHERE a.action = ? AND a.timestamp >= ?
+                ORDER BY a.timestamp DESC
+            """
+            cursor.execute(query, (action_type, cutoff))
+        else:
+            query = """
+                SELECT 
+                    a.timestamp,
+                    a.action,
+                    a.details,
+                    a.ip_address,
+                    u.first_name || ' ' || u.last_name as user_name
+                FROM audit_log a
+                JOIN users u ON a.user_id = u.id
+                WHERE a.timestamp >= ?
+                ORDER BY a.timestamp DESC
+            """
+            cursor.execute(query, (cutoff,))
+        
+        return [dict(row) for row in cursor.fetchall()]
 
 
 # ============================================================================
