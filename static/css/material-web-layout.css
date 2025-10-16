@@ -137,11 +137,7 @@ body {
     padding: 0;
     margin: 0;
     flex-shrink: 0;
-    transition: background-color 200ms, transform 200ms ease;
-}
-
-.md3-nav-rail:not(.collapsed) .nav-rail-toggle-btn {
-    transform: rotate(180deg);
+    transition: background-color 200ms;
 }
 
 .nav-rail-toggle-btn:hover {
