@@ -947,6 +947,302 @@ def api_pending_invitations():
         return jsonify({'error': 'Failed to retrieve invitations'}), 500
 
 # ============================================================================
+# FUND & LEDGER MANAGEMENT API ENDPOINTS
+# ============================================================================
+
+@app.route('/api/fund/overview', methods=['GET'])
+@login_required
+def api_fund_overview():
+    """
+    Get fund-level overview data.
+    Returns total capital, co-founder count, and user's ownership percentage.
+    """
+    try:
+        if not BACKEND_AVAILABLE or 'user_id' not in session:
+            return jsonify({'error': 'Not authenticated'}), 401
+        
+        user_id = session['user_id']
+        
+        # Get fund overview from database
+        overview = db.get_fund_overview()
+        
+        if not overview:
+            return jsonify({
+                'total_capital': 0.0,
+                'cofounder_count': 0,
+                'user_ownership': 0.0
+            }), 200
+        
+        # Get user's ownership percentage
+        user = db.get_user_by_id(user_id)
+        user_ownership = user.get('ownership_pct', 0.0) if user else 0.0
+        
+        return jsonify({
+            'total_capital': overview.get('total_capital', 0.0),
+            'cofounder_count': overview.get('cofounder_count', 0),
+            'user_ownership': round(user_ownership, 2)
+        }), 200
+        
+    except Exception as e:
+        print(f"Fund overview error: {e}")
+        return jsonify({'error': 'Failed to retrieve fund overview'}), 500
+
+@app.route('/api/fund/cofounders', methods=['GET'])
+@login_required
+def api_fund_cofounders():
+    """
+    Get list of all co-founders with their contributions and ownership.
+    Available to all authenticated users.
+    """
+    try:
+        if not BACKEND_AVAILABLE or 'user_id' not in session:
+            return jsonify({'error': 'Not authenticated'}), 401
+        
+        # Get all co-founders from database
+        cofounders = db.get_all_cofounders()
+        
+        if not cofounders:
+            return jsonify([]), 200
+        
+        # Format data for frontend
+        formatted_cofounders = []
+        for cf in cofounders:
+            formatted_cofounders.append({
+                'user_id': cf.get('id'),
+                'name': f"{cf.get('first_name', '')} {cf.get('last_name', '')}".strip(),
+                'email': cf.get('email', ''),
+                'contribution': round(cf.get('fund_contribution', 0.0), 2),
+                'ownership': round(cf.get('ownership_pct', 0.0), 2),
+                'joined_date': cf.get('created_at', '')
+            })
+        
+        return jsonify(formatted_cofounders), 200
+        
+    except Exception as e:
+        print(f"Get cofounders error: {e}")
+        return jsonify({'error': 'Failed to retrieve co-founders'}), 500
+
+@app.route('/api/ledger/summary', methods=['GET'])
+@login_required
+def api_ledger_summary():
+    """
+    Get user's capital ledger summary.
+    Returns current balance, total contributions, YTD P&L, and ownership.
+    """
+    try:
+        if not BACKEND_AVAILABLE or 'user_id' not in session:
+            return jsonify({'error': 'Not authenticated'}), 401
+        
+        user_id = session['user_id']
+        
+        # Get ledger summary from database
+        summary = db.get_user_ledger_summary(user_id)
+        
+        if not summary:
+            return jsonify({
+                'current_balance': 0.0,
+                'total_contributions': 0.0,
+                'ytd_pl': 0.0,
+                'ownership': 0.0
+            }), 200
+        
+        return jsonify({
+            'current_balance': round(summary.get('current_balance', 0.0), 2),
+            'total_contributions': round(summary.get('total_contributions', 0.0), 2),
+            'ytd_pl': round(summary.get('ytd_pl', 0.0), 2),
+            'ownership': round(summary.get('ownership_pct', 0.0), 2)
+        }), 200
+        
+    except Exception as e:
+        print(f"Ledger summary error: {e}")
+        return jsonify({'error': 'Failed to retrieve ledger summary'}), 500
+
+@app.route('/api/ledger/transactions', methods=['GET'])
+@login_required
+def api_ledger_transactions():
+    """
+    Get user's capital transaction history.
+    Supports optional pagination via 'limit' query parameter.
+    """
+    try:
+        if not BACKEND_AVAILABLE or 'user_id' not in session:
+            return jsonify({'error': 'Not authenticated'}), 401
+        
+        user_id = session['user_id']
+        
+        # Get limit from query parameters (default: all transactions)
+        limit = request.args.get('limit', type=int)
+        
+        # Get transactions from database
+        transactions = db.get_user_transactions(user_id, limit)
+        
+        if not transactions:
+            return jsonify([]), 200
+        
+        # Format data for frontend
+        formatted_transactions = []
+        for tx in transactions:
+            formatted_transactions.append({
+                'date': tx.get('transaction_date', ''),
+                'type': tx.get('transaction_type', ''),
+                'amount': round(tx.get('amount', 0.0), 2),
+                'balance_after': round(tx.get('balance_after', 0.0), 2),
+                'notes': tx.get('notes', '')
+            })
+        
+        return jsonify(formatted_transactions), 200
+        
+    except Exception as e:
+        print(f"Get transactions error: {e}")
+        return jsonify({'error': 'Failed to retrieve transactions'}), 500
+
+@app.route('/api/ledger/record-transaction', methods=['POST'])
+@login_required
+def api_record_transaction():
+    """
+    Record capital transaction (admin only).
+    Creates transaction record and updates user balance.
+    Recalculates ownership percentages for all co-founders.
+    """
+    try:
+        if not BACKEND_AVAILABLE or 'user_id' not in session:
+            return jsonify({'error': 'Not authenticated'}), 401
+        
+        admin_user_id = session['user_id']
+        admin_user = db.get_user_by_id(admin_user_id)
+        
+        # Check if user is admin
+        if not admin_user or admin_user.get('role') != 'admin':
+            return jsonify({'error': 'Unauthorized - Admin access required'}), 403
+        
+        data = request.json
+        
+        # Validate required fields
+        user_id = data.get('user_id')
+        transaction_type = data.get('transaction_type')
+        amount = data.get('amount')
+        transaction_date = data.get('transaction_date')
+        notes = data.get('notes', '')
+        
+        if not all([user_id, transaction_type, amount, transaction_date]):
+            return jsonify({'error': 'Missing required fields'}), 400
+        
+        # Validate transaction type
+        valid_types = ['contribution', 'distribution', 'withdrawal']
+        if transaction_type not in valid_types:
+            return jsonify({
+                'error': f'Invalid transaction type. Must be one of: {", ".join(valid_types)}'
+            }), 400
+        
+        # Validate amount
+        try:
+            amount = float(amount)
+            if amount <= 0:
+                return jsonify({'error': 'Amount must be greater than zero'}), 400
+        except (ValueError, TypeError):
+            return jsonify({'error': 'Invalid amount format'}), 400
+        
+        # Validate date format
+        try:
+            from datetime import datetime
+            datetime.strptime(transaction_date, '%Y-%m-%d')
+        except ValueError:
+            return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD'}), 400
+        
+        # Check if target user exists
+        target_user = db.get_user_by_id(user_id)
+        if not target_user:
+            return jsonify({'error': 'User not found'}), 404
+        
+        # Record transaction in database
+        transaction_id = db.record_capital_transaction(
+            user_id=user_id,
+            transaction_type=transaction_type,
+            amount=amount,
+            transaction_date=transaction_date,
+            notes=notes,
+            created_by=admin_user_id
+        )
+        
+        if not transaction_id:
+            return jsonify({'error': 'Failed to record transaction'}), 500
+        
+        # Log audit event
+        import json
+        db.log_audit_event(
+            user_id=admin_user_id,
+            action='transaction_recorded',
+            details=json.dumps({
+                'transaction_id': transaction_id,
+                'target_user_id': user_id,
+                'type': transaction_type,
+                'amount': amount,
+                'date': transaction_date
+            }),
+            ip_address=request.remote_addr
+        )
+        
+        return jsonify({
+            'success': True,
+            'message': 'Transaction recorded successfully',
+            'transaction_id': transaction_id
+        }), 200
+        
+    except Exception as e:
+        print(f"Record transaction error: {e}")
+        return jsonify({'error': 'Failed to record transaction'}), 500
+
+@app.route('/api/documents/audit-log', methods=['GET'])
+@login_required
+def api_audit_log():
+    """
+    Get audit log entries (admin only).
+    Returns system-wide audit trail for compliance.
+    """
+    try:
+        if not BACKEND_AVAILABLE or 'user_id' not in session:
+            return jsonify({'error': 'Not authenticated'}), 401
+        
+        user_id = session['user_id']
+        user = db.get_user_by_id(user_id)
+        
+        # Check if user is admin
+        if not user or user.get('role') != 'admin':
+            return jsonify({'error': 'Unauthorized - Admin access required'}), 403
+        
+        # Get limit from query parameters (default: 100)
+        limit = request.args.get('limit', default=100, type=int)
+        
+        # Get audit log from database
+        audit_entries = db.get_audit_log(user_id=None, limit=limit)
+        
+        if not audit_entries:
+            return jsonify([]), 200
+        
+        # Format data for frontend
+        formatted_entries = []
+        for entry in audit_entries:
+            # Get user name for this entry
+            entry_user = db.get_user_by_id(entry.get('user_id', 0))
+            user_name = 'Unknown User'
+            if entry_user:
+                user_name = f"{entry_user.get('first_name', '')} {entry_user.get('last_name', '')}".strip()
+            
+            formatted_entries.append({
+                'timestamp': entry.get('timestamp', ''),
+                'user': user_name,
+                'action': entry.get('action', ''),
+                'details': entry.get('details', ''),
+                'ip_address': entry.get('ip_address', '')
+            })
+        
+        return jsonify(formatted_entries), 200
+        
+    except Exception as e:
+        print(f"Get audit log error: {e}")
+        return jsonify({'error': 'Failed to retrieve audit log'}), 500
+
+# ============================================================================
 # PAGE ROUTES
 # ============================================================================
 
