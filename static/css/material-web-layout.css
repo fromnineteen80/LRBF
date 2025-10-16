@@ -322,12 +322,12 @@ body {
 .nav-rail-item {
     position: relative;
     width: 100%;
-    min-height: 32px;
+    min-height: 40px;
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     gap: 0;
-    padding: 0;
+    padding: 0 18px;
     margin: 0;
     text-decoration: none;
     color: var(--md-sys-color-on-surface-variant);
@@ -404,6 +404,7 @@ body {
 .md3-nav-rail:not(.collapsed) .nav-label {
     opacity: 1;
     width: auto;
+    margin-left: 12px;
 }
 
 .nav-rail-item:hover .nav-label {
