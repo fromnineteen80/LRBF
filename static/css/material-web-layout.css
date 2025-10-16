@@ -587,6 +587,80 @@ body {
     margin: 4px 0; /* FIX #5 - reduce margin */
 }
 
+/* Profile Menu Header */
+.profile-menu-header {
+    padding: 16px 20px;
+}
+
+.profile-menu-email {
+    font-size: 13px;
+    color: rgba(0, 0, 0, 0.6);
+    margin-bottom: 12px;
+}
+
+.profile-menu-user {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.profile-menu-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: #000000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: 500;
+    color: #FFFFFF;
+    flex-shrink: 0;
+}
+
+.profile-menu-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.profile-menu-name {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #000000;
+}
+
+.profile-menu-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background-color: #1a73e8;
+    color: #FFFFFF;
+    font-size: 10px;
+    font-weight: 600;
+}
+
+.profile-menu-role {
+    font-size: 13px;
+    color: rgba(0, 0, 0, 0.6);
+}
+
+.profile-menu-expandable {
+    cursor: pointer;
+    justify-content: space-between;
+}
+
+.profile-menu-arrow {
+    font-size: 18px;
+    color: rgba(0, 0, 0, 0.4);
+}
+
 /* ========================================
    MD3 RIPPLE EFFECTS
    ======================================== */
