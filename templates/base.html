@@ -699,7 +699,18 @@
                 icon.textContent = 'keyboard_tab_rtl';
             }
         });
-    </script>
+    
+        // Expandable menu items
+        document.querySelectorAll('.profile-menu-expandable').forEach(item => {
+            item.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                // TODO: Show submenu
+                console.log('Clicked:', this.textContent);
+            });
+        });
+        
+</script>
     
     {% block scripts %}{% endblock %}
 </body>
