@@ -559,15 +559,14 @@ body {
 .profile-menu-item {
     display: flex;
     align-items: center;
-    padding: 0 12px;
+    padding: 8px 16px;
     text-decoration: none;
     color: var(--md-sys-color-on-surface);
     transition: background-color 150ms;
     cursor: pointer;
-    min-height: 28px;
     font-family: 'Roboto', sans-serif;
-    font-size: 14px;
-    font-weight: 200;
+    font-size: 13px;
+    font-weight: 400;
 }
 
 .profile-menu-item:hover {
