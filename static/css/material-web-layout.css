@@ -367,7 +367,7 @@ body {
 .top-app-bar-left {
     display: flex;
     align-items: center;
-    gap: var(--md-sys-spacing-6);
+    gap: var(--md-sys-spacing-16);
     flex: 0 1 auto;
 }
 
