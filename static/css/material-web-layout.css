@@ -115,12 +115,12 @@ body {
 .nav-rail-header {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 0;
-    padding: 0 18px;
+    padding: 0;
     margin: 12px 0 24px 0;
     min-height: 32px;
     flex-shrink: 0;
-    /* NO border - uses subtle transparency effects only */
 }
 
 .md3-nav-rail:not(.collapsed) .nav-rail-header {
@@ -323,12 +323,12 @@ body {
 .nav-rail-item {
     position: relative;
     width: 100%;
-    min-height: 32px; /* FIX #9 - restore original compact size */
+    min-height: 32px;
     display: flex;
     align-items: center;
-    justify-content: flex-start; /* FIX #10 - always left-aligned */
+    justify-content: center;
     gap: 0;
-    padding: 0 18px; /* FIX #9 - restore original padding */
+    padding: 0;
     margin: 0;
     text-decoration: none;
     color: var(--md-sys-color-on-surface-variant);
@@ -339,7 +339,9 @@ body {
 }
 
 .md3-nav-rail:not(.collapsed) .nav-rail-item {
+    justify-content: flex-start;
     gap: 12px;
+    padding: 0 18px 0 18px;
     min-height: 40px;
 }
 
@@ -449,14 +451,14 @@ body {
     align-items: center;
     justify-content: center;
     gap: 0;
-    padding: 0 18px;
+    padding: 0;
     min-height: 32px;
-    transition: gap 200ms, justify-content 200ms, padding 200ms;
 }
 
 .md3-nav-rail:not(.collapsed) .profile-content {
     justify-content: flex-start;
     gap: 12px;
+    padding: 0 18px 0 18px;
 }
 
 /* Profile Avatar - FIX #4 & #13 */
