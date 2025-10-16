@@ -225,10 +225,24 @@
                 <div class="signup-subtitle">Join The Luggage Room Boys Fund as a Co-Founder</div>
             </div>
             
+            {% if error %}
+            <!-- Invitation Error -->
+            <div class="error-message show" style="margin-bottom: 24px;">
+                <span class="material-symbols-outlined">error</span>
+                {{ error }}
+            </div>
+            <div class="login-link">
+                <p>If you believe this is an error, please contact your fund administrator.</p>
+                <a href="/login">Return to Login</a>
+            </div>
+            {% else %}
+            <!-- Success: Valid invitation -->
             <div class="error-message" id="errorMessage"></div>
             <div class="success-message" id="successMessage"></div>
             
             <form id="signupForm">
+                <!-- Hidden field for invitation token -->
+                <input type="hidden" name="invite_token" value="{{ invite_token }}">
                 <!-- Personal Information -->
                 <div class="form-section">
                     <div class="section-title">
@@ -240,6 +254,7 @@
                         <md-filled-text-field 
                             label="First Name" 
                             name="first_name" 
+                            value="{{ first_name }}"
                             required
                             autocomplete="given-name">
                         </md-filled-text-field>
@@ -256,7 +271,10 @@
                         label="Email Address" 
                         name="email" 
                         type="email" 
+                        value="{{ email }}"
+                        readonly
                         required
+                        supporting-text="Email from your invitation (cannot be changed)"
                         autocomplete="email">
                     </md-filled-text-field>
                     
@@ -370,6 +388,7 @@
             <div class="login-link">
                 Already have an account? <a href="{{ url_for('login') }}">Log in</a>
             </div>
+            {% endif %}
         </div>
     </div>
     

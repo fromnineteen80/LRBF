@@ -200,8 +200,41 @@ def login():
 
 @app.route('/signup')
 def signup():
-    """Signup page for new co-founders"""
-    return render_template('signup.html')
+    """
+    Signup page for new co-founders (invitation-only).
+    Requires valid invitation token in query parameter.
+    """
+    # Get invitation token from query parameter
+    invite_token = request.args.get('invite', '').strip()
+    
+    if not invite_token:
+        # No invitation token provided
+        return render_template('signup.html', error='Invitation required. Please use the invitation link sent to your email.')
+    
+    # Validate invitation token
+    if BACKEND_AVAILABLE:
+        invitation = db.get_invitation_by_token(invite_token)
+        
+        if not invitation:
+            return render_template('signup.html', error='Invalid invitation token. Please check your invitation link.')
+        
+        # Check if invitation is valid (not expired, not used)
+        is_valid, error_msg = AuthHelper.validate_invitation_token(
+            token=invite_token,
+            expires_at=invitation['expires_at'],
+            used=invitation['used']
+        )
+        
+        if not is_valid:
+            return render_template('signup.html', error=error_msg)
+        
+        # Pass invitation data to template for pre-filling
+        return render_template('signup.html', 
+                             invite_token=invite_token,
+                             email=invitation['email'],
+                             first_name=invitation['first_name'] or '')
+    else:
+        return render_template('signup.html', error='System temporarily unavailable. Please try again later.')
 
 @app.route('/logout')
 def logout():
