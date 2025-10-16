@@ -395,6 +395,14 @@
             const formData = new FormData(e.target);
             const data = Object.fromEntries(formData.entries());
             
+            // Check if we're submitting verification code
+            const verificationContainer = document.getElementById('verificationContainer');
+            if (verificationContainer.classList.contains('active')) {
+                // Verify phone number
+                await verifyPhone(data.phone_number, data.verification_code);
+                return;
+            }
+            
             // Validate password match
             if (data.password !== data.confirm_password) {
                 showError('Passwords do not match');
@@ -415,6 +423,10 @@
                         // Show verification code input
                         document.getElementById('verificationContainer').classList.add('active');
                         showSuccess('Verification code sent to your phone!');
+                        
+                        // Change button text
+                        const submitButton = document.querySelector('md-filled-button[type="submit"]');
+                        submitButton.textContent = 'Verify & Complete';
                     } else {
                         // Redirect to login
                         showSuccess('Account created successfully! Redirecting...');
@@ -430,6 +442,38 @@
                 console.error('Signup error:', error);
             }
         });
+        
+        async function verifyPhone(phone, code) {
+            if (!code || code.length !== 6) {
+                showError('Please enter the 6-digit verification code');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/auth/verify-phone', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        phone_number: phone,
+                        code: code 
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showSuccess('Phone verified! Redirecting to login...');
+                    setTimeout(() => {
+                        window.location.href = '/login';
+                    }, 2000);
+                } else {
+                    showError(result.error || 'Invalid verification code');
+                }
+            } catch (error) {
+                showError('Network error. Please try again.');
+                console.error('Verification error:', error);
+            }
+        }
         
         function showError(message) {
             const errorDiv = document.getElementById('errorMessage');

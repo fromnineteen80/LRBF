@@ -272,8 +272,139 @@
     }
     
     function showChangePasswordDialog() {
-        // TODO: Implement password change dialog
-        alert('Password change dialog coming soon!');
+        // Create dialog overlay
+        const overlay = document.createElement('div');
+        overlay.id = 'passwordDialogOverlay';
+        overlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        `;
+        
+        // Create dialog
+        const dialog = document.createElement('div');
+        dialog.style.cssText = `
+            background: var(--md-sys-color-surface);
+            border-radius: 28px;
+            padding: 32px;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        `;
+        
+        dialog.innerHTML = `
+            <h3 style="margin: 0 0 24px; color: var(--md-sys-color-on-surface);">
+                Change Password
+            </h3>
+            
+            <form id="changePasswordForm" style="display: flex; flex-direction: column; gap: 16px;">
+                <md-filled-text-field
+                    id="currentPassword"
+                    label="Current Password"
+                    type="password"
+                    required
+                    style="width: 100%;">
+                </md-filled-text-field>
+                
+                <md-filled-text-field
+                    id="newPassword"
+                    label="New Password"
+                    type="password"
+                    required
+                    style="width: 100%;">
+                </md-filled-text-field>
+                
+                <md-filled-text-field
+                    id="confirmNewPassword"
+                    label="Confirm New Password"
+                    type="password"
+                    required
+                    style="width: 100%;">
+                </md-filled-text-field>
+                
+                <div style="font-size: 12px; color: var(--md-sys-color-on-surface-variant); margin-top: 8px;">
+                    <strong>Password requirements:</strong>
+                    <ul style="margin: 8px 0 0 20px; padding: 0;">
+                        <li>At least 8 characters</li>
+                        <li>One uppercase letter</li>
+                        <li>One lowercase letter</li>
+                        <li>One number</li>
+                        <li>One special character</li>
+                    </ul>
+                </div>
+                
+                <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 16px;">
+                    <md-text-button onclick="closePasswordDialog()">
+                        Cancel
+                    </md-text-button>
+                    <md-filled-button type="submit">
+                        Change Password
+                    </md-filled-button>
+                </div>
+            </form>
+        `;
+        
+        overlay.appendChild(dialog);
+        document.body.appendChild(overlay);
+        
+        // Handle form submission
+        document.getElementById('changePasswordForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const currentPassword = document.getElementById('currentPassword').value;
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmPassword = document.getElementById('confirmNewPassword').value;
+            
+            // Validate new passwords match
+            if (newPassword !== confirmPassword) {
+                showError('New passwords do not match');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/auth/change-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        current_password: currentPassword,
+                        new_password: newPassword
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    closePasswordDialog();
+                    showSuccess('Password changed successfully!');
+                } else {
+                    showError(result.error || 'Failed to change password');
+                }
+            } catch (error) {
+                showError('Network error. Please try again.');
+                console.error('Change password error:', error);
+            }
+        });
+        
+        // Close on overlay click
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) {
+                closePasswordDialog();
+            }
+        });
+    }
+    
+    function closePasswordDialog() {
+        const overlay = document.getElementById('passwordDialogOverlay');
+        if (overlay) {
+            overlay.remove();
+        }
     }
     
     function showSuccess(message) {

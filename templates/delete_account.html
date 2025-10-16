@@ -225,7 +225,10 @@
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
-                }
+                },
+                body: JSON.stringify({
+                    confirmed: true
+                })
             });
             
             const data = await response.json();
@@ -233,7 +236,7 @@
             if (response.ok) {
                 // Show success message and redirect to logout
                 alert('Account deletion request submitted successfully. You will be logged out now.');
-                window.location.href = '/logout';
+                window.location.href = data.redirect || '/logout';
             } else {
                 showError(data.error || 'Failed to delete account');
             }
