@@ -504,7 +504,7 @@ body {
 .profile-menu-toggle {
     width: 20px;
     height: 20px;
-    display: none;
+    display: flex;
     align-items: center;
     justify-content: center;
     background: none;
@@ -512,11 +512,15 @@ body {
     border-radius: 50%;
     cursor: pointer;
     transition: background-color 150ms;
-    margin-left: auto;
+    opacity: 0;
+    width: 0;
+    overflow: hidden;
 }
 
 .md3-nav-rail:not(.collapsed) .profile-menu-toggle {
     opacity: 1;
+    width: 20px;
+    margin-left: auto;
 }
 
 .profile-menu-toggle:hover {
@@ -561,15 +565,14 @@ body {
 .profile-menu-item {
     display: flex;
     align-items: center;
-    padding: 0 18px;
+    padding: 6px 12px;
     text-decoration: none;
     color: var(--md-sys-color-on-surface);
     transition: background-color 150ms;
     cursor: pointer;
-    min-height: 32px;
+    min-height: 28px;
     font-family: 'Roboto', sans-serif;
     font-size: 14px;
-    font-weight: 200;
 }
 
 .profile-menu-item:hover {
