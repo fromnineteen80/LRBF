@@ -139,7 +139,7 @@
                    aria-current="{% if request.endpoint == 'eod' %}page{% endif %}"
                    title="End of Day">
                     <md-ripple></md-ripple>
-                    <span class="material-symbols-outlined nav-icon">nightlight</span>
+                    <span class="material-symbols-outlined nav-icon">bedtime</span>
                     <span class="nav-label">EOD</span>
                 </a>
             </div>
@@ -301,12 +301,10 @@
                 <!-- Profile Dropdown Menu -->
                 <div class="profile-menu" id="profileMenu">
                     <a href="{{ url_for('profile') }}" class="profile-menu-item">
-                        <span class="material-symbols-outlined">account_circle</span>
                         <span>Profile</span>
                     </a>
                     {% if session.get('role') == 'admin' %}
                     <a href="{{ url_for('settings') }}" class="profile-menu-item">
-                        <span class="material-symbols-outlined">settings</span>
                         <span>Settings</span>
                     </a>
                     {% endif %}
@@ -597,7 +595,6 @@
             
             // Update icon and save state
             if (navRail.classList.contains('collapsed')) {
-                icon.textContent = 'thumbnail_bar';
                 localStorage.setItem('navRailCollapsed', 'true');
             } else {
                 icon.textContent = 'keyboard_tab_rtl';
