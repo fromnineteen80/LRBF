@@ -583,11 +583,18 @@
         // Toggle Navigation Rail (Expand/Collapse)
         function toggleNavRail() {
             const navRail = document.getElementById('navRail');
+            const bundleIcon = document.getElementById('bundleIcon');
             
             navRail.classList.toggle('collapsed');
             
             // Close bundle if open when expanding
             if (!navRail.classList.contains('collapsed')) {
+                navRail.classList.remove('bundle-open');
+            }
+            
+            // Reset bundle icon to folder when collapsing
+            if (navRail.classList.contains('collapsed') && bundleIcon) {
+                bundleIcon.textContent = 'folder';
                 navRail.classList.remove('bundle-open');
             }
             
