@@ -539,15 +539,15 @@ body {
     left: 8px;
     right: 8px;
     background-color: #FFFFFF;
-    border-radius: 4px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-    padding: 2px 0;
+    border-radius: 12px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    padding: 8px 0;
     opacity: 0;
     transform: translateY(4px);
     pointer-events: none;
     transition: opacity 200ms, transform 200ms;
     z-index: 102;
-    margin-bottom: 4px;
+    margin-bottom: 8px;
 }
 
 .profile-menu.active {
@@ -559,13 +559,13 @@ body {
 .profile-menu-item {
     display: flex;
     align-items: center;
-    padding: 8px 16px;
+    padding: 12px 20px;
     text-decoration: none;
     color: var(--md-sys-color-on-surface);
     transition: background-color 150ms;
     cursor: pointer;
     font-family: 'Roboto', sans-serif;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 400;
 }
 
