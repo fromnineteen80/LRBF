@@ -168,7 +168,7 @@ body {
 
 .md3-nav-rail:not(.collapsed) .nav-rail-title {
     display: block;
-    margin-left: 12px;
+    margin-left: 8px;
 }
 
 .title-lrb {
@@ -190,7 +190,6 @@ body {
     flex-shrink: 0;
     padding: 0;
     position: relative;
-    margin-bottom: 8px;
 }
 
 /* Subtle blur effect at bottom - FIX #6 */
@@ -482,7 +481,7 @@ body {
 
 .md3-nav-rail:not(.collapsed) .profile-info {
     display: flex;
-    margin-left: 12px;
+    margin-left: 8px;
 }
 
 .profile-name {
