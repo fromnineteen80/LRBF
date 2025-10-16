@@ -1,0 +1,303 @@
+{% extends "base.html" %}
+
+{% block title %}Documents - Luggage Room Boys Fund{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 1400px; margin-top: 40px;">
+    <h1 class="headline-large" style="margin-bottom: 8px;">Documents</h1>
+    <p class="body-medium" style="color: var(--md-sys-color-on-surface-variant); margin-bottom: 32px;">
+        Access quarterly reports, tax documents, and fund materials
+    </p>
+    
+    <!-- Quarterly Performance Reports -->
+    <div class="surface elevation-1" style="padding: 24px; margin-bottom: 24px; border-radius: 12px;">
+        <h2 class="title-large" style="margin-bottom: 20px;">Quarterly Performance Reports</h2>
+        
+        <div id="quarterlyReportsGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;">
+            <!-- Placeholder for Q1 2025 -->
+            <div class="document-card" style="padding: 20px; border: 1px solid var(--md-sys-color-outline-variant); border-radius: 8px; transition: all 0.2s;" onmouseover="this.style.borderColor='var(--md-sys-color-primary)'; this.style.boxShadow='0 2px 8px rgba(0,0,0,0.1)'" onmouseout="this.style.borderColor='var(--md-sys-color-outline-variant)'; this.style.boxShadow='none'">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                    <span class="material-icons" style="font-size: 32px; color: var(--md-sys-color-primary);">assessment</span>
+                    <div>
+                        <div class="title-medium">Q1 2025</div>
+                        <div class="body-small" style="color: var(--md-sys-color-on-surface-variant);">Jan - Mar 2025</div>
+                    </div>
+                </div>
+                <div class="body-medium" style="margin-bottom: 16px; color: var(--md-sys-color-on-surface-variant);">
+                    Quarterly performance summary, risk metrics, and analysis
+                </div>
+                <button class="btn-outlined" style="width: 100%;" disabled>
+                    <span class="material-icons" style="font-size: 18px; margin-right: 8px;">download</span>
+                    Available Apr 15, 2025
+                </button>
+            </div>
+            
+            <!-- Placeholder card -->
+            <div style="padding: 40px; border: 1px dashed var(--md-sys-color-outline); border-radius: 8px; text-align: center;">
+                <span class="material-icons" style="font-size: 48px; color: var(--md-sys-color-on-surface-variant); opacity: 0.5;">description</span>
+                <p class="body-medium" style="margin-top: 12px; color: var(--md-sys-color-on-surface-variant);">
+                    Additional quarterly reports will appear here
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Annual Tax Documents -->
+    <div class="surface elevation-1" style="padding: 24px; margin-bottom: 24px; border-radius: 12px;">
+        <h2 class="title-large" style="margin-bottom: 20px;">Annual Tax Documents</h2>
+        
+        <div id="taxDocumentsGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;">
+            <!-- Placeholder for 2024 K-1 -->
+            <div class="document-card" style="padding: 20px; border: 1px solid var(--md-sys-color-outline-variant); border-radius: 8px; transition: all 0.2s;" onmouseover="this.style.borderColor='var(--md-sys-color-tertiary)'; this.style.boxShadow='0 2px 8px rgba(0,0,0,0.1)'" onmouseout="this.style.borderColor='var(--md-sys-color-outline-variant)'; this.style.boxShadow='none'">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                    <span class="material-icons" style="font-size: 32px; color: var(--md-sys-color-tertiary);">receipt</span>
+                    <div>
+                        <div class="title-medium">2024 Schedule K-1</div>
+                        <div class="body-small" style="color: var(--md-sys-color-on-surface-variant);">Tax Year 2024</div>
+                    </div>
+                </div>
+                <div class="body-medium" style="margin-bottom: 16px; color: var(--md-sys-color-on-surface-variant);">
+                    Partner's share of income, deductions, and credits
+                </div>
+                <button class="btn-outlined" style="width: 100%;" disabled>
+                    <span class="material-icons" style="font-size: 18px; margin-right: 8px;">download</span>
+                    Available Mar 15, 2025
+                </button>
+            </div>
+            
+            <!-- Placeholder card -->
+            <div style="padding: 40px; border: 1px dashed var(--md-sys-color-outline); border-radius: 8px; text-align: center;">
+                <span class="material-icons" style="font-size: 48px; color: var(--md-sys-color-on-surface-variant); opacity: 0.5;">folder_open</span>
+                <p class="body-medium" style="margin-top: 12px; color: var(--md-sys-color-on-surface-variant);">
+                    Tax documents will be available before filing deadlines
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Fund Documents -->
+    <div class="surface elevation-1" style="padding: 24px; margin-bottom: 24px; border-radius: 12px;">
+        <h2 class="title-large" style="margin-bottom: 20px;">Fund Documents</h2>
+        
+        <div style="display: flex; flex-direction: column; gap: 0;">
+            <!-- Operating Agreement -->
+            <div class="document-item" style="display: flex; align-items: center; gap: 12px; padding: 16px; border-bottom: 1px solid var(--md-sys-color-outline-variant); transition: background 0.2s;" onmouseover="this.style.background='var(--md-sys-color-surface-variant)'" onmouseout="this.style.background='transparent'">
+                <span class="material-icons" style="color: var(--md-sys-color-primary); font-size: 24px;">gavel</span>
+                <div style="flex: 1;">
+                    <div class="title-small">Operating Agreement</div>
+                    <div class="body-small" style="color: var(--md-sys-color-on-surface-variant);">
+                        Legal structure and governance rules
+                    </div>
+                </div>
+                <button class="btn-text" disabled>
+                    <span class="material-icons" style="font-size: 18px; margin-right: 4px;">download</span>
+                    Coming Soon
+                </button>
+            </div>
+            
+            <!-- Investment Policy Statement -->
+            <div class="document-item" style="display: flex; align-items: center; gap: 12px; padding: 16px; border-bottom: 1px solid var(--md-sys-color-outline-variant); transition: background 0.2s;" onmouseover="this.style.background='var(--md-sys-color-surface-variant)'" onmouseout="this.style.background='transparent'">
+                <span class="material-icons" style="color: var(--md-sys-color-primary); font-size: 24px;">policy</span>
+                <div style="flex: 1;">
+                    <div class="title-small">Investment Policy Statement</div>
+                    <div class="body-small" style="color: var(--md-sys-color-on-surface-variant);">
+                        Strategy objectives, risk parameters, and guidelines
+                    </div>
+                </div>
+                <button class="btn-text" disabled>
+                    <span class="material-icons" style="font-size: 18px; margin-right: 4px;">download</span>
+                    Coming Soon
+                </button>
+            </div>
+            
+            <!-- Risk Disclosure Statement -->
+            <div class="document-item" style="display: flex; align-items: center; gap: 12px; padding: 16px; transition: background 0.2s;" onmouseover="this.style.background='var(--md-sys-color-surface-variant)'" onmouseout="this.style.background='transparent'">
+                <span class="material-icons" style="color: var(--md-sys-color-primary); font-size: 24px;">shield</span>
+                <div style="flex: 1;">
+                    <div class="title-small">Risk Disclosure Statement</div>
+                    <div class="body-small" style="color: var(--md-sys-color-on-surface-variant);">
+                        Important risk factors and disclosures
+                    </div>
+                </div>
+                <button class="btn-text" disabled>
+                    <span class="material-icons" style="font-size: 18px; margin-right: 4px;">download</span>
+                    Coming Soon
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    {% if user.role == 'admin' %}
+    <!-- Audit Trail (Admin Only) -->
+    <div class="surface elevation-1" style="padding: 24px; border-radius: 12px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 16px;">
+            <div>
+                <h2 class="title-large" style="margin: 0;">Audit Trail</h2>
+                <p class="body-small" style="color: var(--md-sys-color-on-surface-variant); margin-top: 4px;">
+                    Complete history of system actions and changes
+                </p>
+            </div>
+            
+            <button onclick="refreshAuditLog()" class="btn-outlined">
+                <span class="material-icons" style="font-size: 18px; margin-right: 8px;">refresh</span>
+                Refresh
+            </button>
+        </div>
+        
+        <div style="overflow-x: auto;">
+            <table class="data-table" style="width: 100%; min-width: 900px;">
+                <thead>
+                    <tr>
+                        <th style="text-align: left; width: 180px;">Timestamp</th>
+                        <th style="text-align: left; width: 150px;">User</th>
+                        <th style="text-align: left; width: 180px;">Action</th>
+                        <th style="text-align: left;">Details</th>
+                        <th style="text-align: left; width: 120px;">IP Address</th>
+                    </tr>
+                </thead>
+                <tbody id="auditTable">
+                    <tr>
+                        <td colspan="5" style="text-align: center; padding: 40px;">
+                            <span class="loading-spinner" style="display: inline-block; width: 24px; height: 24px; border: 3px solid var(--md-sys-color-outline); border-top-color: var(--md-sys-color-primary); border-radius: 50%; animation: spin 1s linear infinite;"></span>
+                            <div class="body-medium" style="margin-top: 12px; color: var(--md-sys-color-on-surface-variant);">
+                                Loading audit log...
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Pagination (placeholder) -->
+        <div style="display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 20px;">
+            <button class="btn-icon" disabled style="background: none; border: none; cursor: not-allowed; opacity: 0.5;">
+                <span class="material-icons">chevron_left</span>
+            </button>
+            <span class="body-small" style="color: var(--md-sys-color-on-surface-variant);">
+                Showing last 100 events
+            </span>
+            <button class="btn-icon" disabled style="background: none; border: none; cursor: not-allowed; opacity: 0.5;">
+                <span class="material-icons">chevron_right</span>
+            </button>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.document-card {
+    cursor: pointer;
+}
+
+.document-item:last-child {
+    border-bottom: none !important;
+}
+
+.data-table {
+    border-collapse: collapse;
+}
+
+.data-table thead th {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--md-sys-color-outline);
+    color: var(--md-sys-color-on-surface-variant);
+    font-weight: 500;
+}
+
+.data-table tbody td {
+    padding: 16px;
+    border-bottom: 1px solid var(--md-sys-color-outline-variant);
+}
+
+.data-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.data-table tbody tr:hover {
+    background: var(--md-sys-color-surface-variant);
+    transition: background 0.2s;
+}
+
+.btn-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    transition: background 0.2s;
+}
+
+.btn-icon:not(:disabled):hover {
+    background: var(--md-sys-color-surface-variant);
+    cursor: pointer;
+}
+
+/* Action type badges */
+.action-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: lowercase;
+}
+
+.action-badge.invite {
+    background: var(--md-sys-color-primary-container);
+    color: var(--md-sys-color-on-primary-container);
+}
+
+.action-badge.transaction {
+    background: var(--md-sys-color-tertiary-container);
+    color: var(--md-sys-color-on-tertiary-container);
+}
+
+.action-badge.profile {
+    background: var(--md-sys-color-secondary-container);
+    color: var(--md-sys-color-on-secondary-container);
+}
+
+.action-badge.system {
+    background: var(--md-sys-color-surface-variant);
+    color: var(--md-sys-color-on-surface-variant);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .container {
+        margin-top: 20px !important;
+    }
+    
+    .headline-large {
+        font-size: 28px !important;
+    }
+    
+    #quarterlyReportsGrid,
+    #taxDocumentsGrid {
+        grid-template-columns: 1fr !important;
+    }
+    
+    .data-table {
+        font-size: 14px;
+    }
+    
+    .data-table thead th,
+    .data-table tbody td {
+        padding: 12px 8px;
+    }
+    
+    .document-item {
+        flex-direction: column;
+        align-items: flex-start !important;
+        gap: 8px !important;
+    }
+}
+</style>
+
+<script src="{{ url_for('static', filename='js/documents.js') }}"></script>
+{% endblock %}
