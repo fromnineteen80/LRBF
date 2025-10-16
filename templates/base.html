@@ -525,12 +525,6 @@
                 // Position indicator
                 progressIndicator.style.left = `${progress * 100}%`;
                 
-                // Update CSS variable for track mask cutout
-                const progressTrack = document.querySelector('.market-progress-track');
-                if (progressTrack) {
-                    progressTrack.style.setProperty('--train-position', `${progress * 100}%`);
-                }
-                
                 // Update mobile time display
                 const timeRemainingMobile = document.getElementById('marketTimeRemainingMobile');
                 if (timeRemainingMobile) {

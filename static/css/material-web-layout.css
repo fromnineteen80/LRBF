@@ -637,8 +637,6 @@ body {
     border-radius: 2px;
     width: 0%;
     transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
-    mask-image: radial-gradient(circle at var(--train-position, 0%) center, transparent 18px, black 22px);
-    -webkit-mask-image: radial-gradient(circle at var(--train-position, 0%) center, transparent 18px, black 22px);
 }
 
 .market-progress-indicator {
@@ -652,7 +650,7 @@ body {
 }
 
 .market-train-icon {
-    font-size: 25px;
+    font-size: 21px;
     color: var(--md-sys-color-error);
     font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 20;
     filter: drop-shadow(0 0 6px rgba(var(--md-sys-color-error-rgb, 193, 95, 60), 0.5));
@@ -708,7 +706,7 @@ body {
     }
     
     .market-train-icon {
-        font-size: 20px;
+        font-size: 16px;
     }
     
     .market-city-label,
@@ -733,7 +731,7 @@ body {
     }
     
     .market-train-icon {
-        font-size: 32px;
+        font-size: 28px;
     }
     
     /* Show time below when clicked */
