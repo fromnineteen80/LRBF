@@ -108,6 +108,23 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+def admin_required(f):
+    """Decorator to require admin role for a route."""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'username' not in session:
+            return redirect(url_for('login'))
+        
+        # Check if user has admin role
+        if session.get('role') != 'admin':
+            return jsonify({
+                'success': False,
+                'error': 'Access denied. Admin privileges required.'
+            }), 403
+        
+        return f(*args, **kwargs)
+    return decorated_function
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -143,8 +160,10 @@ def login():
                     # Success! Clear rate limit for this IP
                     login_attempts[ip_address] = []
                     
-                    # Set session
+                    # Set session (hardcoded users are treated as admin)
                     session['username'] = username
+                    session['role'] = 'admin'
+                    session['full_name'] = username
                     session.permanent = True
                     session['login_time'] = datetime.now().isoformat()
                     
@@ -181,9 +200,11 @@ def login():
                         # Update last login
                         db.update_last_login(user['id'])
                         
-                        # Set session with user ID and username
+                        # Set session with user ID, username, and role
                         session['user_id'] = user['id']
                         session['username'] = username
+                        session['role'] = user.get('role', 'member')
+                        session['full_name'] = user.get('full_name') or user.get('first_name', username)
                         session.permanent = True
                         session['login_time'] = datetime.now().isoformat()
                         
@@ -807,6 +828,7 @@ def api_delete_account():
 
 @app.route('/api/auth/send-invitation', methods=['POST'])
 @login_required
+@admin_required
 def api_send_invitation():
     """
     Send invitation to new co-founder (admin only).
@@ -1131,6 +1153,7 @@ def api_ledger_transactions():
 
 @app.route('/api/ledger/record-transaction', methods=['POST'])
 @login_required
+@admin_required
 def api_record_transaction():
     """
     Record capital transaction (admin only).
@@ -1713,6 +1736,7 @@ def get_settings():
 
 @app.route('/api/settings/update', methods=['POST'])
 @login_required
+@admin_required
 def update_settings():
     """Update configuration"""
     try:
