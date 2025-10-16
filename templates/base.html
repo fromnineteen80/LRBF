@@ -235,6 +235,16 @@
             
             <!-- Footer Items -->
             <div class="nav-rail-footer">
+                <a href="{{ url_for('profile') }}" 
+                   class="nav-rail-item {% if request.endpoint == 'profile' %}active{% endif %}" 
+                   aria-label="Profile"
+                   aria-current="{% if request.endpoint == 'profile' %}page{% endif %}"
+                   title="Profile">
+                    <md-ripple></md-ripple>
+                    <span class="material-symbols-outlined">account_circle</span>
+                    <span class="nav-rail-label">Profile</span>
+                </a>
+                
                 <a href="{{ url_for('settings') }}" 
                    class="nav-rail-item {% if request.endpoint == 'settings' %}active{% endif %}" 
                    aria-label="Settings"
