@@ -446,6 +446,118 @@ class NotificationService:
         #     return False
         
         return True  # Simulated success in development
+    
+    # ========================================================================
+    # INVITATION SYSTEM
+    # ========================================================================
+    
+    @staticmethod
+    def generate_invite_token() -> str:
+        """
+        Generate a secure invitation token.
+        
+        Returns:
+            str: Unique invitation token with 'inv_' prefix
+        """
+        import string
+        alphabet = string.ascii_letters + string.digits
+        token = ''.join(secrets.choice(alphabet) for _ in range(32))
+        return f'inv_{token}'
+    
+    @staticmethod
+    def get_invitation_expiry(days: int = 7) -> datetime:
+        """
+        Calculate invitation expiry datetime.
+        
+        Args:
+            days: Number of days until expiry (default: 7)
+            
+        Returns:
+            datetime: Expiry datetime
+        """
+        return datetime.now() + timedelta(days=days)
+    
+    @staticmethod
+    def validate_invitation_token(token: str, expires_at: datetime, used: bool) -> Tuple[bool, str]:
+        """
+        Validate an invitation token.
+        
+        Args:
+            token: The invitation token
+            expires_at: Token expiration datetime
+            used: Whether token has been used
+            
+        Returns:
+            tuple: (is_valid, error_message)
+        """
+        if not token:
+            return False, "Invalid invitation token"
+        
+        if used:
+            return False, "Invitation has already been used"
+        
+        if datetime.now() > expires_at:
+            return False, "Invitation has expired"
+        
+        return True, ""
+    
+    @staticmethod
+    def validate_phone_number(phone: str) -> Tuple[bool, str]:
+        """
+        Validate phone number format.
+        
+        Args:
+            phone: Phone number string
+            
+        Returns:
+            tuple: (is_valid, error_message)
+        """
+        import re
+        
+        # Remove common formatting characters
+        cleaned = re.sub(r'[\s\-\(\)\.]', '', phone)
+        
+        # Check if it's all digits and reasonable length
+        if not cleaned.isdigit():
+            return False, "Phone number must contain only digits"
+        
+        if len(cleaned) < 10:
+            return False, "Phone number too short (minimum 10 digits)"
+        
+        if len(cleaned) > 15:
+            return False, "Phone number too long (maximum 15 digits)"
+        
+        return True, ""
+    
+    @staticmethod
+    def format_phone_number(phone: str) -> str:
+        """
+        Format phone number to standard format.
+        
+        Args:
+            phone: Raw phone number string
+            
+        Returns:
+            str: Formatted phone number (e.g., +1-555-123-4567)
+        """
+        import re
+        
+        # Remove all non-digit characters
+        digits = re.sub(r'\D', '', phone)
+        
+        # Format for US numbers (10 digits)
+        if len(digits) == 10:
+            return f"+1-{digits[0:3]}-{digits[3:6]}-{digits[6:]}"
+        
+        # Format for international with country code
+        elif len(digits) == 11 and digits[0] == '1':
+            return f"+{digits[0]}-{digits[1:4]}-{digits[4:7]}-{digits[7:]}"
+        
+        # Return with + prefix if not already formatted
+        elif not phone.startswith('+'):
+            return f"+{digits}"
+        
+        return phone
 
 
 # ============================================================================
