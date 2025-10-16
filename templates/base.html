@@ -296,20 +296,22 @@
             <!-- Top App Bar -->
             <header class="top-app-bar" role="banner">
                 <div class="top-app-bar-content">
-                    <h1 class="top-app-bar-title">{% block page_title %}Dashboard{% endblock %}</h1>
-                    
-                    <!-- Market Progress Line (Denver to DC) -->
-                    <div class="market-progress-container" id="marketProgressContainer" title="Market Progress: Denver to DC">
-                        <span class="market-city-label">DEN</span>
-                        <div class="market-progress-track">
-                            <div class="market-progress-bar" id="marketProgressBar"></div>
-                            <div class="market-progress-indicator" id="marketProgressIndicator">
-                                <span class="material-symbols-outlined market-train-icon" id="marketTrainIcon">train</span>
+                    <div class="top-app-bar-left">
+                        <h1 class="top-app-bar-title">{% block page_title %}Dashboard{% endblock %}</h1>
+                        
+                        <!-- Market Progress Line (Denver to DC) -->
+                        <div class="market-progress-container" id="marketProgressContainer" title="Market Progress: Denver to DC">
+                            <span class="market-city-label">DEN</span>
+                            <div class="market-progress-track">
+                                <div class="market-progress-bar" id="marketProgressBar"></div>
+                                <div class="market-progress-indicator" id="marketProgressIndicator">
+                                    <span class="material-symbols-outlined market-train-icon" id="marketTrainIcon">train</span>
+                                </div>
                             </div>
+                            <span class="market-city-label">DCA</span>
+                            <span class="market-time-remaining" id="marketTimeRemaining">0:00:00</span>
+                            <span class="market-time-remaining-mobile" id="marketTimeRemainingMobile">0:00:00</span>
                         </div>
-                        <span class="market-city-label">DCA</span>
-                        <span class="market-time-remaining" id="marketTimeRemaining">0:00:00</span>
-                        <span class="market-time-remaining-mobile" id="marketTimeRemainingMobile">0:00:00</span>
                     </div>
                     
                     <div class="top-app-bar-actions">
