@@ -126,6 +126,7 @@ def login():
             return jsonify({'success': False, 'error': 'Username and password required'}), 400
         
         # Verify credentials with bcrypt
+        # First check hardcoded users (for backwards compatibility)
         if username in USERS:
             try:
                 stored_hash = USERS[username]
@@ -144,7 +145,46 @@ def login():
                     
                     return jsonify({'success': True})
             except Exception as e:
-                print(f"Login error: {e}")
+                print(f"Login error (hardcoded users): {e}")
+        
+        # Check database users
+        if BACKEND_AVAILABLE:
+            try:
+                user = db.get_user_by_username(username)
+                
+                if user:
+                    # Check if user is active
+                    if not user.get('is_active', False):
+                        record_login_attempt(ip_address)
+                        return jsonify({'success': False, 'error': 'Account is inactive'}), 401
+                    
+                    # Verify password
+                    stored_hash = user['password_hash']
+                    if bcrypt.checkpw(password.encode('utf-8'), stored_hash.encode('utf-8')):
+                        # Check if user is verified
+                        if not user.get('is_verified', False):
+                            record_login_attempt(ip_address)
+                            return jsonify({
+                                'success': False, 
+                                'error': 'Please verify your phone number before logging in',
+                                'requires_verification': True
+                            }), 403
+                        
+                        # Success! Clear rate limit for this IP
+                        login_attempts[ip_address] = []
+                        
+                        # Update last login
+                        db.update_last_login(user['id'])
+                        
+                        # Set session with user ID and username
+                        session['user_id'] = user['id']
+                        session['username'] = username
+                        session.permanent = True
+                        session['login_time'] = datetime.now().isoformat()
+                        
+                        return jsonify({'success': True})
+            except Exception as e:
+                print(f"Login error (database): {e}")
         
         # Failed login
         record_login_attempt(ip_address)
