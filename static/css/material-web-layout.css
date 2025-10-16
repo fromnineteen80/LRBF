@@ -101,7 +101,6 @@ body {
     top: 0;
     z-index: 100;
     overflow: hidden;
-    transition: width 300ms cubic-bezier(0.4, 0, 0.2, 1), background-color 300ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .md3-nav-rail:not(.collapsed) {
@@ -133,12 +132,12 @@ body {
     justify-content: center;
     background: none;
     border: none;
-    border-radius: 0; /* FIX #12 - no circle */
+    border-radius: 0;
     cursor: pointer;
     padding: 0;
     margin: 0;
     flex-shrink: 0;
-    transition: background-color 200ms;
+    transition: background-color 200ms, transform 200ms ease;
 }
 
 .nav-rail-toggle-btn:hover {
@@ -215,7 +214,8 @@ body {
     border: none;
     border-radius: 0;
     cursor: pointer;
-    transition: background-color 150ms, opacity 300ms cubic-bezier(0.4, 0, 0.2, 1);
+    transition: background-color 150ms, opacity 50ms cubic-bezier(0.4, 0, 0.2, 1);
+    transition-delay: 0s, 290ms;
     flex-shrink: 0;
     padding: 0 18px;
     margin: 0;
@@ -413,7 +413,6 @@ body {
     padding: 8px 0;
     background-color: inherit;
     z-index: 101;
-    transition: width 300ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Subtle blur at top - FIX #6 */
