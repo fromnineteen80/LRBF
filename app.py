@@ -169,7 +169,9 @@ def login():
                     # Set session (hardcoded users are treated as admin)
                     session['username'] = username
                     session['role'] = 'admin'
+                    session['first_name'] = username  # Use username as first_name for hardcoded users
                     session['full_name'] = username
+                    session['profile_image'] = None  # No profile image for hardcoded users
                     session.permanent = True
                     session['login_time'] = datetime.now().isoformat()
                     
@@ -206,11 +208,13 @@ def login():
                         # Update last login
                         db.update_last_login(user['id'])
                         
-                        # Set session with user ID, username, and role
+                        # Set session with user ID, username, role, first_name, and profile_image
                         session['user_id'] = user['id']
                         session['username'] = username
                         session['role'] = user.get('role', 'member')
+                        session['first_name'] = user.get('first_name', username)
                         session['full_name'] = user.get('full_name') or user.get('first_name', username)
+                        session['profile_image'] = user.get('profile_image')
                         session.permanent = True
                         session['login_time'] = datetime.now().isoformat()
                         

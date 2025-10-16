@@ -130,6 +130,8 @@ class TradingDatabase:
                 timezone TEXT NOT NULL DEFAULT 'America/New_York',
                 fund_contribution REAL NOT NULL DEFAULT 0.0,
                 ownership_pct REAL NOT NULL DEFAULT 0.0,
+                role TEXT DEFAULT 'member',
+                profile_image TEXT,
                 is_verified BOOLEAN DEFAULT 0,
                 verification_code TEXT,
                 is_active BOOLEAN DEFAULT 1,
@@ -139,6 +141,17 @@ class TradingDatabase:
                 FOREIGN KEY (invited_by) REFERENCES users(id)
             )
         """)
+        
+        # Add role and profile_image columns if they don't exist (migration)
+        try:
+            cursor.execute("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'member'")
+        except sqlite3.OperationalError:
+            pass  # Column already exists
+        
+        try:
+            cursor.execute("ALTER TABLE users ADD COLUMN profile_image TEXT")
+        except sqlite3.OperationalError:
+            pass  # Column already exists
         
         # Table 6: Sessions
         cursor.execute("""

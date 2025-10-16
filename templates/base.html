@@ -89,27 +89,28 @@
 <body>
     <div class="app-container">
         <!-- Navigation Drawer (Rail on desktop, drawer on mobile) -->
-        <nav class="nav-rail collapsed" role="navigation" aria-label="Main navigation" id="navRail">
-            <!-- Toggle Button + Title -->
-            <div class="nav-rail-toggle">
-                <md-icon-button onclick="toggleNavRail()" aria-label="Toggle navigation menu" id="navToggleBtn">
+        <!-- MD3 Navigation Rail -->
+        <nav class="md3-nav-rail collapsed" role="navigation" aria-label="Main navigation" id="navRail">
+            <!-- App Title Header (Fixed) -->
+            <div class="nav-rail-header">
+                <button class="nav-rail-toggle-btn" onclick="toggleNavRail()" aria-label="Toggle navigation menu" id="navToggleBtn">
                     <span class="material-symbols-outlined">thumbnail_bar</span>
-                </md-icon-button>
-                <span class="nav-rail-title">
+                </button>
+                <div class="nav-rail-title">
                     <span class="title-lrb">LRB</span><span class="title-fund">Fund</span>
-                </span>
+                </div>
             </div>
             
-            <!-- Navigation Items -->
-            <div class="nav-rail-items">
+            <!-- Trading Section (Always Visible, Non-Collapsible, Non-Scrollable) -->
+            <div class="nav-rail-section nav-rail-trading">
                 <a href="{{ url_for('dashboard') }}" 
                    class="nav-rail-item {% if request.endpoint == 'dashboard' %}active{% endif %}" 
                    aria-label="Home"
                    aria-current="{% if request.endpoint == 'dashboard' %}page{% endif %}"
                    title="Home">
                     <md-ripple></md-ripple>
-                    <span class="material-symbols-outlined">train</span>
-                    <span class="nav-rail-label">Home</span>
+                    <span class="material-symbols-outlined nav-icon">train</span>
+                    <span class="nav-label">Home</span>
                 </a>
                 
                 <a href="{{ url_for('morning') }}" 
@@ -118,8 +119,8 @@
                    aria-current="{% if request.endpoint == 'morning' %}page{% endif %}"
                    title="Morning Report">
                     <md-ripple></md-ripple>
-                    <span class="material-symbols-outlined">wb_twilight</span>
-                    <span class="nav-rail-label">Morning</span>
+                    <span class="material-symbols-outlined nav-icon">wb_twilight</span>
+                    <span class="nav-label">Morning</span>
                 </a>
                 
                 <a href="{{ url_for('live') }}" 
@@ -128,8 +129,8 @@
                    aria-current="{% if request.endpoint == 'live' %}page{% endif %}"
                    title="Live Monitor">
                     <md-ripple></md-ripple>
-                    <span class="material-symbols-outlined">monitoring</span>
-                    <span class="nav-rail-label">Live</span>
+                    <span class="material-symbols-outlined nav-icon">monitoring</span>
+                    <span class="nav-label">Live</span>
                 </a>
                 
                 <a href="{{ url_for('eod') }}" 
@@ -138,156 +139,183 @@
                    aria-current="{% if request.endpoint == 'eod' %}page{% endif %}"
                    title="End of Day">
                     <md-ripple></md-ripple>
-                    <span class="material-symbols-outlined">nightlight</span>
-                    <span class="nav-rail-label">EOD</span>
-                </a>
-                
-                <!-- Analytics Section -->
-                <div class="nav-rail-section-header">
-                    <span class="section-label">Analytics</span>
-                </div>
-                
-                <a href="{{ url_for('performance') }}" 
-                   class="nav-rail-item {% if request.endpoint == 'performance' %}active{% endif %}" 
-                   aria-label="Performance"
-                   aria-current="{% if request.endpoint == 'performance' %}page{% endif %}"
-                   title="Performance">
-                    <md-ripple></md-ripple>
-                    <span class="material-symbols-outlined">show_chart</span>
-                    <span class="nav-rail-label">Performance</span>
-                </a>
-                
-                <a href="{{ url_for('history') }}" 
-                   class="nav-rail-item {% if request.endpoint == 'history' %}active{% endif %}" 
-                   aria-label="Trading History"
-                   aria-current="{% if request.endpoint == 'history' %}page{% endif %}"
-                   title="History">
-                    <md-ripple></md-ripple>
-                    <span class="material-symbols-outlined">history</span>
-                    <span class="nav-rail-label">History</span>
-                </a>
-                
-                <a href="{{ url_for('practice') }}" 
-                   class="nav-rail-item {% if request.endpoint == 'practice' %}active{% endif %}" 
-                   aria-label="Practice Mode"
-                   aria-current="{% if request.endpoint == 'practice' %}page{% endif %}"
-                   title="Practice">
-                    <md-ripple></md-ripple>
-                    <span class="material-symbols-outlined">science</span>
-                    <span class="nav-rail-label">Practice</span>
-                </a>
-                
-                <a href="{{ url_for('calculator') }}" 
-                   class="nav-rail-item {% if request.endpoint == 'calculator' %}active{% endif %}" 
-                   aria-label="Performance Calculator"
-                   aria-current="{% if request.endpoint == 'calculator' %}page{% endif %}"
-                   title="Calculator">
-                    <md-ripple></md-ripple>
-                    <span class="material-symbols-outlined">calculate</span>
-                    <span class="nav-rail-label">Calculator</span>
-                </a>
-                
-                <!-- System Section -->
-                <div class="nav-rail-section-header">
-                    <span class="section-label">System</span>
-                </div>
-                
-                <a href="{{ url_for('fund') }}" 
-                   class="nav-rail-item {% if request.endpoint == 'fund' %}active{% endif %}" 
-                   aria-label="Fund Management"
-                   aria-current="{% if request.endpoint == 'fund' %}page{% endif %}"
-                   title="Fund Management">
-                    <md-ripple></md-ripple>
-                    <span class="material-symbols-outlined">account_balance</span>
-                    <span class="nav-rail-label">Fund</span>
-                </a>
-                
-                <a href="{{ url_for('ledger') }}" 
-                   class="nav-rail-item {% if request.endpoint == 'ledger' %}active{% endif %}" 
-                   aria-label="Ledger"
-                   aria-current="{% if request.endpoint == 'ledger' %}page{% endif %}"
-                   title="Capital Ledger">
-                    <md-ripple></md-ripple>
-                    <span class="material-symbols-outlined">account_balance_wallet</span>
-                    <span class="nav-rail-label">Ledger</span>
-                </a>
-                
-                <a href="{{ url_for('documents') }}" 
-                   class="nav-rail-item {% if request.endpoint == 'documents' %}active{% endif %}" 
-                   aria-label="Documents"
-                   aria-current="{% if request.endpoint == 'documents' %}page{% endif %}"
-                   title="Documents & Reports">
-                    <md-ripple></md-ripple>
-                    <span class="material-symbols-outlined">folder_open</span>
-                    <span class="nav-rail-label">Documents</span>
-                </a>
-                
-                {% if session.get('role') == 'admin' %}
-                <a href="{{ url_for('api_credentials') }}" 
-                   class="nav-rail-item {% if request.endpoint == 'api_credentials' %}active{% endif %}" 
-                   aria-label="API & Credentials"
-                   aria-current="{% if request.endpoint == 'api_credentials' %}page{% endif %}"
-                   title="API & Credentials">
-                    <md-ripple></md-ripple>
-                    <span class="material-symbols-outlined">vpn_key</span>
-                    <span class="nav-rail-label">API & Creds</span>
-                </a>
-                {% endif %}
-                
-                <a href="{{ url_for('about') }}" 
-                   class="nav-rail-item {% if request.endpoint == 'about' %}active{% endif %}" 
-                   aria-label="About"
-                   aria-current="{% if request.endpoint == 'about' %}page{% endif %}"
-                   title="About">
-                    <md-ripple></md-ripple>
-                    <span class="material-symbols-outlined">info</span>
-                    <span class="nav-rail-label">About</span>
-                </a>
-                
-                <a href="{{ url_for('how_it_works') }}" 
-                   class="nav-rail-item {% if request.endpoint == 'how_it_works' %}active{% endif %}" 
-                   aria-label="How It Works"
-                   aria-current="{% if request.endpoint == 'how_it_works' %}page{% endif %}"
-                   title="How It Works">
-                    <md-ripple></md-ripple>
-                    <span class="material-symbols-outlined">psychology</span>
-                    <span class="nav-rail-label">How It Works</span>
-                </a>
-                
-                <a href="{{ url_for('glossary') }}" 
-                   class="nav-rail-item {% if request.endpoint == 'glossary' %}active{% endif %}" 
-                   aria-label="Glossary"
-                   aria-current="{% if request.endpoint == 'glossary' %}page{% endif %}"
-                   title="Glossary">
-                    <md-ripple></md-ripple>
-                    <span class="material-symbols-outlined">book</span>
-                    <span class="nav-rail-label">Glossary</span>
+                    <span class="material-symbols-outlined nav-icon">nightlight</span>
+                    <span class="nav-label">EOD</span>
                 </a>
             </div>
             
-            <!-- Footer Items -->
-            <div class="nav-rail-footer">
-                <a href="{{ url_for('profile') }}" 
-                   class="nav-rail-item {% if request.endpoint == 'profile' %}active{% endif %}" 
-                   aria-label="Profile"
-                   aria-current="{% if request.endpoint == 'profile' %}page{% endif %}"
-                   title="Profile">
-                    <md-ripple></md-ripple>
-                    <span class="material-symbols-outlined">account_circle</span>
-                    <span class="nav-rail-label">Profile</span>
-                </a>
+            <!-- Sections Bundle Toggle (Collapsed State Only) -->
+            <button class="nav-rail-bundle-toggle" id="sectionsBundleToggle" onclick="toggleSectionsBundle()" aria-label="More sections" title="More sections">
+                <span class="material-symbols-outlined nav-icon">apps</span>
+                <span class="nav-label">More</span>
+            </button>
+            
+            <!-- Scrollable Sections Container -->
+            <div class="nav-rail-scrollable" id="navRailScrollable">
+                <!-- Analytics Section -->
+                <div class="nav-rail-section-group">
+                    <div class="nav-rail-section-header">
+                        <span class="section-label">Analytics</span>
+                    </div>
+                    
+                    <a href="{{ url_for('performance') }}" 
+                       class="nav-rail-item {% if request.endpoint == 'performance' %}active{% endif %}" 
+                       aria-label="Performance"
+                       aria-current="{% if request.endpoint == 'performance' %}page{% endif %}"
+                       title="Performance">
+                        <md-ripple></md-ripple>
+                        <span class="material-symbols-outlined nav-icon">show_chart</span>
+                        <span class="nav-label">Performance</span>
+                    </a>
+                    
+                    <a href="{{ url_for('history') }}" 
+                       class="nav-rail-item {% if request.endpoint == 'history' %}active{% endif %}" 
+                       aria-label="Trading History"
+                       aria-current="{% if request.endpoint == 'history' %}page{% endif %}"
+                       title="History">
+                        <md-ripple></md-ripple>
+                        <span class="material-symbols-outlined nav-icon">history</span>
+                        <span class="nav-label">History</span>
+                    </a>
+                    
+                    <a href="{{ url_for('practice') }}" 
+                       class="nav-rail-item {% if request.endpoint == 'practice' %}active{% endif %}" 
+                       aria-label="Practice Mode"
+                       aria-current="{% if request.endpoint == 'practice' %}page{% endif %}"
+                       title="Practice">
+                        <md-ripple></md-ripple>
+                        <span class="material-symbols-outlined nav-icon">science</span>
+                        <span class="nav-label">Practice</span>
+                    </a>
+                    
+                    <a href="{{ url_for('calculator') }}" 
+                       class="nav-rail-item {% if request.endpoint == 'calculator' %}active{% endif %}" 
+                       aria-label="Performance Calculator"
+                       aria-current="{% if request.endpoint == 'calculator' %}page{% endif %}"
+                       title="Calculator">
+                        <md-ripple></md-ripple>
+                        <span class="material-symbols-outlined nav-icon">calculate</span>
+                        <span class="nav-label">Calculator</span>
+                    </a>
+                </div>
                 
-                {% if session.get('role') == 'admin' %}
-                <a href="{{ url_for('settings') }}" 
-                   class="nav-rail-item {% if request.endpoint == 'settings' %}active{% endif %}" 
-                   aria-label="Settings"
-                   aria-current="{% if request.endpoint == 'settings' %}page{% endif %}"
-                   title="Settings">
-                    <md-ripple></md-ripple>
-                    <span class="material-symbols-outlined">settings</span>
-                    <span class="nav-rail-label">Settings</span>
-                </a>
-                {% endif %}
+                <!-- System Section -->
+                <div class="nav-rail-section-group">
+                    <div class="nav-rail-section-header">
+                        <span class="section-label">System</span>
+                    </div>
+                    
+                    <a href="{{ url_for('fund') }}" 
+                       class="nav-rail-item {% if request.endpoint == 'fund' %}active{% endif %}" 
+                       aria-label="Fund Management"
+                       aria-current="{% if request.endpoint == 'fund' %}page{% endif %}"
+                       title="Fund Management">
+                        <md-ripple></md-ripple>
+                        <span class="material-symbols-outlined nav-icon">account_balance</span>
+                        <span class="nav-label">Fund</span>
+                    </a>
+                    
+                    <a href="{{ url_for('ledger') }}" 
+                       class="nav-rail-item {% if request.endpoint == 'ledger' %}active{% endif %}" 
+                       aria-label="Ledger"
+                       aria-current="{% if request.endpoint == 'ledger' %}page{% endif %}"
+                       title="Capital Ledger">
+                        <md-ripple></md-ripple>
+                        <span class="material-symbols-outlined nav-icon">account_balance_wallet</span>
+                        <span class="nav-label">Ledger</span>
+                    </a>
+                    
+                    <a href="{{ url_for('documents') }}" 
+                       class="nav-rail-item {% if request.endpoint == 'documents' %}active{% endif %}" 
+                       aria-label="Documents"
+                       aria-current="{% if request.endpoint == 'documents' %}page{% endif %}"
+                       title="Documents & Reports">
+                        <md-ripple></md-ripple>
+                        <span class="material-symbols-outlined nav-icon">folder_open</span>
+                        <span class="nav-label">Documents</span>
+                    </a>
+                    
+                    {% if session.get('role') == 'admin' %}
+                    <a href="{{ url_for('api_credentials') }}" 
+                       class="nav-rail-item {% if request.endpoint == 'api_credentials' %}active{% endif %}" 
+                       aria-label="API & Credentials"
+                       aria-current="{% if request.endpoint == 'api_credentials' %}page{% endif %}"
+                       title="API & Credentials">
+                        <md-ripple></md-ripple>
+                        <span class="material-symbols-outlined nav-icon">vpn_key</span>
+                        <span class="nav-label">API & Creds</span>
+                    </a>
+                    {% endif %}
+                    
+                    <a href="{{ url_for('about') }}" 
+                       class="nav-rail-item {% if request.endpoint == 'about' %}active{% endif %}" 
+                       aria-label="About"
+                       aria-current="{% if request.endpoint == 'about' %}page{% endif %}"
+                       title="About">
+                        <md-ripple></md-ripple>
+                        <span class="material-symbols-outlined nav-icon">info</span>
+                        <span class="nav-label">About</span>
+                    </a>
+                    
+                    <a href="{{ url_for('how_it_works') }}" 
+                       class="nav-rail-item {% if request.endpoint == 'how_it_works' %}active{% endif %}" 
+                       aria-label="How It Works"
+                       aria-current="{% if request.endpoint == 'how_it_works' %}page{% endif %}"
+                       title="How It Works">
+                        <md-ripple></md-ripple>
+                        <span class="material-symbols-outlined nav-icon">psychology</span>
+                        <span class="nav-label">How It Works</span>
+                    </a>
+                    
+                    <a href="{{ url_for('glossary') }}" 
+                       class="nav-rail-item {% if request.endpoint == 'glossary' %}active{% endif %}" 
+                       aria-label="Glossary"
+                       aria-current="{% if request.endpoint == 'glossary' %}page{% endif %}"
+                       title="Glossary">
+                        <md-ripple></md-ripple>
+                        <span class="material-symbols-outlined nav-icon">book</span>
+                        <span class="nav-label">Glossary</span>
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Static Profile Bar (Fixed at Bottom) -->
+            <div class="nav-rail-profile-bar" id="profileBar">
+                <div class="profile-content">
+                    <div class="profile-avatar" id="profileAvatar">
+                        {% if session.get('profile_image') %}
+                            <img src="{{ session.get('profile_image') }}" alt="{{ session.get('first_name', 'User') }}">
+                        {% else %}
+                            {{ session.get('first_name', 'U')[0]|upper }}
+                        {% endif %}
+                    </div>
+                    <div class="profile-info">
+                        <div class="profile-name">{{ session.get('first_name', 'User') }}</div>
+                        <div class="profile-role">{{ 'Co-Founder' if session.get('role') == 'admin' else 'Member' }}</div>
+                    </div>
+                    <button class="profile-menu-toggle" onclick="toggleProfileMenu()" aria-label="Profile menu">
+                        <span class="material-symbols-outlined">expand_more</span>
+                    </button>
+                </div>
+                
+                <!-- Profile Dropdown Menu -->
+                <div class="profile-menu" id="profileMenu">
+                    <a href="{{ url_for('profile') }}" class="profile-menu-item">
+                        <span class="material-symbols-outlined">account_circle</span>
+                        <span>Profile</span>
+                    </a>
+                    {% if session.get('role') == 'admin' %}
+                    <a href="{{ url_for('settings') }}" class="profile-menu-item">
+                        <span class="material-symbols-outlined">settings</span>
+                        <span>Settings</span>
+                    </a>
+                    {% endif %}
+                    <div class="profile-menu-divider"></div>
+                    <a href="{{ url_for('logout') }}" class="profile-menu-item">
+                        <span class="material-symbols-outlined">logout</span>
+                        <span>Log Out</span>
+                    </a>
+                </div>
             </div>
         </nav>
         
@@ -554,12 +582,18 @@
         document.addEventListener('DOMContentLoaded', initMarketProgress);
         
         // Toggle Navigation Rail (Collapse/Expand)
+        // Toggle Navigation Rail (Expand/Collapse)
         function toggleNavRail() {
             const navRail = document.getElementById('navRail');
             const toggleBtn = document.getElementById('navToggleBtn');
             const icon = toggleBtn.querySelector('.material-symbols-outlined');
             
             navRail.classList.toggle('collapsed');
+            
+            // Close bundle if open when expanding
+            if (!navRail.classList.contains('collapsed')) {
+                navRail.classList.remove('bundle-open');
+            }
             
             // Update icon and save state
             if (navRail.classList.contains('collapsed')) {
@@ -570,6 +604,37 @@
                 localStorage.setItem('navRailCollapsed', 'false');
             }
         }
+        
+        // Toggle Sections Bundle (Collapsed State Only)
+        function toggleSectionsBundle() {
+            const navRail = document.getElementById('navRail');
+            
+            // Only works in collapsed state
+            if (navRail.classList.contains('collapsed')) {
+                navRail.classList.toggle('bundle-open');
+            }
+        }
+        
+        // Toggle Profile Menu
+        function toggleProfileMenu() {
+            const profileMenu = document.getElementById('profileMenu');
+            const menuToggle = document.querySelector('.profile-menu-toggle');
+            
+            profileMenu.classList.toggle('active');
+            menuToggle.classList.toggle('active');
+        }
+        
+        // Close profile menu when clicking outside
+        document.addEventListener('click', function(event) {
+            const profileBar = document.getElementById('profileBar');
+            const profileMenu = document.getElementById('profileMenu');
+            const menuToggle = document.querySelector('.profile-menu-toggle');
+            
+            if (!profileBar.contains(event.target) && profileMenu.classList.contains('active')) {
+                profileMenu.classList.remove('active');
+                menuToggle.classList.remove('active');
+            }
+        });
         
         // Restore nav rail state on page load
         document.addEventListener('DOMContentLoaded', function() {

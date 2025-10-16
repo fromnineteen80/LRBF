@@ -79,11 +79,13 @@ body {
 }
 
 /* ========================================
-   NAVIGATION RAIL (Left Sidebar)
+   MD3 NAVIGATION RAIL
+   Material Design 3 Compliant Navigation
    ======================================== */
 
-.nav-rail {
-    width: var(--rail-width-collapsed);
+/* MD3 Navigation Rail Container */
+.md3-nav-rail {
+    width: 80px; /* MD3 collapsed width */
     height: 100vh;
     background-color: #F4F3EE;
     border-right: 1px solid var(--md-sys-color-outline-variant);
@@ -93,109 +95,213 @@ body {
     left: 0;
     top: 0;
     z-index: 100;
-    transition: width var(--transition-standard);
-    overflow-x: hidden;
+    transition: width 300ms cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
 }
 
-.nav-rail:not(.collapsed) {
-    width: var(--rail-width-expanded);
+.md3-nav-rail:not(.collapsed) {
+    width: 240px; /* MD3 expanded width */
 }
 
-/* Collapsed state overrides to match main content */
-.nav-rail.collapsed {
-    background-color: #FAF9F7;
+/* ========================================
+   APP TITLE HEADER (FIXED)
+   ======================================== */
+
+.nav-rail-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 8px 0;
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--md-sys-color-outline-variant);
 }
 
-/* Toggle Button + Title */
-.nav-rail-toggle {
-    width: 100%;
+/* Toggle Button - Perfectly Centered */
+.nav-rail-toggle-btn {
+    width: 48px;
+    height: 48px;
     display: flex;
     align-items: center;
-    gap: 0;
-    margin: 12px 0 24px 0;
-    padding: 0 18px;
-    min-height: 48px;
-}
-
-.nav-rail-toggle md-icon-button {
-    --md-icon-button-state-layer-shape: 0;
-    --md-icon-button-icon-size: 20px;
+    justify-content: center;
+    background: none;
+    border: none;
+    border-radius: 24px;
     cursor: pointer;
-    flex-shrink: 0;
-    width: 20px;
-    height: 20px;
-    margin: 0;
-    padding: 0;
+    margin: 4px 0 8px 0;
+    transition: background-color 200ms;
 }
 
-/* When expanded, adjust toggle padding/margin for consistency */
-.nav-rail:not(.collapsed) .nav-rail-toggle {
-    gap: 0 8px;
-    margin: 12px 18px 24px 18px;
-    padding: 0px;
+.nav-rail-toggle-btn:hover {
+    background-color: #E7E5E0;
 }
 
-/* Make toggle icons match nav item icons exactly */
-.nav-rail-toggle md-icon-button .material-symbols-outlined {
-    font-size: 20px;
-    font-weight: 200;
+.nav-rail-toggle-btn .material-symbols-outlined {
+    font-size: 24px;
+    font-weight: 300;
     color: var(--md-sys-color-on-surface-variant);
-    font-variation-settings: 'FILL' 0, 'wght' 200, 'GRAD' 0, 'opsz' 24;
 }
 
+/* App Title - Centered in Collapsed, Left-Aligned in Expanded */
 .nav-rail-title {
-    font-size: 18px;
+    font-family: 'Roboto', sans-serif;
+    text-align: center;
     white-space: nowrap;
     opacity: 0;
     width: 0;
     overflow: hidden;
-    transition: opacity 0.2s ease;
-    line-height: 1;
+    transition: opacity 200ms, width 200ms;
+    padding: 0 16px;
+    margin-bottom: 8px;
 }
 
-.nav-rail:not(.collapsed) .nav-rail-title {
+.md3-nav-rail:not(.collapsed) .nav-rail-title {
     opacity: 1;
     width: auto;
+    text-align: left;
+    padding-left: 16px;
 }
 
 .title-lrb {
-    font-family: 'Roboto', sans-serif;
-    font-weight: 700;
+    font-size: 20px;
+    font-weight: 500;
+    letter-spacing: 0.15px;
     color: var(--md-sys-color-on-surface);
 }
 
 .title-fund {
-    font-family: 'Roboto Serif', serif;
+    font-size: 20px;
     font-weight: 300;
+    letter-spacing: 0.15px;
     color: var(--md-sys-color-on-surface);
 }
 
-/* Navigation Items Container */
-.nav-rail-items {
-    flex: 1;
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    gap: 0;
-    overflow-y: auto;
-    overflow-x: hidden;
-    padding: 0;
+/* ========================================
+   TRADING SECTION (FIXED, NON-SCROLLABLE)
+   ======================================== */
+
+.nav-rail-trading {
+    flex-shrink: 0;
+    padding: 4px 0;
+    position: relative;
 }
 
-.nav-rail-footer {
+/* Blur effect at bottom of Trading section */
+.nav-rail-trading::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 16px;
+    background: linear-gradient(to bottom, transparent, #F4F3EE);
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* ========================================
+   BUNDLE TOGGLE (COLLAPSED STATE ONLY)
+   ======================================== */
+
+.nav-rail-bundle-toggle {
     width: 100%;
-    padding: 0 0 8px 0;
+    min-height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    border-radius: 0;
+    cursor: pointer;
+    transition: background-color 150ms;
+    flex-shrink: 0;
+    padding: 0;
     margin: 0;
 }
 
-/* Section Headers */
-.nav-rail-section-header {
-    padding: 10px 18px 4px 18px;
-    margin: 6px 0 0 0;
+/* Hide bundle toggle when expanded */
+.md3-nav-rail:not(.collapsed) .nav-rail-bundle-toggle {
+    display: none;
 }
 
-.nav-rail.collapsed .nav-rail-section-header {
-    display: none;
+.nav-rail-bundle-toggle:hover {
+    background-color: #E7E5E0;
+}
+
+/* ========================================
+   SCROLLABLE SECTIONS CONTAINER
+   ======================================== */
+
+.nav-rail-scrollable {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 0;
+    position: relative;
+    /* Hidden when collapsed, shown when bundle clicked or rail expanded */
+    max-height: 0;
+    opacity: 0;
+    transition: max-height 300ms cubic-bezier(0.4, 0, 0.2, 1), opacity 200ms;
+}
+
+/* Show scrollable when expanded */
+.md3-nav-rail:not(.collapsed) .nav-rail-scrollable {
+    max-height: none;
+    opacity: 1;
+}
+
+/* Show scrollable when bundle is open (collapsed state) */
+.md3-nav-rail.collapsed.bundle-open .nav-rail-scrollable {
+    max-height: calc(100vh - 300px); /* Adjust based on fixed elements */
+    opacity: 1;
+}
+
+/* Blur effect at top where scrollable content goes behind Trading */
+.nav-rail-scrollable::before {
+    content: '';
+    position: sticky;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 16px;
+    background: linear-gradient(to top, transparent, #F4F3EE);
+    pointer-events: none;
+    z-index: 2;
+}
+
+/* Custom scrollbar for the scrollable area */
+.nav-rail-scrollable::-webkit-scrollbar {
+    width: 4px;
+}
+
+.nav-rail-scrollable::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.nav-rail-scrollable::-webkit-scrollbar-thumb {
+    background-color: var(--md-sys-color-outline-variant);
+    border-radius: 2px;
+}
+
+/* ========================================
+   SECTION GROUPS & HEADERS
+   ======================================== */
+
+.nav-rail-section-group {
+    padding: 12px 0;
+}
+
+.nav-rail-section-header {
+    padding: 0 16px;
+    margin: 8px 0 4px 0;
+    opacity: 0;
+    width: 0;
+    overflow: hidden;
+    transition: opacity 200ms, width 200ms;
+}
+
+.md3-nav-rail:not(.collapsed) .nav-rail-section-header {
+    opacity: 1;
+    width: auto;
 }
 
 .section-label {
@@ -206,51 +312,39 @@ body {
     text-transform: uppercase;
     color: var(--md-sys-color-on-surface-variant);
     opacity: 0.6;
-    white-space: nowrap;
 }
 
-/* Navigation Rail Items */
+/* ========================================
+   NAVIGATION ITEMS (CRITICAL POSITIONING)
+   ======================================== */
+
 .nav-rail-item {
     position: relative;
     width: 100%;
-    min-height: 32px;
+    min-height: 56px; /* MD3 standard */
     display: flex;
     align-items: center;
+    justify-content: center; /* Center icons in collapsed state */
     gap: 0;
-    padding: 0 18px;
+    padding: 0;
     margin: 0;
     text-decoration: none;
     color: var(--md-sys-color-on-surface-variant);
     border-radius: 0;
     cursor: pointer;
-    transition: background-color 0.15s ease;
+    transition: background-color 150ms ease;
     overflow: hidden;
-    white-space: nowrap;
 }
 
-/* Add gap only when expanded so label isn't touching icon */
-.nav-rail:not(.collapsed) .nav-rail-item {
-    margin: 0px;
-    gap: 0 12px;
-    padding: 0px 18px 0px 4px;
-    min-height: 40px;
-}
-
-.nav-rail:not(.collapsed) .nav-rail-toggle {
-    gap: 10px;
+/* Expanded state: left-align with gap */
+.md3-nav-rail:not(.collapsed) .nav-rail-item {
+    justify-content: flex-start;
+    gap: 12px;
+    padding: 0 16px;
 }
 
 .nav-rail-item:hover {
     background-color: #E7E5E0;
-}
-
-.nav-rail-item:hover .material-symbols-outlined {
-    font-weight: 400;
-    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-}
-
-.nav-rail-item:hover .nav-rail-label {
-    font-weight: 500;
 }
 
 .nav-rail-item.active {
@@ -258,80 +352,298 @@ body {
     color: var(--md-sys-color-on-secondary-container);
 }
 
-.nav-rail-item .material-symbols-outlined {
-    font-size: 20px;
+/* ========================================
+   ICONS (CRITICAL: FIXED POSITIONING)
+   ======================================== */
+
+.nav-icon {
+    font-size: 24px;
     font-weight: 300;
+    font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
     flex-shrink: 0;
-    width: 20px;
-    height: 20px;
+    width: 24px;
+    height: 24px;
     display: flex;
     align-items: center;
     justify-content: center;
+    /* CRITICAL: Icon position is FIXED */
+    transform: none;
+    transition: font-weight 150ms, font-variation-settings 150ms;
 }
 
-.nav-rail-item.active .material-symbols-outlined {
-    color: var(--md-sys-color-on-secondary-container);
+/* Hover state - one weight heavier */
+.nav-rail-item:hover .nav-icon {
     font-weight: 400;
     font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
 }
 
-.nav-rail-label {
+/* Active state */
+.nav-rail-item.active .nav-icon {
+    font-weight: 400;
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    color: var(--md-sys-color-on-secondary-container);
+}
+
+/* ========================================
+   LABELS (HIDE/SHOW, NO ICON MOVEMENT)
+   ======================================== */
+
+.nav-label {
     font-family: 'Roboto', sans-serif;
     font-size: 14px;
     font-weight: 400;
     opacity: 0;
     width: 0;
     overflow: hidden;
-    transition: opacity 0.2s ease;
+    white-space: nowrap;
+    transition: opacity 200ms, width 200ms;
 }
 
-.nav-rail-item.active .nav-rail-label {
-    font-weight: 500;
-}
-
-.nav-rail:not(.collapsed) .nav-rail-label {
+/* Show labels when expanded */
+.md3-nav-rail:not(.collapsed) .nav-label {
     opacity: 1;
     width: auto;
 }
 
-/* Tooltips for collapsed state */
-.nav-rail.collapsed .nav-rail-item[title]:hover::after {
-    content: attr(title);
-    position: absolute;
-    left: calc(100% + 10px);
-    top: 50%;
-    transform: translateY(-50%);
-    background-color: var(--md-sys-color-inverse-surface);
-    color: var(--md-sys-color-inverse-on-surface);
-    padding: 4px 10px;
-    border-radius: 6px;
-    font-size: 12px;
-    font-weight: 400;
-    white-space: nowrap;
-    z-index: 1000;
-    pointer-events: none;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+/* Hover state - one weight heavier */
+.nav-rail-item:hover .nav-label {
+    font-weight: 500;
 }
 
-/* Tooltips for collapsed state */
-.nav-rail.collapsed .nav-rail-item[title]:hover::after {
-    content: attr(title);
-    position: absolute;
-    left: calc(100% + 10px);
-    top: 50%;
-    transform: translateY(-50%);
-    background-color: var(--md-sys-color-inverse-surface);
-    color: var(--md-sys-color-inverse-on-surface);
-    padding: 4px 10px;
-    border-radius: 6px;
-    font-size: 12px;
-    font-weight: 400;
-    white-space: nowrap;
-    z-index: 1000;
-    pointer-events: none;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+/* Active state */
+.nav-rail-item.active .nav-label {
+    font-weight: 500;
 }
 
+/* ========================================
+   PROFILE BAR (FIXED AT BOTTOM)
+   ======================================== */
+
+.nav-rail-profile-bar {
+    flex-shrink: 0;
+    border-top: 1px solid var(--md-sys-color-outline-variant);
+    padding: 8px 0;
+    position: relative;
+    background-color: #F4F3EE;
+}
+
+/* Blur effect at top where scrollable goes behind */
+.nav-rail-profile-bar::before {
+    content: '';
+    position: absolute;
+    top: -16px;
+    left: 0;
+    right: 0;
+    height: 16px;
+    background: linear-gradient(to bottom, transparent, #F4F3EE);
+    pointer-events: none;
+    z-index: 1;
+}
+
+.profile-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    padding: 8px;
+    transition: gap 200ms, justify-content 200ms;
+}
+
+.md3-nav-rail:not(.collapsed) .profile-content {
+    justify-content: flex-start;
+    gap: 12px;
+    padding: 8px 16px;
+}
+
+/* Profile Avatar */
+.profile-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: var(--md-sys-color-surface-variant);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Roboto', sans-serif;
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--md-sys-color-on-surface-variant);
+    flex-shrink: 0;
+    overflow: hidden;
+}
+
+.profile-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* Profile Info Stack */
+.profile-info {
+    display: flex;
+    flex-direction: column;
+    opacity: 0;
+    width: 0;
+    overflow: hidden;
+    transition: opacity 200ms, width 200ms;
+}
+
+.md3-nav-rail:not(.collapsed) .profile-info {
+    opacity: 1;
+    width: auto;
+    flex: 1;
+}
+
+.profile-name {
+    font-family: 'Roboto', sans-serif;
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--md-sys-color-on-surface);
+    line-height: 1.2;
+}
+
+.profile-role {
+    font-family: 'Roboto', sans-serif;
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--md-sys-color-on-surface-variant);
+    opacity: 0.7;
+    line-height: 1.2;
+}
+
+/* Profile Menu Toggle Button */
+.profile-menu-toggle {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 200ms, background-color 150ms;
+}
+
+.md3-nav-rail:not(.collapsed) .profile-menu-toggle {
+    opacity: 1;
+}
+
+.profile-menu-toggle:hover {
+    background-color: #E7E5E0;
+}
+
+.profile-menu-toggle .material-symbols-outlined {
+    font-size: 20px;
+    font-weight: 300;
+    color: var(--md-sys-color-on-surface-variant);
+    transition: transform 200ms;
+}
+
+.profile-menu-toggle.active .material-symbols-outlined {
+    transform: rotate(180deg);
+}
+
+/* Profile Dropdown Menu */
+.profile-menu {
+    position: absolute;
+    bottom: 100%;
+    left: 16px;
+    right: 16px;
+    background-color: var(--md-sys-color-surface-container-high);
+    border-radius: 12px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    padding: 8px 0;
+    opacity: 0;
+    transform: translateY(8px);
+    pointer-events: none;
+    transition: opacity 200ms, transform 200ms;
+    z-index: 10;
+    margin-bottom: 8px;
+}
+
+.profile-menu.active {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: all;
+}
+
+.profile-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    text-decoration: none;
+    color: var(--md-sys-color-on-surface);
+    transition: background-color 150ms;
+    cursor: pointer;
+}
+
+.profile-menu-item:hover {
+    background-color: var(--md-sys-color-surface-container-highest);
+}
+
+.profile-menu-item .material-symbols-outlined {
+    font-size: 20px;
+    font-weight: 300;
+    color: var(--md-sys-color-on-surface-variant);
+}
+
+.profile-menu-item span:last-child {
+    font-family: 'Roboto', sans-serif;
+    font-size: 14px;
+    font-weight: 400;
+}
+
+.profile-menu-divider {
+    height: 1px;
+    background-color: var(--md-sys-color-outline-variant);
+    margin: 8px 0;
+}
+
+/* ========================================
+   MD3 RIPPLE EFFECTS
+   ======================================== */
+
+.nav-rail-item md-ripple {
+    --md-ripple-hover-color: var(--md-sys-color-on-surface);
+    --md-ripple-hover-opacity: 0.08;
+    --md-ripple-pressed-color: var(--md-sys-color-on-surface);
+    --md-ripple-pressed-opacity: 0.12;
+}
+
+/* ========================================
+   RESPONSIVE BEHAVIOR
+   ======================================== */
+
+@media (max-width: 900px) {
+    .md3-nav-rail {
+        width: 72px;
+    }
+    
+    .md3-nav-rail:not(.collapsed) {
+        width: 220px;
+    }
+    
+    .nav-rail-item {
+        min-height: 48px;
+    }
+    
+    .nav-icon {
+        font-size: 20px;
+    }
+}
+
+@media (max-width: 768px) {
+    .md3-nav-rail {
+        width: 64px;
+    }
+    
+    .md3-nav-rail:not(.collapsed) {
+        width: 200px;
+    }
+}
 /* ========================================
    MAIN CONTENT AREA
    ======================================== */
