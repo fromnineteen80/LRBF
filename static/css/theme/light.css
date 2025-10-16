@@ -19,7 +19,7 @@
   --md-sys-color-on-tertiary-container: rgb(59 53 47);
   
   /* Error */
-  --md-sys-color-error: rgb(255 84 73);
+  --md-sys-color-error: rgb(193 95 60);
   --md-sys-color-on-error: rgb(255 255 255);
   --md-sys-color-error-container: rgb(255 235 233);
   --md-sys-color-on-error-container: rgb(186 26 26);
@@ -71,7 +71,7 @@
   --md-sys-color-surface-container-highest: rgb(211 208 200);
   
   /* Custom app colors for stock performance and status */
-  --app-color-falling-behind: rgb(255 84 73);
+  --app-color-falling-behind: rgb(193 95 60);
   --app-color-falling-behind-text: rgb(255 255 255);
   --app-color-on-pace: rgb(231 195 109);
   --app-color-on-pace-text: rgb(59 53 47);
