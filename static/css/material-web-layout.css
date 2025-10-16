@@ -420,10 +420,10 @@ body {
 
 .user-menu-button {
     /* MD3 Filled Button Styling */
-    /* Background color: #3B352F (rgb(59 53 47)) via CSS custom property */
+    /* Background color: exact theme black as requested */
     padding: 10px 24px;
-    background-color: var(--md-sys-color-inverse-surface); /* #3B352F in light theme */
-    color: var(--md-sys-color-inverse-on-surface);
+    background-color: #3B352F; /* Exact hex as requested */
+    color: #FAF9F7; /* Exact theme off-white */
     border: none;
     border-radius: 20px; /* MD3 full-rounded corners for buttons */
     font-family: 'Roboto', sans-serif;
@@ -455,7 +455,7 @@ body {
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: var(--md-sys-color-inverse-on-surface);
+    background-color: #FAF9F7; /* Exact theme off-white */
     opacity: 0;
     transition: opacity 0.2s ease;
     pointer-events: none;
@@ -487,7 +487,7 @@ body {
 }
 
 .user-menu-button:focus-visible {
-    outline: 2px solid var(--md-sys-color-inverse-surface);
+    outline: 2px solid #3B352F; /* Exact theme black */
     outline-offset: 2px;
 }
 
