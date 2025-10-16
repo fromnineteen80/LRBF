@@ -94,7 +94,7 @@
             <!-- App Title Header (Fixed) -->
             <div class="nav-rail-header">
                 <button class="nav-rail-toggle-btn" onclick="toggleNavRail()" aria-label="Toggle navigation menu" id="navToggleBtn">
-                    <span class="material-symbols-outlined">folder_open</span>
+                    <span class="material-symbols-outlined">menu</span>
                 </button>
                 <div class="nav-rail-title">
                     <span class="title-lrb">LRB</span><span class="title-fund">Fund</span>
@@ -146,7 +146,7 @@
             
             <!-- Sections Bundle Toggle (Collapsed State Only) -->
             <button class="nav-rail-bundle-toggle" id="sectionsBundleToggle" onclick="toggleSectionsBundle()" aria-label="More sections" title="More sections">
-                <span class="material-symbols-outlined nav-icon">apps</span>
+                <span class="material-symbols-outlined nav-icon" id="bundleIcon">folder</span>
                 <span class="nav-label">More</span>
             </button>
             
@@ -608,12 +608,19 @@
         // Toggle Sections Bundle (Collapsed State Only)
         function toggleSectionsBundle() {
             const navRail = document.getElementById('navRail');
+            const bundleIcon = document.getElementById('bundleIcon');
             
-            // Only works in collapsed state
             if (navRail.classList.contains('collapsed')) {
                 navRail.classList.toggle('bundle-open');
+                
+                if (navRail.classList.contains('bundle-open')) {
+                    bundleIcon.textContent = 'folder_open';
+                } else {
+                    bundleIcon.textContent = 'folder';
+                }
             }
         }
+        
         
         // Toggle Profile Menu
         function toggleProfileMenu() {
