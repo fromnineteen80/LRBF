@@ -6,6 +6,12 @@
  * Your theme colors (from theme/light.css and theme/dark.css) are applied automatically!
  */
 
+.md3-nav-rail.collapsed .nav-rail-bundle-toggle {
+    display: flex;
+}
+
+
+
 /* ========================================
    ROOT VARIABLES & TYPOGRAPHY
    ======================================== */
@@ -225,7 +231,7 @@ body {
     cursor: pointer;
     transition: background-color 150ms;
     flex-shrink: 0;
-    padding: 0;
+    padding: 0 18px;
     margin: 0;
 }
 
@@ -558,15 +564,15 @@ body {
     left: 8px;
     right: 8px;
     background-color: #FFFFFF;
-    border-radius: 4px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-    padding: 2px 0;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    padding: 8px 0;
     opacity: 0;
     transform: translateY(4px);
     pointer-events: none;
     transition: opacity 200ms, transform 200ms;
     z-index: 102;
-    margin-bottom: 4px;
+    margin-bottom: 8px;
 }
 
 .profile-menu.active {
@@ -578,14 +584,14 @@ body {
 .profile-menu-item {
     display: flex;
     align-items: center;
-    padding: 6px 12px;
+    padding: 10px 16px;
     text-decoration: none;
     color: var(--md-sys-color-on-surface);
     transition: background-color 150ms;
     cursor: pointer;
-    min-height: 28px;
     font-family: 'Roboto', sans-serif;
     font-size: 14px;
+    font-weight: 400;
 }
 
 .profile-menu-item:hover {
@@ -684,11 +690,13 @@ body {
 }
 
 .top-app-bar-title {
-    font-family: 'Roboto Serif', serif;
-    font-size: 16px;
-    font-weight: 300;
+    font-family: 'Roboto', sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
     line-height: 1;
-    color: var(--md-sys-color-on-surface);
+    color: #3B352F;
     margin: 0;
     white-space: nowrap;
     position: relative;
@@ -940,12 +948,13 @@ body {
 
 .market-progress-track {
     position: relative;
-    width: 220px;
+    width: var(--rail-width-expanded);
     height: 3px;
     background-color: var(--md-sys-color-secondary);
     border-radius: 2px;
     overflow: visible;
     padding: 0 20px;
+    transition: width 300ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .market-progress-bar {
