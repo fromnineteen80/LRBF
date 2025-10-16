@@ -1,0 +1,258 @@
+{% extends "base.html" %}
+
+{% block title %}Ledger - Luggage Room Boys Fund{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 1400px; margin-top: 40px;">
+    <h1 class="headline-large" style="margin-bottom: 8px;">Your Ledger</h1>
+    <p class="body-medium" style="color: var(--md-sys-color-on-surface-variant); margin-bottom: 32px;">
+        Track your capital contributions, distributions, and account balance
+    </p>
+    
+    <!-- Account Summary -->
+    <div class="surface elevation-1" style="padding: 24px; margin-bottom: 24px; border-radius: 12px;">
+        <h2 class="title-large" style="margin-bottom: 20px;">Account Summary</h2>
+        
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 24px;">
+            <div>
+                <div class="label-small" style="color: var(--md-sys-color-on-surface-variant); margin-bottom: 8px;">
+                    Current Balance
+                </div>
+                <div class="headline-medium" id="currentBalance" style="color: var(--md-sys-color-primary);">
+                    <span class="loading-spinner" style="display: inline-block; width: 20px; height: 20px; border: 2px solid var(--md-sys-color-outline); border-top-color: var(--md-sys-color-primary); border-radius: 50%; animation: spin 1s linear infinite;"></span>
+                </div>
+            </div>
+            
+            <div>
+                <div class="label-small" style="color: var(--md-sys-color-on-surface-variant); margin-bottom: 8px;">
+                    Total Contributions
+                </div>
+                <div class="headline-medium" id="totalContributions">
+                    <span class="loading-spinner" style="display: inline-block; width: 20px; height: 20px; border: 2px solid var(--md-sys-color-outline); border-top-color: var(--md-sys-color-primary); border-radius: 50%; animation: spin 1s linear infinite;"></span>
+                </div>
+            </div>
+            
+            <div>
+                <div class="label-small" style="color: var(--md-sys-color-on-surface-variant); margin-bottom: 8px;">
+                    YTD Profit/Loss
+                </div>
+                <div class="headline-medium" id="ytdPL">
+                    <span class="loading-spinner" style="display: inline-block; width: 20px; height: 20px; border: 2px solid var(--md-sys-color-outline); border-top-color: var(--md-sys-color-primary); border-radius: 50%; animation: spin 1s linear infinite;"></span>
+                </div>
+            </div>
+            
+            <div>
+                <div class="label-small" style="color: var(--md-sys-color-on-surface-variant); margin-bottom: 8px;">
+                    Your Ownership
+                </div>
+                <div class="headline-medium" id="ownership">
+                    <span class="loading-spinner" style="display: inline-block; width: 20px; height: 20px; border: 2px solid var(--md-sys-color-outline); border-top-color: var(--md-sys-color-primary); border-radius: 50%; animation: spin 1s linear infinite;"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Transaction History -->
+    <div class="surface elevation-1" style="padding: 24px; margin-bottom: 24px; border-radius: 12px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 16px;">
+            <h2 class="title-large" style="margin: 0;">Transaction History</h2>
+            
+            {% if user.role == 'admin' %}
+            <button onclick="openTransactionModal()" class="btn-filled">
+                <span class="material-icons" style="font-size: 18px; margin-right: 8px;">add</span>
+                Record Transaction
+            </button>
+            {% endif %}
+        </div>
+        
+        <div style="overflow-x: auto;">
+            <table class="data-table" style="width: 100%; min-width: 700px;">
+                <thead>
+                    <tr>
+                        <th style="text-align: left;">Date</th>
+                        <th style="text-align: left;">Type</th>
+                        <th style="text-align: right;">Amount</th>
+                        <th style="text-align: right;">Balance After</th>
+                        <th style="text-align: left;">Notes</th>
+                    </tr>
+                </thead>
+                <tbody id="transactionsTable">
+                    <tr>
+                        <td colspan="5" style="text-align: center; padding: 40px;">
+                            <span class="loading-spinner" style="display: inline-block; width: 24px; height: 24px; border: 3px solid var(--md-sys-color-outline); border-top-color: var(--md-sys-color-primary); border-radius: 50%; animation: spin 1s linear infinite;"></span>
+                            <div class="body-medium" style="margin-top: 12px; color: var(--md-sys-color-on-surface-variant);">
+                                Loading transactions...
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Monthly Statements -->
+    <div class="surface elevation-1" style="padding: 24px; border-radius: 12px;">
+        <h2 class="title-large" style="margin-bottom: 20px;">Monthly Statements</h2>
+        
+        <div id="statementsGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;">
+            <div style="padding: 20px; border: 1px dashed var(--md-sys-color-outline); border-radius: 8px; text-align: center;">
+                <span class="material-icons" style="font-size: 48px; color: var(--md-sys-color-on-surface-variant); opacity: 0.5;">description</span>
+                <p class="body-medium" style="margin-top: 12px; color: var(--md-sys-color-on-surface-variant);">
+                    Monthly statements will appear here once generated
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if user.role == 'admin' %}
+<!-- Record Transaction Modal (Admin Only) -->
+<div id="transactionModal" class="modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); align-items: center; justify-content: center; z-index: 1000;">
+    <div class="modal-content surface elevation-3" style="background: var(--md-sys-color-surface); padding: 24px; border-radius: 12px; max-width: 500px; width: 90%; max-height: 90vh; overflow-y: auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+            <h2 class="title-large" style="margin: 0;">Record Capital Transaction</h2>
+            <button onclick="closeTransactionModal()" class="btn-icon" style="background: none; border: none; cursor: pointer; padding: 8px; border-radius: 50%;" onmouseover="this.style.background='var(--md-sys-color-surface-variant)'" onmouseout="this.style.background='none'">
+                <span class="material-icons" style="color: var(--md-sys-color-on-surface);">close</span>
+            </button>
+        </div>
+        
+        <form id="transactionForm">
+            <div class="text-field-container" style="margin-bottom: 20px;">
+                <label for="transactionUser" class="label-large">Co-Founder</label>
+                <select id="transactionUser" name="user_id" required style="width: 100%; padding: 12px; border: 1px solid var(--md-sys-color-outline); border-radius: 4px; font-size: 16px; background: var(--md-sys-color-surface); color: var(--md-sys-color-on-surface); font-family: 'Roboto', sans-serif;">
+                    <option value="">Select co-founder...</option>
+                </select>
+            </div>
+            
+            <div class="text-field-container" style="margin-bottom: 20px;">
+                <label for="transactionType" class="label-large">Transaction Type</label>
+                <select id="transactionType" name="transaction_type" required style="width: 100%; padding: 12px; border: 1px solid var(--md-sys-color-outline); border-radius: 4px; font-size: 16px; background: var(--md-sys-color-surface); color: var(--md-sys-color-on-surface); font-family: 'Roboto', sans-serif;">
+                    <option value="">Select type...</option>
+                    <option value="contribution">Contribution (Add Capital)</option>
+                    <option value="distribution">Distribution (Profit Distribution)</option>
+                    <option value="withdrawal">Withdrawal (Remove Capital)</option>
+                </select>
+            </div>
+            
+            <div class="text-field-container" style="margin-bottom: 20px;">
+                <label for="transactionAmount" class="label-large">Amount ($)</label>
+                <input type="number" id="transactionAmount" name="amount" step="0.01" min="0.01" required placeholder="0.00" style="width: 100%; padding: 12px; border: 1px solid var(--md-sys-color-outline); border-radius: 4px; font-size: 16px; background: var(--md-sys-color-surface); color: var(--md-sys-color-on-surface); font-family: 'Roboto', sans-serif;">
+                <span class="helper-text body-small" style="color: var(--md-sys-color-on-surface-variant); display: block; margin-top: 4px;">
+                    Enter the transaction amount in dollars
+                </span>
+            </div>
+            
+            <div class="text-field-container" style="margin-bottom: 20px;">
+                <label for="transactionDate" class="label-large">Transaction Date</label>
+                <input type="date" id="transactionDate" name="transaction_date" required style="width: 100%; padding: 12px; border: 1px solid var(--md-sys-color-outline); border-radius: 4px; font-size: 16px; background: var(--md-sys-color-surface); color: var(--md-sys-color-on-surface); font-family: 'Roboto', sans-serif;">
+            </div>
+            
+            <div class="text-field-container" style="margin-bottom: 24px;">
+                <label for="transactionNotes" class="label-large">Notes (Optional)</label>
+                <textarea id="transactionNotes" name="notes" rows="3" placeholder="Add any relevant details..." style="width: 100%; padding: 12px; border: 1px solid var(--md-sys-color-outline); border-radius: 4px; font-size: 16px; background: var(--md-sys-color-surface); color: var(--md-sys-color-on-surface); font-family: 'Roboto', sans-serif; resize: vertical;"></textarea>
+            </div>
+            
+            <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                <button type="button" onclick="closeTransactionModal()" class="btn-outlined">
+                    Cancel
+                </button>
+                <button type="submit" class="btn-filled">
+                    Record Transaction
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+<style>
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.chip {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: capitalize;
+}
+
+.chip.contribution {
+    background: var(--md-sys-color-primary-container);
+    color: var(--md-sys-color-on-primary-container);
+}
+
+.chip.distribution {
+    background: var(--md-sys-color-tertiary-container);
+    color: var(--md-sys-color-on-tertiary-container);
+}
+
+.chip.withdrawal {
+    background: var(--md-sys-color-error-container);
+    color: var(--md-sys-color-on-error-container);
+}
+
+.data-table {
+    border-collapse: collapse;
+}
+
+.data-table thead th {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--md-sys-color-outline);
+    color: var(--md-sys-color-on-surface-variant);
+    font-weight: 500;
+}
+
+.data-table tbody td {
+    padding: 16px;
+    border-bottom: 1px solid var(--md-sys-color-outline-variant);
+}
+
+.data-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.data-table tbody tr:hover {
+    background: var(--md-sys-color-surface-variant);
+    transition: background 0.2s;
+}
+
+.btn-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    transition: background 0.2s;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .container {
+        margin-top: 20px !important;
+    }
+    
+    .headline-large {
+        font-size: 28px !important;
+    }
+    
+    .data-table {
+        font-size: 14px;
+    }
+    
+    .data-table thead th,
+    .data-table tbody td {
+        padding: 12px 8px;
+    }
+    
+    .modal-content {
+        width: 95% !important;
+        padding: 20px !important;
+    }
+}
+</style>
+
+<script src="{{ url_for('static', filename='js/ledger.js') }}"></script>
+{% endblock %}
