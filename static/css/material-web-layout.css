@@ -418,14 +418,21 @@ body {
    ======================================== */
 
 .nav-rail-profile-bar {
-    flex-shrink: 0;
-    /* NO border - uses subtle transparency effects only */
-    padding: 8px 0; /* FIX #3 - reduce height */
-    position: relative;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: var(--rail-width-collapsed);
+    transition: width 300ms cubic-bezier(0.4, 0, 0.2, 1);
+    padding: 8px 0;
     background-color: inherit;
+    z-index: 101;
 }
 
 /* Subtle blur at top - FIX #6 */
+.md3-nav-rail:not(.collapsed) .nav-rail-profile-bar {
+    width: var(--rail-width-expanded);
+}
+
 .nav-rail-profile-bar::before {
     content: '';
     position: absolute;
@@ -441,33 +448,35 @@ body {
 .profile-content {
     display: flex;
     align-items: center;
-    justify-content: center; /* Centered when collapsed */
+    justify-content: center;
     gap: 0;
-    padding: 4px 8px; /* FIX #2 & #3 - reduce padding */
+    padding: 0 18px;
+    min-height: 32px;
     transition: gap 200ms, justify-content 200ms, padding 200ms;
 }
 
 .md3-nav-rail:not(.collapsed) .profile-content {
     justify-content: flex-start;
     gap: 12px;
-    padding: 4px 16px;
+    padding: 0 18px 0 4px;
 }
 
 /* Profile Avatar - FIX #4 & #13 */
 .profile-avatar {
-    width: 32px; /* FIX #4 - reduce from 40px */
-    height: 32px;
+    width: 20px;
+    height: 20px;
     border-radius: 50%;
-    background-color: #000000; /* FIX #4 - black circle as specified */
+    background-color: #000000;
     display: flex;
     align-items: center;
     justify-content: center;
     font-family: 'Roboto', sans-serif;
-    font-size: 14px; /* FIX #4 - smaller text */
+    font-size: 11px;
     font-weight: 500;
-    color: #FFFFFF; /* FIX #4 - white text */
+    color: #FFFFFF;
     flex-shrink: 0;
     overflow: hidden;
+    cursor: pointer;
 }
 
 .profile-avatar img {
@@ -495,7 +504,7 @@ body {
 
 .profile-name {
     font-family: 'Roboto', sans-serif;
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 400;
     color: var(--md-sys-color-on-surface);
     line-height: 1.2;
@@ -503,7 +512,7 @@ body {
 
 .profile-role {
     font-family: 'Roboto', sans-serif;
-    font-size: 12px;
+    font-size: 10px;
     font-weight: 400;
     color: var(--md-sys-color-on-surface-variant);
     opacity: 0.7;
@@ -550,10 +559,10 @@ body {
     bottom: 100%;
     left: 8px;
     right: 8px;
-    background-color: #FFFFFF; /* FIX #5 - white background */
-    border-radius: 4px; /* FIX #5 - subtle rounded corners */
+    background-color: #FFFFFF;
+    border-radius: 4px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-    padding: 4px 0; /* FIX #5 - reduce padding */
+    padding: 2px 0;
     opacity: 0;
     transform: translateY(4px);
     pointer-events: none;
@@ -571,13 +580,13 @@ body {
 .profile-menu-item {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 8px 16px; /* FIX #5 - reduce padding */
+    gap: 8px;
+    padding: 6px 12px;
     text-decoration: none;
     color: var(--md-sys-color-on-surface);
     transition: background-color 150ms;
     cursor: pointer;
-    min-height: 32px;
+    min-height: 28px;
 }
 
 .profile-menu-item:hover {
