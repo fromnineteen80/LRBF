@@ -559,7 +559,7 @@ body {
 .profile-menu-item {
     display: flex;
     align-items: center;
-    padding: 6px 12px;
+    padding: 0 12px;
     text-decoration: none;
     color: var(--md-sys-color-on-surface);
     transition: background-color 150ms;
@@ -567,6 +567,7 @@ body {
     min-height: 28px;
     font-family: 'Roboto', sans-serif;
     font-size: 14px;
+    font-weight: 200;
 }
 
 .profile-menu-item:hover {
