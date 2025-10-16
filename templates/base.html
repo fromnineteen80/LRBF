@@ -192,6 +192,16 @@
                     <span class="section-label">System</span>
                 </div>
                 
+                <a href="{{ url_for('fund') }}" 
+                   class="nav-rail-item {% if request.endpoint == 'fund' %}active{% endif %}" 
+                   aria-label="Fund Management"
+                   aria-current="{% if request.endpoint == 'fund' %}page{% endif %}"
+                   title="Fund Management">
+                    <md-ripple></md-ripple>
+                    <span class="material-symbols-outlined">account_balance</span>
+                    <span class="nav-rail-label">Fund</span>
+                </a>
+                
                 <a href="{{ url_for('api_credentials') }}" 
                    class="nav-rail-item {% if request.endpoint == 'api_credentials' %}active{% endif %}" 
                    aria-label="API & Credentials"

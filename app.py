@@ -1314,6 +1314,28 @@ def profile():
     
     return render_template('profile.html', user=user_data)
 
+@app.route('/fund')
+@login_required
+def fund():
+    """Fund management page showing co-founders and ownership."""
+    # Get full user data from database
+    user_data = None
+    if BACKEND_AVAILABLE and 'user_id' in session:
+        user_data = db.get_user_by_id(session['user_id'])
+    
+    # Fallback to hardcoded data if no database user
+    if not user_data:
+        username = session.get('username', 'Unknown')
+        user_data = {
+            'username': username,
+            'first_name': username.capitalize(),
+            'last_name': 'User',
+            'email': f'{username}@example.com',
+            'role': 'member'
+        }
+    
+    return render_template('fund.html', user=user_data)
+
 @app.route('/settings')
 @login_required
 def settings():
