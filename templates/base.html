@@ -1,1 +1,706 @@
-undefined
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Railyard Markets{% endblock %}</title>
+    
+    <!-- Material Design 3 Custom Theme (Your Colors!) -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/theme/light.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/theme/dark.css') }}">
+    
+    <!-- Material Symbols Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+    
+    <!-- Roboto Font Family -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Roboto+Serif:opsz,wght@8..144,300;8..144,400;8..144,500;8..144,700&family=Roboto+Flex:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Material Web Components - Import Map -->
+    <script type="importmap">
+    {
+      "imports": {
+        "@material/web/": "https://esm.run/@material/web/"
+      }
+    }
+    </script>
+    
+    <!-- Material Web Components - Import Modules -->
+    <script type="module">
+        // Import all Material Web components we'll use
+        import '@material/web/all.js';
+        
+        // Navigation components
+        import '@material/web/navigationbar/navigation-bar.js';
+        import '@material/web/navigationbar/navigation-tab.js';
+        import '@material/web/navigationdrawer/navigation-drawer.js';
+        import '@material/web/list/list.js';
+        import '@material/web/list/list-item.js';
+        
+        // Buttons
+        import '@material/web/button/filled-button.js';
+        import '@material/web/button/outlined-button.js';
+        import '@material/web/button/text-button.js';
+        import '@material/web/iconbutton/icon-button.js';
+        
+        // Cards and surfaces
+        import '@material/web/card/filled-card.js';
+        import '@material/web/card/elevated-card.js';
+        import '@material/web/card/outlined-card.js';
+        
+        // Inputs
+        import '@material/web/textfield/filled-text-field.js';
+        import '@material/web/textfield/outlined-text-field.js';
+        import '@material/web/select/filled-select.js';
+        import '@material/web/select/outlined-select.js';
+        import '@material/web/select/select-option.js';
+        import '@material/web/checkbox/checkbox.js';
+        import '@material/web/switch/switch.js';
+        import '@material/web/radio/radio.js';
+        
+        // Dialogs and menus
+        import '@material/web/dialog/dialog.js';
+        import '@material/web/menu/menu.js';
+        import '@material/web/menu/menu-item.js';
+        
+        // Progress indicators
+        import '@material/web/progress/circular-progress.js';
+        import '@material/web/progress/linear-progress.js';
+        
+        // Chips
+        import '@material/web/chips/chip-set.js';
+        import '@material/web/chips/filter-chip.js';
+        import '@material/web/chips/assist-chip.js';
+        
+        // Other components
+        import '@material/web/divider/divider.js';
+        import '@material/web/elevation/elevation.js';
+        import '@material/web/ripple/ripple.js';
+        import '@material/web/focus/md-focus-ring.js';
+    </script>
+    
+    <!-- Custom Layout Styles -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/material-web-layout.css') }}">
+    
+    <!-- Chart.js (for trading charts) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <div class="app-container">
+        <!-- Navigation Drawer (Rail on desktop, drawer on mobile) -->
+        <!-- MD3 Navigation Rail -->
+        <nav class="md3-nav-rail collapsed" role="navigation" aria-label="Main navigation" id="navRail">
+            <!-- App Title Header (Fixed) -->
+            <div class="nav-rail-header">
+                <button class="nav-rail-toggle-btn" onclick="toggleNavRail()" aria-label="Toggle navigation menu" id="navToggleBtn">
+                    <span class="material-symbols-outlined">arrow_back</span>
+                </button>
+                <div class="nav-rail-title">
+                    <span class="title-lrb">LRB</span><span class="title-fund">Fund</span>
+                </div>
+            </div>
+            
+            <!-- Trading Section (Always Visible, Non-Collapsible, Non-Scrollable) -->
+            <div class="nav-rail-section nav-rail-trading">
+                <a href="{{ url_for('dashboard') }}" 
+                   class="nav-rail-item {% if request.endpoint == 'dashboard' %}active{% endif %}" 
+                   aria-label="Home"
+                   aria-current="{% if request.endpoint == 'dashboard' %}page{% endif %}"
+                   title="Home">
+                    <md-ripple></md-ripple>
+                    <span class="material-symbols-outlined nav-icon">train</span>
+                    <span class="nav-label">Home</span>
+                </a>
+                
+                <a href="{{ url_for('morning') }}" 
+                   class="nav-rail-item {% if request.endpoint == 'morning' %}active{% endif %}" 
+                   aria-label="Morning Report"
+                   aria-current="{% if request.endpoint == 'morning' %}page{% endif %}"
+                   title="Morning Report">
+                    <md-ripple></md-ripple>
+                    <span class="material-symbols-outlined nav-icon">wb_twilight</span>
+                    <span class="nav-label">Morning</span>
+                </a>
+                
+                <a href="{{ url_for('live') }}" 
+                   class="nav-rail-item {% if request.endpoint == 'live' %}active{% endif %}" 
+                   aria-label="Live Monitor"
+                   aria-current="{% if request.endpoint == 'live' %}page{% endif %}"
+                   title="Live Monitor">
+                    <md-ripple></md-ripple>
+                    <span class="material-symbols-outlined nav-icon">monitoring</span>
+                    <span class="nav-label">Live</span>
+                </a>
+                
+                <a href="{{ url_for('eod') }}" 
+                   class="nav-rail-item {% if request.endpoint == 'eod' %}active{% endif %}" 
+                   aria-label="End of Day Report"
+                   aria-current="{% if request.endpoint == 'eod' %}page{% endif %}"
+                   title="End of Day">
+                    <md-ripple></md-ripple>
+                    <span class="material-symbols-outlined nav-icon">bedtime</span>
+                    <span class="nav-label">EOD</span>
+                </a>
+            </div>
+            
+            <!-- Sections Bundle Toggle (Collapsed State Only) -->
+            <button class="nav-rail-bundle-toggle" id="sectionsBundleToggle" onclick="toggleSectionsBundle()" aria-label="More sections" title="More sections">
+                <span class="material-symbols-outlined nav-icon" id="bundleIcon">folder</span>
+                <span class="nav-label">More</span>
+            </button>
+            
+            <!-- Scrollable Sections Container -->
+            <div class="nav-rail-scrollable" id="navRailScrollable">
+                <!-- Analytics Section -->
+                <div class="nav-rail-section-group">
+                    <div class="nav-rail-section-header">
+                        <span class="section-label">Analytics</span>
+                    </div>
+                    
+                    <a href="{{ url_for('performance') }}" 
+                       class="nav-rail-item {% if request.endpoint == 'performance' %}active{% endif %}" 
+                       aria-label="Performance"
+                       aria-current="{% if request.endpoint == 'performance' %}page{% endif %}"
+                       title="Performance">
+                        <md-ripple></md-ripple>
+                        <span class="material-symbols-outlined nav-icon">show_chart</span>
+                        <span class="nav-label">Performance</span>
+                    </a>
+                    
+                    <a href="{{ url_for('history') }}" 
+                       class="nav-rail-item {% if request.endpoint == 'history' %}active{% endif %}" 
+                       aria-label="Trading History"
+                       aria-current="{% if request.endpoint == 'history' %}page{% endif %}"
+                       title="History">
+                        <md-ripple></md-ripple>
+                        <span class="material-symbols-outlined nav-icon">history</span>
+                        <span class="nav-label">History</span>
+                    </a>
+                    
+                    <a href="{{ url_for('practice') }}" 
+                       class="nav-rail-item {% if request.endpoint == 'practice' %}active{% endif %}" 
+                       aria-label="Practice Mode"
+                       aria-current="{% if request.endpoint == 'practice' %}page{% endif %}"
+                       title="Practice">
+                        <md-ripple></md-ripple>
+                        <span class="material-symbols-outlined nav-icon">science</span>
+                        <span class="nav-label">Practice</span>
+                    </a>
+                    
+                    <a href="{{ url_for('calculator') }}" 
+                       class="nav-rail-item {% if request.endpoint == 'calculator' %}active{% endif %}" 
+                       aria-label="Performance Calculator"
+                       aria-current="{% if request.endpoint == 'calculator' %}page{% endif %}"
+                       title="Calculator">
+                        <md-ripple></md-ripple>
+                        <span class="material-symbols-outlined nav-icon">calculate</span>
+                        <span class="nav-label">Calculator</span>
+                    </a>
+                </div>
+                
+                <!-- System Section -->
+                <div class="nav-rail-section-group">
+                    <div class="nav-rail-section-header">
+                        <span class="section-label">System</span>
+                    </div>
+                    
+                    <a href="{{ url_for('fund') }}" 
+                       class="nav-rail-item {% if request.endpoint == 'fund' %}active{% endif %}" 
+                       aria-label="Fund Management"
+                       aria-current="{% if request.endpoint == 'fund' %}page{% endif %}"
+                       title="Fund Management">
+                        <md-ripple></md-ripple>
+                        <span class="material-symbols-outlined nav-icon">account_balance</span>
+                        <span class="nav-label">Fund</span>
+                    </a>
+                    
+                    <a href="{{ url_for('ledger') }}" 
+                       class="nav-rail-item {% if request.endpoint == 'ledger' %}active{% endif %}" 
+                       aria-label="Ledger"
+                       aria-current="{% if request.endpoint == 'ledger' %}page{% endif %}"
+                       title="Capital Ledger">
+                        <md-ripple></md-ripple>
+                        <span class="material-symbols-outlined nav-icon">account_balance_wallet</span>
+                        <span class="nav-label">Ledger</span>
+                    </a>
+                    
+                    <a href="{{ url_for('documents') }}" 
+                       class="nav-rail-item {% if request.endpoint == 'documents' %}active{% endif %}" 
+                       aria-label="Documents"
+                       aria-current="{% if request.endpoint == 'documents' %}page{% endif %}"
+                       title="Documents & Reports">
+                        <md-ripple></md-ripple>
+                        <span class="material-symbols-outlined nav-icon">folder_open</span>
+                        <span class="nav-label">Documents</span>
+                    </a>
+                    
+                    {% if session.get('role') == 'admin' %}
+                    <a href="{{ url_for('api_credentials') }}" 
+                       class="nav-rail-item {% if request.endpoint == 'api_credentials' %}active{% endif %}" 
+                       aria-label="API & Credentials"
+                       aria-current="{% if request.endpoint == 'api_credentials' %}page{% endif %}"
+                       title="API & Credentials">
+                        <md-ripple></md-ripple>
+                        <span class="material-symbols-outlined nav-icon">vpn_key</span>
+                        <span class="nav-label">API & Creds</span>
+                    </a>
+                    {% endif %}
+                    
+                    <a href="{{ url_for('about') }}" 
+                       class="nav-rail-item {% if request.endpoint == 'about' %}active{% endif %}" 
+                       aria-label="About"
+                       aria-current="{% if request.endpoint == 'about' %}page{% endif %}"
+                       title="About">
+                        <md-ripple></md-ripple>
+                        <span class="material-symbols-outlined nav-icon">info</span>
+                        <span class="nav-label">About</span>
+                    </a>
+                    
+                    <a href="{{ url_for('how_it_works') }}" 
+                       class="nav-rail-item {% if request.endpoint == 'how_it_works' %}active{% endif %}" 
+                       aria-label="How It Works"
+                       aria-current="{% if request.endpoint == 'how_it_works' %}page{% endif %}"
+                       title="How It Works">
+                        <md-ripple></md-ripple>
+                        <span class="material-symbols-outlined nav-icon">psychology</span>
+                        <span class="nav-label">How It Works</span>
+                    </a>
+                    
+                    <a href="{{ url_for('glossary') }}" 
+                       class="nav-rail-item {% if request.endpoint == 'glossary' %}active{% endif %}" 
+                       aria-label="Glossary"
+                       aria-current="{% if request.endpoint == 'glossary' %}page{% endif %}"
+                       title="Glossary">
+                        <md-ripple></md-ripple>
+                        <span class="material-symbols-outlined nav-icon">book</span>
+                        <span class="nav-label">Glossary</span>
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Static Profile Bar (Fixed at Bottom) -->
+            <div class="nav-rail-profile-bar" id="profileBar">
+                <div class="profile-content">
+                    <div class="profile-avatar" id="profileAvatar" onclick="toggleProfileMenu()">
+                        {% if session.get('profile_image') %}
+                            <img src="{{ session.get('profile_image') }}" alt="{{ session.get('first_name', 'User') }}">
+                        {% else %}
+                            {{ session.get('first_name', 'U')[0]|upper }}
+                        {% endif %}
+                    </div>
+                    <div class="profile-info">
+                        <div class="profile-name">{{ session.get('first_name', 'User') }}</div>
+                        <div class="profile-role">{{ 'Co-Founder' if session.get('role') == 'admin' else 'Member' }}</div>
+                    </div>
+                    <button class="profile-menu-toggle" onclick="toggleProfileMenu()" aria-label="Profile menu">
+                        <span class="material-symbols-outlined">expand_more</span>
+                    </button>
+                </div>
+                
+                <!-- Profile Dropdown Menu -->
+                <div class="profile-menu" id="profileMenu">
+                    <!-- Menu Header -->
+                    <div class="profile-menu-header">
+                        <div class="profile-menu-email">admin@lrbfund.com</div>
+                        <div class="profile-menu-user">
+                            <div class="profile-menu-avatar">
+                                <span>A</span>
+                            </div>
+                            <div class="profile-menu-info">
+                                <div class="profile-menu-name">
+                                    <span>admin</span>
+                                    <span class="profile-menu-badge">â</span>
+                                </div>
+                                <div class="profile-menu-role">Co-Founder</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="profile-menu-divider"></div>
+                    
+                    <!-- Menu Items -->
+                    <a href="{{ url_for('profile') }}" class="profile-menu-item">
+                        <span>Profile</span>
+                    </a>
+                    
+                    <div class="profile-menu-item profile-menu-expandable">
+                        <span>Fund Details</span>
+                        <span class="material-symbols-outlined profile-menu-arrow">chevron_right</span>
+                    </div>
+                    
+                    <a href="{{ url_for('settings') }}" class="profile-menu-item">
+                        <span>App Settings</span>
+                    </a>
+                    
+                    <a href="#" class="profile-menu-item">
+                        <span>Get Help</span>
+                    </a>
+                    
+                    <div class="profile-menu-item profile-menu-expandable">
+                        <span>Learn More</span>
+                        <span class="material-symbols-outlined profile-menu-arrow">chevron_right</span>
+                    </div>
+                    
+                    <a href="#" class="profile-menu-item">
+                        <span>Contact</span>
+                    </a>
+                    
+                    <div class="profile-menu-divider"></div>
+                    
+                    <a href="{{ url_for('logout') }}" class="profile-menu-item">
+                        <span>Log Out</span>
+                    </a>
+                </div>
+            </div>
+        </nav>
+        
+        <!-- Main Content Area -->
+        <div class="app-content">
+            <!-- Top App Bar -->
+            <header class="top-app-bar" role="banner">
+                <div class="top-app-bar-content">
+                    <h1 class="top-app-bar-title">{% block page_title %}Dashboard{% endblock %}</h1>
+                    
+                    <!-- Market Progress Line (Denver to DC) -->
+                    <div class="market-progress-container" id="marketProgressContainer" title="Market Progress: Denver to DC">
+                        <span class="market-city-label">DEN</span>
+                        <div class="market-progress-track">
+                            <div class="market-progress-bar" id="marketProgressBar"></div>
+                            <div class="market-progress-indicator" id="marketProgressIndicator">
+                                <span class="material-symbols-outlined market-train-icon" id="marketTrainIcon">train</span>
+                            </div>
+                        </div>
+                        <span class="market-city-label">DCA</span>
+                        <span class="market-time-remaining" id="marketTimeRemaining">0:00:00</span>
+                        <span class="market-time-remaining-mobile" id="marketTimeRemainingMobile">0:00:00</span>
+                    </div>
+                </div>
+            </header>
+            
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="flash-messages-container" style="padding: 16px 24px 0;">
+                        {% for category, message in messages %}
+                            <div class="flash-message flash-{{ category }}" style="
+                                padding: 12px 16px;
+                                margin-bottom: 16px;
+                                border-radius: 8px;
+                                display: flex;
+                                align-items: center;
+                                gap: 12px;
+                                background-color: {% if category == 'error' %}var(--md-sys-color-error-container){% elif category == 'success' %}var(--md-sys-color-primary-container){% else %}var(--md-sys-color-surface-variant){% endif %};
+                                color: {% if category == 'error' %}var(--md-sys-color-on-error-container){% elif category == 'success' %}var(--md-sys-color-on-primary-container){% else %}var(--md-sys-color-on-surface-variant){% endif %};
+                                animation: slideIn 0.3s ease;
+                            ">
+                                <span class="material-symbols-outlined">
+                                    {% if category == 'error' %}error{% elif category == 'success' %}check_circle{% else %}info{% endif %}
+                                </span>
+                                <span style="flex: 1;">{{ message }}</span>
+                                <button onclick="this.parentElement.remove()" style="
+                                    background: none;
+                                    border: none;
+                                    cursor: pointer;
+                                    padding: 4px;
+                                    border-radius: 50%;
+                                    display: flex;
+                                    align-items: center;
+                                    justify-content: center;
+                                " onmouseover="this.style.background='rgba(0,0,0,0.1)'" onmouseout="this.style.background='none'">
+                                    <span class="material-symbols-outlined" style="font-size: 20px;">close</span>
+                                </button>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+            
+            <!-- Page Content -->
+            <main class="main-content" role="main">
+                {% block content %}
+                <!-- Page-specific content goes here -->
+                {% endblock %}
+            </main>
+        </div>
+    </div>
+    
+    <!-- Snackbar for notifications (using MD3 styles) -->
+    <div class="snackbar" id="snackbar" role="alert" aria-live="assertive" aria-atomic="true">
+        <span class="snackbar-text"></span>
+        <md-text-button class="snackbar-action">Close</md-text-button>
+    </div>
+    
+    <!-- Common Scripts -->
+    <script src="{{ url_for('static', filename='js/theme-controller.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/common.js') }}"></script>
+    <script>
+        // Initialize system status check
+        checkSystemStatus();
+        setInterval(checkSystemStatus, 30000); // Check every 30 seconds
+        
+        // User menu toggle
+        function toggleUserMenu() {
+            const menu = document.getElementById('userMenu');
+            const button = document.getElementById('userMenuButton');
+            
+            // Toggle dropdown
+            menu.classList.toggle('open');
+            
+            // Update aria-expanded
+            const isOpen = menu.classList.contains('open');
+            button.setAttribute('aria-expanded', isOpen);
+        }
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            const userMenu = document.querySelector('.user-menu');
+            const dropdown = document.getElementById('userMenu');
+            
+            if (userMenu && !userMenu.contains(event.target)) {
+                dropdown.classList.remove('open');
+                document.getElementById('userMenuButton').setAttribute('aria-expanded', 'false');
+            }
+        });
+        
+        // System status check
+        async function checkSystemStatus() {
+            try {
+                const response = await fetch('/api/system/status');
+                const data = await response.json();
+                
+                const statusChip = document.getElementById('systemStatus');
+                const indicator = statusChip.querySelector('.status-indicator');
+                const text = statusChip.querySelector('.status-text');
+                
+                if (data.mode === 'Simulation') {
+                    indicator.className = 'status-indicator status-warning';
+                    text.textContent = 'Simulation';
+                } else if (data.market_open) {
+                    indicator.className = 'status-indicator status-success';
+                    text.textContent = 'Market Open';
+                } else {
+                    indicator.className = 'status-indicator status-info';
+                    text.textContent = 'Market Closed';
+                }
+            } catch (error) {
+                console.error('Failed to check system status:', error);
+            }
+        }
+        
+        // ========================================================================
+        // MARKET PROGRESS LINE (Denver to DC)
+        // ========================================================================
+        
+        function initMarketProgress() {
+            const progressBar = document.getElementById('marketProgressBar');
+            const progressIndicator = document.getElementById('marketProgressIndicator');
+            const trainIcon = document.getElementById('marketTrainIcon');
+            const timeRemaining = document.getElementById('marketTimeRemaining');
+            
+            if (!progressBar || !progressIndicator || !trainIcon || !timeRemaining) {
+                return; // Elements not present on this page
+            }
+            
+            // Market calendar data from backend
+            let marketCalendar = {
+                is_trading_day: true,
+                market_open_hour: 9,
+                market_open_minute: 31,
+                market_close_hour: 16,
+                market_close_minute: 0,
+                is_early_close: false,
+                next_trading_day: 'Mon'
+            };
+            
+            // Fetch market calendar from backend on page load
+            async function loadMarketCalendar() {
+                try {
+                    const response = await fetch('/api/market/calendar');
+                    const data = await response.json();
+                    marketCalendar = data;
+                    console.log('ð Market calendar loaded:', marketCalendar);
+                } catch (error) {
+                    console.error('â ï¸  Failed to load market calendar, using defaults:', error);
+                }
+            }
+            
+            function formatTimeRemaining(minutes) {
+                if (minutes <= 0) return '0:00:00';
+                
+                const hours = Math.floor(minutes / 60);
+                const mins = Math.floor(minutes % 60);
+                const secs = Math.floor((minutes % 1) * 60);
+                
+                return `${hours}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+            }
+            
+            function updateMarketProgress() {
+                const now = new Date();
+                
+                // Convert to Eastern Time
+                const eastern = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+                const hours = eastern.getHours();
+                const minutes = eastern.getMinutes();
+                const seconds = eastern.getSeconds();
+                
+                // Use backend calendar data for market hours
+                const marketOpenMinutes = marketCalendar.market_open_hour * 60 + marketCalendar.market_open_minute;
+                const marketCloseMinutes = marketCalendar.market_close_hour * 60 + marketCalendar.market_close_minute;
+                const currentMinutes = hours * 60 + minutes + seconds / 60;
+                
+                let progress = 0;
+                let remainingMinutes = 0;
+                
+                if (!marketCalendar.is_trading_day) {
+                    // Holiday or weekend - train at Denver
+                    progress = 0;
+                    timeRemaining.textContent = 'Closed until ' + marketCalendar.next_trading_day;
+                } else if (currentMinutes < marketOpenMinutes) {
+                    // Before market open (12:01 AM - 9:30 AM on trading day)
+                    progress = 0;
+                    remainingMinutes = marketOpenMinutes - currentMinutes;
+                    timeRemaining.textContent = 'Opens in ' + formatTimeRemaining(remainingMinutes);
+                } else if (currentMinutes >= marketOpenMinutes && currentMinutes < marketCloseMinutes) {
+                    // Market is OPEN - train moves along track
+                    const elapsedMinutes = currentMinutes - marketOpenMinutes;
+                    const totalMarketMinutes = marketCloseMinutes - marketOpenMinutes;
+                    progress = elapsedMinutes / totalMarketMinutes;
+                    remainingMinutes = totalMarketMinutes - elapsedMinutes;
+                    
+                    // Show early close warning if applicable
+                    if (marketCalendar.is_early_close) {
+                        timeRemaining.textContent = formatTimeRemaining(remainingMinutes) + ' (Early Close)';
+                    } else {
+                        timeRemaining.textContent = formatTimeRemaining(remainingMinutes);
+                    }
+                } else {
+                    // After market close
+                    progress = 1;
+                    timeRemaining.textContent = 'Closed until ' + marketCalendar.next_trading_day;
+                }
+                
+                // Clamp progress between 0 and 1
+                progress = Math.max(0, Math.min(1, progress));
+                
+                // Update progress bar width
+                progressBar.style.width = `${progress * 100}%`;
+                
+                // Position indicator
+                progressIndicator.style.left = `${progress * 100}%`;
+                
+                // Update mobile time display
+                const timeRemainingMobile = document.getElementById('marketTimeRemainingMobile');
+                if (timeRemainingMobile) {
+                    timeRemainingMobile.textContent = timeRemaining.textContent;
+                }
+            }
+            
+            // Toggle mobile time display on click
+            const container = document.getElementById('marketProgressContainer');
+            if (container) {
+                container.addEventListener('click', function() {
+                    this.classList.toggle('show-mobile-time');
+                });
+            }
+            
+            // Load market calendar, then start updating
+            loadMarketCalendar().then(() => {
+                updateMarketProgress();
+                setInterval(updateMarketProgress, 1000);
+            });
+            
+            // Refresh calendar data once per hour (in case of day change or early close updates)
+            setInterval(loadMarketCalendar, 3600000); // 1 hour
+        }
+        
+        // Initialize market progress on page load
+        document.addEventListener('DOMContentLoaded', initMarketProgress);
+        
+        // Toggle Navigation Rail (Collapse/Expand)
+        // Toggle Navigation Rail (Expand/Collapse)
+        function toggleNavRail() {
+            const navRail = document.getElementById('navRail');
+            const bundleIcon = document.getElementById('bundleIcon');
+            const toggleBtn = document.getElementById('navToggleBtn');
+            const toggleIcon = toggleBtn.querySelector('.material-symbols-outlined');
+            
+            navRail.classList.toggle('collapsed');
+            
+            // Change icon based on state
+            if (navRail.classList.contains('collapsed')) {
+                toggleIcon.textContent = 'thumbnail_bar';
+            } else {
+                toggleIcon.textContent = 'arrow_back';
+            }
+            
+            // Close bundle if open when expanding
+            if (!navRail.classList.contains('collapsed')) {
+                navRail.classList.remove('bundle-open');
+            }
+            
+            // Reset bundle icon to folder when collapsing
+            if (navRail.classList.contains('collapsed') && bundleIcon) {
+                bundleIcon.textContent = 'folder';
+                navRail.classList.remove('bundle-open');
+            }
+            
+            // Save state
+            localStorage.setItem('navRailCollapsed', navRail.classList.contains('collapsed'));
+        }
+        
+        // Toggle Sections Bundle (Collapsed State Only)
+        function toggleSectionsBundle() {
+            const navRail = document.getElementById('navRail');
+            const bundleIcon = document.getElementById('bundleIcon');
+            
+            if (navRail.classList.contains('collapsed')) {
+                navRail.classList.toggle('bundle-open');
+                
+                if (navRail.classList.contains('bundle-open')) {
+                    bundleIcon.textContent = 'folder_open';
+                } else {
+                    bundleIcon.textContent = 'folder';
+                }
+            }
+        }
+        
+        
+        // Toggle Profile Menu
+        function toggleProfileMenu() {
+            const profileMenu = document.getElementById('profileMenu');
+            const menuToggle = document.querySelector('.profile-menu-toggle');
+            
+            profileMenu.classList.toggle('active');
+            menuToggle.classList.toggle('active');
+        }
+        
+        // Close profile menu when clicking outside
+        document.addEventListener('click', function(event) {
+            const profileBar = document.getElementById('profileBar');
+            const profileMenu = document.getElementById('profileMenu');
+            const menuToggle = document.querySelector('.profile-menu-toggle');
+            
+            if (!profileBar.contains(event.target) && profileMenu.classList.contains('active')) {
+                profileMenu.classList.remove('active');
+                menuToggle.classList.remove('active');
+            }
+        });
+        
+        // Restore nav rail state on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const navRail = document.getElementById('navRail');
+            const toggleBtn = document.getElementById('navToggleBtn');
+            const icon = toggleBtn.querySelector('.material-symbols-outlined');
+            const isCollapsed = localStorage.getItem('navRailCollapsed') !== 'false';
+            
+            if (!isCollapsed) {
+                navRail.classList.remove('collapsed');
+                icon.textContent = 'keyboard_tab_rtl';
+            }
+        });
+    </script>
+    
+    {% block scripts %}{% endblock %}
+</body>
+</html>
