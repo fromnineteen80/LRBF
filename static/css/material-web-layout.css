@@ -93,7 +93,7 @@ body {
     width: var(--rail-width-collapsed);
     height: 100vh;
     background-color: #FAF9F7;  /* Collapsed color */
-    border-right: 1px solid var(--md-sys-color-outline-variant);
+    border-right: 1px solid #D3D0C8;  /* ONLY solid border in sidebar */
     display: flex;
     flex-direction: column;
     position: fixed;
@@ -121,7 +121,7 @@ body {
     margin: 12px 0 24px 0;
     min-height: 32px;
     flex-shrink: 0;
-    border-bottom: 1px solid var(--md-sys-color-outline-variant); /* FIX #1 */
+    /* NO border - uses subtle transparency effects only */
 }
 
 .md3-nav-rail:not(.collapsed) .nav-rail-header {
@@ -426,7 +426,7 @@ body {
 
 .nav-rail-profile-bar {
     flex-shrink: 0;
-    border-top: 1px solid var(--md-sys-color-outline-variant);
+    /* NO border - uses subtle transparency effects only */
     padding: 8px 0; /* FIX #3 - reduce height */
     position: relative;
     background-color: inherit;
