@@ -435,16 +435,15 @@ body {
 .profile-content {
     display: flex;
     align-items: center;
-    justify-content: flex-start;
+    justify-content: center;
     gap: 0;
-    padding: 0 18px;
+    padding: 0;
     min-height: 32px;
 }
 
 .md3-nav-rail:not(.collapsed) .profile-content {
     justify-content: flex-start;
-    gap: 12px;
-    padding: 0 18px 0 18px;
+    padding: 0 18px;
 }
 
 /* Profile Avatar - FIX #4 & #13 */
@@ -475,7 +474,8 @@ body {
 .profile-info {
     display: none;
     flex-direction: column;
-    gap: 2px;
+    gap: 0;
+    transition: opacity 200ms ease;
 }
 
 .md3-nav-rail:not(.collapsed) .profile-info {
