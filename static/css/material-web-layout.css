@@ -123,6 +123,12 @@ body {
     flex-shrink: 0;
 }
 
+.md3-nav-rail:not(.collapsed) .nav-rail-header {
+    gap: 8px;
+    margin: 12px 18px 24px 18px;
+    padding: 0;
+}
+
 /* Toggle Button - NO circular hover */
 .nav-rail-toggle-btn {
     width: 20px;
@@ -154,17 +160,12 @@ body {
 /* App Title - Original Size */
 .nav-rail-title {
     font-family: 'Roboto', sans-serif;
-    font-size: 16px;
-    font-weight: 300;
-    line-height: 1;
-    display: flex;
-    align-items: baseline;
-    gap: 2px;
+    font-size: 18px;
     white-space: nowrap;
     opacity: 0;
     width: 0;
     overflow: hidden;
-    transition: none;
+    line-height: 1;
 }
 
 .md3-nav-rail:not(.collapsed) .nav-rail-title {
@@ -321,12 +322,12 @@ body {
 .nav-rail-item {
     position: relative;
     width: 100%;
-    min-height: 40px;
+    min-height: 32px;
     display: flex;
     align-items: center;
-    justify-content: flex-start;
-    gap: 12px;
-    padding: 0 18px;
+    justify-content: center;
+    gap: 0;
+    padding: 0;
     margin: 0;
     text-decoration: none;
     color: var(--md-sys-color-on-surface-variant);
@@ -334,6 +335,13 @@ body {
     cursor: pointer;
     transition: background-color 150ms ease;
     overflow: hidden;
+}
+
+.md3-nav-rail:not(.collapsed) .nav-rail-item {
+    justify-content: flex-start;
+    gap: 12px;
+    padding: 0 18px 0 18px;
+    min-height: 40px;
 }
 
 .nav-rail-item:hover {
@@ -386,11 +394,11 @@ body {
     font-family: 'Roboto', sans-serif;
     font-size: 14px;
     font-weight: 200;
-    white-space: nowrap;
     opacity: 0;
     width: 0;
     overflow: hidden;
-    transition: none;
+    white-space: nowrap;
+    transition: opacity 200ms, width 200ms;
 }
 
 .md3-nav-rail:not(.collapsed) .nav-label {
@@ -446,6 +454,12 @@ body {
     min-height: 32px;
 }
 
+.md3-nav-rail:not(.collapsed) .profile-content {
+    justify-content: flex-start;
+    gap: 12px;
+    padding: 0 18px 0 18px;
+}
+
 /* Profile Avatar - FIX #4 & #13 */
 .profile-avatar {
     width: 20px;
@@ -478,7 +492,6 @@ body {
     opacity: 0;
     width: 0;
     overflow: hidden;
-    transition: none;
 }
 
 .md3-nav-rail:not(.collapsed) .profile-info {
