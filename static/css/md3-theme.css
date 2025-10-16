@@ -20,7 +20,7 @@
     --md-sys-color-on-tertiary-container: #3B352F;
     
     /* === ERROR PALETTE === */
-    --md-sys-color-error: #FF5449;
+    --md-sys-color-error: #C15F3C;
     --md-sys-color-on-error: #FFFFFF;
     --md-sys-color-error-container: #FFEBE9;
     --md-sys-color-on-error-container: #3B352F;
@@ -65,7 +65,7 @@
     --md-sys-color-on-info-container: #FFFFFF;
     
     /* === CUSTOM APP COLORS === */
-    --app-color-falling-behind: #FF5449;
+    --app-color-falling-behind: #C15F3C;
     --app-color-on-pace: #E7C36D;
     --app-color-above-target: #7A8261;
     --app-color-conservative: #3F4F5D;

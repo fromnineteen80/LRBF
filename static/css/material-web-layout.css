@@ -659,7 +659,7 @@ body {
     font-size: 16px;
     color: var(--md-sys-color-error);
     font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 20;
-    filter: drop-shadow(0 0 4px rgba(var(--md-sys-color-error-rgb, 179, 38, 30), 0.5));
+    filter: drop-shadow(0 0 4px rgba(var(--md-sys-color-error-rgb, 193, 95, 60), 0.5));
     display: block;
     line-height: 1;
 }
