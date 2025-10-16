@@ -202,6 +202,27 @@
                     <span class="nav-rail-label">Fund</span>
                 </a>
                 
+                <a href="{{ url_for('ledger') }}" 
+                   class="nav-rail-item {% if request.endpoint == 'ledger' %}active{% endif %}" 
+                   aria-label="Ledger"
+                   aria-current="{% if request.endpoint == 'ledger' %}page{% endif %}"
+                   title="Capital Ledger">
+                    <md-ripple></md-ripple>
+                    <span class="material-symbols-outlined">account_balance_wallet</span>
+                    <span class="nav-rail-label">Ledger</span>
+                </a>
+                
+                <a href="{{ url_for('documents') }}" 
+                   class="nav-rail-item {% if request.endpoint == 'documents' %}active{% endif %}" 
+                   aria-label="Documents"
+                   aria-current="{% if request.endpoint == 'documents' %}page{% endif %}"
+                   title="Documents & Reports">
+                    <md-ripple></md-ripple>
+                    <span class="material-symbols-outlined">folder_open</span>
+                    <span class="nav-rail-label">Documents</span>
+                </a>
+                
+                {% if session.get('role') == 'admin' %}
                 <a href="{{ url_for('api_credentials') }}" 
                    class="nav-rail-item {% if request.endpoint == 'api_credentials' %}active{% endif %}" 
                    aria-label="API & Credentials"
@@ -211,6 +232,7 @@
                     <span class="material-symbols-outlined">vpn_key</span>
                     <span class="nav-rail-label">API & Creds</span>
                 </a>
+                {% endif %}
                 
                 <a href="{{ url_for('about') }}" 
                    class="nav-rail-item {% if request.endpoint == 'about' %}active{% endif %}" 
@@ -255,6 +277,7 @@
                     <span class="nav-rail-label">Profile</span>
                 </a>
                 
+                {% if session.get('role') == 'admin' %}
                 <a href="{{ url_for('settings') }}" 
                    class="nav-rail-item {% if request.endpoint == 'settings' %}active{% endif %}" 
                    aria-label="Settings"
@@ -264,6 +287,7 @@
                     <span class="material-symbols-outlined">settings</span>
                     <span class="nav-rail-label">Settings</span>
                 </a>
+                {% endif %}
             </div>
         </nav>
         
@@ -307,19 +331,33 @@
                         <!-- User Menu -->
                         <div class="user-menu">
                             <button class="user-menu-button" onclick="toggleUserMenu()" aria-label="Account menu" aria-haspopup="true" aria-expanded="false" id="userMenuButton">
-                                {{ username }}
+                                <span class="user-name">{{ session.get('full_name', username) }}</span>
+                                {% if session.get('role') == 'admin' %}
+                                <span class="user-role-badge">Admin</span>
+                                {% else %}
+                                <span class="user-role-badge">Member</span>
+                                {% endif %}
                             </button>
                             
                             <!-- User Menu Dropdown -->
                             <div class="user-menu-dropdown" id="userMenu">
+                                <a href="{{ url_for('profile') }}" class="user-menu-item">
+                                    <span class="material-symbols-outlined">account_circle</span>
+                                    Profile
+                                </a>
+                                {% if session.get('role') == 'admin' %}
                                 <a href="{{ url_for('api_credentials') }}" class="user-menu-item">
+                                    <span class="material-symbols-outlined">vpn_key</span>
                                     API Credentials
                                 </a>
                                 <a href="{{ url_for('settings') }}" class="user-menu-item">
+                                    <span class="material-symbols-outlined">settings</span>
                                     Settings
                                 </a>
+                                {% endif %}
                                 <div class="user-menu-divider"></div>
                                 <a href="{{ url_for('logout') }}" class="user-menu-item">
+                                    <span class="material-symbols-outlined">logout</span>
                                     Logout
                                 </a>
                             </div>
