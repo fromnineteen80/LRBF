@@ -296,75 +296,20 @@
             <!-- Top App Bar -->
             <header class="top-app-bar" role="banner">
                 <div class="top-app-bar-content">
-                    <div class="top-app-bar-left">
-                        <h1 class="top-app-bar-title">{% block page_title %}Dashboard{% endblock %}</h1>
-                        
-                        <!-- Market Progress Line (Denver to DC) -->
-                        <div class="market-progress-container" id="marketProgressContainer" title="Market Progress: Denver to DC">
-                            <span class="market-city-label">DEN</span>
-                            <div class="market-progress-track">
-                                <div class="market-progress-bar" id="marketProgressBar"></div>
-                                <div class="market-progress-indicator" id="marketProgressIndicator">
-                                    <span class="material-symbols-outlined market-train-icon" id="marketTrainIcon">train</span>
-                                </div>
-                            </div>
-                            <span class="market-city-label">DCA</span>
-                            <span class="market-time-remaining" id="marketTimeRemaining">0:00:00</span>
-                            <span class="market-time-remaining-mobile" id="marketTimeRemainingMobile">0:00:00</span>
-                        </div>
-                    </div>
+                    <h1 class="top-app-bar-title">{% block page_title %}Dashboard{% endblock %}</h1>
                     
-                    <div class="top-app-bar-actions">
-                        <!-- System Status Chip -->
-                        <div class="status-chip" id="systemStatus" role="status" aria-live="polite">
-                            <span class="status-indicator"></span>
-                            <span class="status-text">Loading...</span>
-                        </div>
-                        
-                        <!-- Theme Toggle -->
-                        <md-icon-button onclick="toggleTheme()" aria-label="Toggle light/dark theme">
-                            <span class="material-symbols-outlined" id="themeIcon">dark_mode</span>
-                        </md-icon-button>
-                        
-                        <!-- Notifications -->
-                        <md-icon-button aria-label="Notifications">
-                            <span class="material-symbols-outlined">notifications</span>
-                        </md-icon-button>
-                        
-                        <!-- User Menu -->
-                        <div class="user-menu">
-                            <button class="user-menu-button" onclick="toggleUserMenu()" aria-label="Account menu" aria-haspopup="true" aria-expanded="false" id="userMenuButton">
-                                <span class="user-name">{{ session.get('full_name', username) }}</span>
-                                {% if session.get('role') == 'admin' %}
-                                <span class="user-role-badge">Admin</span>
-                                {% else %}
-                                <span class="user-role-badge">Member</span>
-                                {% endif %}
-                            </button>
-                            
-                            <!-- User Menu Dropdown -->
-                            <div class="user-menu-dropdown" id="userMenu">
-                                <a href="{{ url_for('profile') }}" class="user-menu-item">
-                                    <span class="material-symbols-outlined">account_circle</span>
-                                    Profile
-                                </a>
-                                {% if session.get('role') == 'admin' %}
-                                <a href="{{ url_for('api_credentials') }}" class="user-menu-item">
-                                    <span class="material-symbols-outlined">vpn_key</span>
-                                    API Credentials
-                                </a>
-                                <a href="{{ url_for('settings') }}" class="user-menu-item">
-                                    <span class="material-symbols-outlined">settings</span>
-                                    Settings
-                                </a>
-                                {% endif %}
-                                <div class="user-menu-divider"></div>
-                                <a href="{{ url_for('logout') }}" class="user-menu-item">
-                                    <span class="material-symbols-outlined">logout</span>
-                                    Logout
-                                </a>
+                    <!-- Market Progress Line (Denver to DC) -->
+                    <div class="market-progress-container" id="marketProgressContainer" title="Market Progress: Denver to DC">
+                        <span class="market-city-label">DEN</span>
+                        <div class="market-progress-track">
+                            <div class="market-progress-bar" id="marketProgressBar"></div>
+                            <div class="market-progress-indicator" id="marketProgressIndicator">
+                                <span class="material-symbols-outlined market-train-icon" id="marketTrainIcon">train</span>
                             </div>
                         </div>
+                        <span class="market-city-label">DCA</span>
+                        <span class="market-time-remaining" id="marketTimeRemaining">0:00:00</span>
+                        <span class="market-time-remaining-mobile" id="marketTimeRemainingMobile">0:00:00</span>
                     </div>
                 </div>
             </header>
