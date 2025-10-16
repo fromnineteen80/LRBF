@@ -406,7 +406,26 @@ def practice():
 @app.route('/settings')
 @login_required
 def settings():
-    return render_template('settings.html', username=session.get('username'))
+    # Get full user data from database
+    user_data = None
+    if BACKEND_AVAILABLE and 'user_id' in session:
+        user_data = db.get_user_by_id(session['user_id'])
+    
+    # Fallback to hardcoded users if no database user
+    if not user_data:
+        username = session.get('username', 'Unknown')
+        user_data = {
+            'username': username,
+            'first_name': username.capitalize(),
+            'last_name': 'User',
+            'email': f'{username}@example.com',
+            'phone_number': '(555) 000-0000',
+            'timezone': 'America/New_York',
+            'fund_contribution': 0.0,
+            'ownership_pct': 0.0
+        }
+    
+    return render_template('settings.html', username=session.get('username'), user=user_data)
 
 @app.route('/api-credentials')
 @login_required
