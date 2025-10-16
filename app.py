@@ -30,6 +30,9 @@ try:
     from modules.capitalise_prompts import CapitalisePrompts
     from modules.ibkr_connector import IBKRConnector
     from modules.stock_universe import get_stock_universe
+    from modules.auth_helper import AuthHelper
+    from modules.email_service import EmailService
+    from modules.sms_service import SMSService
     BACKEND_AVAILABLE = True
 except ImportError as e:
     print(f"⚠️  Backend modules not fully loaded: {e}")
@@ -60,6 +63,8 @@ def set_security_headers(response):
 # Initialize database
 if BACKEND_AVAILABLE:
     db = Database()
+    email_service = EmailService()
+    sms_service = SMSService()
 
 # ============================================================================
 # AUTHENTICATION & SECURITY
@@ -210,14 +215,40 @@ def logout():
 @app.route('/api/auth/signup', methods=['POST'])
 def api_signup():
     """
-    User signup endpoint.
+    User signup endpoint with invitation-only access.
     Creates a new user account with phone verification.
+    Requires valid invitation token.
     """
     try:
         data = request.json
         
-        # Import auth helper
-        from modules.auth_helper import AuthHelper, NotificationService
+        # CRITICAL: Require invitation token for signup
+        invite_token = data.get('invite_token', '').strip()
+        if not invite_token:
+            return jsonify({'error': 'Invitation token required'}), 400
+        
+        # Validate invitation
+        if BACKEND_AVAILABLE:
+            invitation = db.get_invitation_by_token(invite_token)
+            
+            if not invitation:
+                return jsonify({'error': 'Invalid invitation token'}), 400
+            
+            # Check if invitation is valid
+            is_valid, error_msg = AuthHelper.validate_invitation_token(
+                token=invite_token,
+                expires_at=invitation['expires_at'],
+                used=invitation['used']
+            )
+            
+            if not is_valid:
+                return jsonify({'error': error_msg}), 400
+            
+            # Email must match invitation
+            if data.get('email', '').strip().lower() != invitation['email'].lower():
+                return jsonify({'error': 'Email does not match invitation'}), 400
+        else:
+            return jsonify({'error': 'Backend not available'}), 503
         
         # Extract and validate data
         required_fields = ['first_name', 'last_name', 'email', 'phone_number', 
@@ -238,7 +269,7 @@ def api_signup():
             return jsonify({'error': msg}), 400
         
         # Validate phone
-        valid, msg = AuthHelper.validate_phone(data['phone_number'])
+        valid, msg = AuthHelper.validate_phone_number(data['phone_number'])
         if not valid:
             return jsonify({'error': msg}), 400
         
@@ -294,15 +325,55 @@ def api_signup():
             
             db.conn.commit()
             
+            # Get the new user's ID
+            user_id = cursor.lastrowid
+            
+            # Mark invitation as used
+            db.mark_invitation_used(invite_token, user_id)
+            
+            # Update user's invited_by field
+            cursor.execute("""
+                UPDATE users SET invited_by = (
+                    SELECT invited_by FROM invitations WHERE invite_token = ?
+                ) WHERE id = ?
+            """, (invite_token, user_id))
+            db.conn.commit()
+            
             # Send verification code via SMS
-            notification_service = NotificationService()
-            notification_service.send_verification_code(data['phone_number'], verification_code)
+            sms_service.send_verification_code(data['phone_number'], verification_code)
             
             # Send welcome email
-            notification_service.send_welcome_email(
-                data['email'], 
-                data['first_name'],
-                data['username']
+            email_service.send_welcome_email(
+                to_email=data['email'], 
+                first_name=data['first_name']
+            )
+            
+            # Send welcome SMS
+            sms_service.send_welcome_sms(
+                to_phone=data['phone_number'],
+                first_name=data['first_name']
+            )
+            
+            # Notify admin who sent the invitation
+            invited_by_id = invitation['invited_by']
+            admin_user = db.get_user_by_id(invited_by_id)
+            if admin_user and admin_user.get('phone_number'):
+                sms_service.send_new_cofounder_alert(
+                    to_phone=admin_user['phone_number'],
+                    new_cofounder_name=f"{data['first_name']} {data['last_name']}"
+                )
+            
+            # Log audit event
+            import json
+            db.log_audit_event(
+                user_id=user_id,
+                action='user_joined',
+                details=json.dumps({
+                    'invited_by': invited_by_id,
+                    'email': data['email'],
+                    'username': data['username']
+                }),
+                ip_address=request.remote_addr
             )
             
             return jsonify({
@@ -696,6 +767,184 @@ def api_delete_account():
     except Exception as e:
         print(f"Delete account error: {e}")
         return jsonify({'error': 'Failed to delete account'}), 500
+
+# ============================================================================
+# INVITATION SYSTEM API ENDPOINTS
+# ============================================================================
+
+@app.route('/api/auth/send-invitation', methods=['POST'])
+@login_required
+def api_send_invitation():
+    """
+    Send invitation to new co-founder (admin only).
+    Creates invitation token and sends email with signup link.
+    """
+    try:
+        if not BACKEND_AVAILABLE or 'user_id' not in session:
+            return jsonify({'error': 'Not authenticated'}), 401
+        
+        user_id = session['user_id']
+        user = db.get_user_by_id(user_id)
+        
+        # Check if user is admin
+        if not user or user.get('role') != 'admin':
+            return jsonify({'error': 'Unauthorized - Admin access required'}), 403
+        
+        data = request.json
+        email = data.get('email', '').strip().lower()
+        first_name = data.get('first_name', '').strip()
+        
+        if not email or not first_name:
+            return jsonify({'error': 'Email and first name are required'}), 400
+        
+        # Validate email format
+        is_valid, error_msg = AuthHelper.validate_email(email)
+        if not is_valid:
+            return jsonify({'error': error_msg}), 400
+        
+        # Check if user already exists
+        existing_user = db.get_user_by_email(email)
+        if existing_user:
+            return jsonify({'error': 'User with this email already exists'}), 400
+        
+        # Check if invitation already sent
+        if db.check_invitation_exists(email):
+            return jsonify({'error': 'Invitation already sent to this email'}), 400
+        
+        # Generate invitation token
+        invite_token = AuthHelper.generate_invite_token()
+        expires_at = AuthHelper.get_invitation_expiry(days=7)
+        
+        # Create invitation in database
+        invitation_id = db.create_invitation(
+            email=email,
+            first_name=first_name,
+            invite_token=invite_token,
+            invited_by=user_id,
+            expires_at=expires_at
+        )
+        
+        # Send invitation email
+        invited_by_name = f"{user['first_name']} {user['last_name']}"
+        app_url = request.host_url.rstrip('/')
+        
+        email_sent = email_service.send_invitation_email(
+            to_email=email,
+            first_name=first_name,
+            invite_token=invite_token,
+            invited_by_name=invited_by_name,
+            app_url=app_url
+        )
+        
+        # Log audit event
+        import json
+        db.log_audit_event(
+            user_id=user_id,
+            action='invite_sent',
+            details=json.dumps({
+                'email': email,
+                'first_name': first_name,
+                'invitation_id': invitation_id
+            }),
+            ip_address=request.remote_addr
+        )
+        
+        return jsonify({
+            'success': True,
+            'message': f'Invitation sent to {email}',
+            'email_sent': email_sent
+        }), 200
+        
+    except Exception as e:
+        print(f"Send invitation error: {e}")
+        return jsonify({'error': 'Failed to send invitation'}), 500
+
+@app.route('/api/auth/validate-invitation', methods=['POST'])
+def api_validate_invitation():
+    """
+    Validate invitation token for signup page.
+    Returns invitation details if valid.
+    """
+    try:
+        if not BACKEND_AVAILABLE:
+            return jsonify({'error': 'Backend not available'}), 503
+        
+        data = request.json
+        token = data.get('token', '').strip()
+        
+        if not token:
+            return jsonify({
+                'valid': False,
+                'error': 'Invitation token required'
+            }), 400
+        
+        # Get invitation from database
+        invitation = db.get_invitation_by_token(token)
+        
+        if not invitation:
+            return jsonify({
+                'valid': False,
+                'error': 'Invalid invitation token'
+            }), 400
+        
+        # Validate invitation status
+        is_valid, error_msg = AuthHelper.validate_invitation_token(
+            token=token,
+            expires_at=invitation['expires_at'],
+            used=invitation['used']
+        )
+        
+        if not is_valid:
+            return jsonify({
+                'valid': False,
+                'error': error_msg
+            }), 400
+        
+        return jsonify({
+            'valid': True,
+            'email': invitation['email'],
+            'first_name': invitation['first_name']
+        }), 200
+        
+    except Exception as e:
+        print(f"Validate invitation error: {e}")
+        return jsonify({
+            'valid': False,
+            'error': 'Failed to validate invitation'
+        }), 500
+
+@app.route('/api/auth/pending-invitations', methods=['GET'])
+@login_required
+def api_pending_invitations():
+    """
+    Get pending invitations sent by current admin.
+    """
+    try:
+        if not BACKEND_AVAILABLE or 'user_id' not in session:
+            return jsonify({'error': 'Not authenticated'}), 401
+        
+        user_id = session['user_id']
+        user = db.get_user_by_id(user_id)
+        
+        # Check if user is admin
+        if not user or user.get('role') != 'admin':
+            return jsonify({'error': 'Unauthorized - Admin access required'}), 403
+        
+        # Get pending invitations
+        invitations = db.get_pending_invitations(user_id)
+        
+        # Format dates for display
+        for invite in invitations:
+            invite['sent_date'] = invite['created_at']
+            invite['expires_date'] = invite['expires_at']
+            del invite['created_at']
+            del invite['expires_at']
+        
+        return jsonify(invitations), 200
+        
+    except Exception as e:
+        print(f"Get pending invitations error: {e}")
+        return jsonify({'error': 'Failed to retrieve invitations'}), 500
 
 # ============================================================================
 # PAGE ROUTES
