@@ -282,7 +282,7 @@
             <!-- Static Profile Bar (Fixed at Bottom) -->
             <div class="nav-rail-profile-bar" id="profileBar">
                 <div class="profile-content">
-                    <div class="profile-avatar" id="profileAvatar">
+                    <div class="profile-avatar" id="profileAvatar" onclick="toggleProfileMenu()">
                         {% if session.get('profile_image') %}
                             <img src="{{ session.get('profile_image') }}" alt="{{ session.get('first_name', 'User') }}">
                         {% else %}
