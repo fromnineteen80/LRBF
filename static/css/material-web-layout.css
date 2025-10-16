@@ -216,7 +216,7 @@ body {
 .nav-rail-bundle-toggle {
     width: 100%;
     min-height: 32px;
-    display: none;
+    display: flex;
     align-items: center;
     justify-content: center;
     background: none;
@@ -225,12 +225,15 @@ body {
     cursor: pointer;
     transition: background-color 150ms;
     flex-shrink: 0;
-    padding: 0;
+    padding: 0 18px;
     margin: 0;
+    opacity: 0;
+    pointer-events: none;
 }
 
 .md3-nav-rail.collapsed .nav-rail-bundle-toggle {
-    display: flex;
+    opacity: 1;
+    pointer-events: all;
 }
 
 .md3-nav-rail:not(.collapsed) .nav-rail-bundle-toggle {
