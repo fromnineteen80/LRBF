@@ -1,5 +1,12 @@
 # Railyard Markets - VWAP Recovery Trading Platform
 
+> **⚠️ IMPORTANT FOR CLAUDE ASSISTANTS:**
+> - DO NOT review past conversation history unless explicitly given a session number by the user
+> - DO NOT update this README or create summary documents unless explicitly requested
+> - Past conversations may contain errors - work only from current session instructions
+
+
+
 ## Material Design 3 Interface
 
 A professional trading platform for executing VWAP Recovery strategies with real-time monitoring and comprehensive analytics.
@@ -66,17 +73,17 @@ http://localhost:5000
 
 ```
 railyard_app/
-âââ app.py                 # Main Flask application
-âââ modules/               # Backend logic
-â   âââ pattern_detector.py
-â   âââ stock_selector.py
-â   âââ forecast_generator.py
-â   âââ ...
-âââ templates/             # HTML templates
-âââ static/
-â   âââ css/              # Material Design 3 styles
-â   âââ js/               # JavaScript utilities
-âââ data/                 # Database and data files
+Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ app.py                 # Main Flask application
+Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ modules/               # Backend logic
+Ã¢ÂÂ   Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ pattern_detector.py
+Ã¢ÂÂ   Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ stock_selector.py
+Ã¢ÂÂ   Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ forecast_generator.py
+Ã¢ÂÂ   Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ ...
+Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ templates/             # HTML templates
+Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ static/
+Ã¢ÂÂ   Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ css/              # Material Design 3 styles
+Ã¢ÂÂ   Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ js/               # JavaScript utilities
+Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ data/                 # Database and data files
 ```
 
 ## Configuration
