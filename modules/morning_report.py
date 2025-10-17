@@ -65,6 +65,7 @@ def generate_morning_html(forecast: Dict, output_path: str = None) -> str:
             'date': datetime.strptime(forecast['metadata']['date'], '%Y-%m-%d').date(),
             'generated_at': datetime.now(),
             'selected_stocks': selected_tickers,
+            'backup_stocks': backup_tickers,
             'expected_trades_low': forecast['ranges']['trades']['low'],
             'expected_trades_high': forecast['ranges']['trades']['high'],
             'expected_pl_low': forecast['ranges']['profit']['low'],
@@ -72,7 +73,10 @@ def generate_morning_html(forecast: Dict, output_path: str = None) -> str:
             'stock_analysis': stock_analysis  # NEW: Per-stock backtest data
         }
         
-        # Store in database
+        # Extract backup stock tickers
+    backup_tickers = selected_stocks_df['backup']['ticker'].tolist() if 'backup' in selected_stocks_df and not selected_stocks_df['backup'].empty else []
+    
+    # Store in database
         db.insert_morning_forecast(forecast_data)
         print(f"   ✅ Forecast stored in database")
         print(f"      Selected stocks: {', '.join(selected_tickers)}")
