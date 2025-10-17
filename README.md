@@ -1,9 +1,9 @@
 # Railyard Markets - VWAP Recovery Trading Platform
 
-> **⚠️ IMPORTANT FOR CLAUDE ASSISTANTS:**
+> **â ï¸ IMPORTANT FOR CLAUDE ASSISTANTS:**
 > - DO NOT review past conversation history unless explicitly given a session number by the user
-> - DO NOT update this README or create summary documents unless explicitly requested
-> - Past conversations may contain errors - work only from current session instructions
+> - DO NOT update this README or create other summary or instructions documents unless explicitly requested
+> - Past conversations may contain errors - work only from current session instructions or when given a session number by the user to review
 
 
 
@@ -73,17 +73,17 @@ http://localhost:5000
 
 ```
 railyard_app/
-Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ app.py                 # Main Flask application
-Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ modules/               # Backend logic
-Ã¢ÂÂ   Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ pattern_detector.py
-Ã¢ÂÂ   Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ stock_selector.py
-Ã¢ÂÂ   Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ forecast_generator.py
-Ã¢ÂÂ   Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ ...
-Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ templates/             # HTML templates
-Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ static/
-Ã¢ÂÂ   Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ css/              # Material Design 3 styles
-Ã¢ÂÂ   Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ js/               # JavaScript utilities
-Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ data/                 # Database and data files
+ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ app.py                 # Main Flask application
+ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ modules/               # Backend logic
+ÃÂ¢ÃÂÃÂ   ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ pattern_detector.py
+ÃÂ¢ÃÂÃÂ   ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ stock_selector.py
+ÃÂ¢ÃÂÃÂ   ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ forecast_generator.py
+ÃÂ¢ÃÂÃÂ   ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ ...
+ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ templates/             # HTML templates
+ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ static/
+ÃÂ¢ÃÂÃÂ   ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ css/              # Material Design 3 styles
+ÃÂ¢ÃÂÃÂ   ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ js/               # JavaScript utilities
+ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ data/                 # Database and data files
 ```
 
 ## Configuration
