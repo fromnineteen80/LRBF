@@ -1579,6 +1579,65 @@ def get_scheduler_status():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+
+@app.route('/api/market-status')
+def get_market_status_api():
+    """Get current market status and progress information."""
+    try:
+        from modules.market_calendar import get_market_status
+        
+        status = get_market_status()
+        progress_pct = 0
+        time_remaining = "Market Closed"
+        time_remaining_seconds = 0
+        
+        if status['status'] == 'open':
+            market_open = status['market_open']
+            market_close = status['market_close']
+            current_time = status['current_time']
+            
+            total_duration = (market_close - market_open).total_seconds()
+            elapsed = (current_time - market_open).total_seconds()
+            progress_pct = min(100, max(0, (elapsed / total_duration) * 100))
+            
+            remaining = market_close - current_time
+            time_remaining_seconds = int(remaining.total_seconds())
+            hours = time_remaining_seconds // 3600
+            minutes = (time_remaining_seconds % 3600) // 60
+            seconds = time_remaining_seconds % 60
+            time_remaining = f"{hours}:{minutes:02d}:{seconds:02d}"
+        elif status['status'] == 'pre_market':
+            time_remaining = "Pre-Market"
+        elif status['status'] == 'after_hours':
+            time_remaining = "After Hours"
+        
+        response = {
+            'status': status['status'],
+            'is_trading_day': status.get('is_trading_day', False),
+            'progress_pct': round(progress_pct, 2),
+            'time_remaining': time_remaining,
+            'time_remaining_seconds': time_remaining_seconds,
+            'current_time': status['current_time'].isoformat(),
+            'next_trading_day': status.get('next_trading_day').isoformat() if status.get('next_trading_day') else None
+        }
+        
+        if 'market_open' in status:
+            response['market_open'] = status['market_open'].isoformat()
+            response['market_close'] = status['market_close'].isoformat()
+        
+        return jsonify(response)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'error': str(e),
+            'status': 'error',
+            'is_trading_day': False,
+            'progress_pct': 0,
+            'time_remaining': 'Error'
+        }), 500
+
+
 @app.route('/api/morning/prompts')
 @login_required
 def download_prompts():
