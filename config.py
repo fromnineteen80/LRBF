@@ -44,6 +44,15 @@ class TradingConfig:
     # === Backup Stocks ===
     NUM_BACKUP = 4              # Backup stocks (N+4 feature)
     
+    @classmethod
+    def get_portfolio_counts(cls):
+        """Get portfolio stock counts as a dictionary."""
+        return {
+            'conservative': cls.NUM_CONSERVATIVE,
+            'medium': cls.NUM_MEDIUM,
+            'aggressive': cls.NUM_AGGRESSIVE
+        }
+    
     # === API Configuration ===
     # Note: API keys should be in environment variables, not here
     RAPIDAPI_ENABLED = False    # Set to True when ready for production
