@@ -95,6 +95,7 @@ class TradingDatabase:
                 date DATE UNIQUE NOT NULL,
                 generated_at TIMESTAMP NOT NULL,
                 selected_stocks_json TEXT NOT NULL,
+                backup_stocks_json TEXT,
                 expected_trades_low INTEGER NOT NULL,
                 expected_trades_high INTEGER NOT NULL,
                 expected_pl_low REAL NOT NULL,
