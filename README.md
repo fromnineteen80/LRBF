@@ -27,8 +27,8 @@ A professional trading platform for executing VWAP Recovery strategies with real
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/fromnineteen80/luggageroom.git
-cd luggageroom
+git clone https://github.com/fromnineteen80/LRBF.git
+cd LRBF
 ```
 
 2. Install dependencies:
@@ -66,17 +66,17 @@ http://localhost:5000
 
 ```
 railyard_app/
-├── app.py                 # Main Flask application
-├── modules/               # Backend logic
-│   ├── pattern_detector.py
-│   ├── stock_selector.py
-│   ├── forecast_generator.py
-│   └── ...
-├── templates/             # HTML templates
-├── static/
-│   ├── css/              # Material Design 3 styles
-│   └── js/               # JavaScript utilities
-└── data/                 # Database and data files
+âââ app.py                 # Main Flask application
+âââ modules/               # Backend logic
+â   âââ pattern_detector.py
+â   âââ stock_selector.py
+â   âââ forecast_generator.py
+â   âââ ...
+âââ templates/             # HTML templates
+âââ static/
+â   âââ css/              # Material Design 3 styles
+â   âââ js/               # JavaScript utilities
+âââ data/                 # Database and data files
 ```
 
 ## Configuration
