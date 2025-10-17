@@ -23,30 +23,6 @@ class MarketStatusManager {
             timeRemaining: null,
             timeRemainingMobile: null
         };
-        
-        // Status styles
-        this.statusStyles = {
-            open: {
-                barColor: '#4caf50',
-                iconColor: '#2e7d32',
-                icon: 'train'
-            },
-            pre_market: {
-                barColor: '#ff9800',
-                iconColor: '#e65100',
-                icon: 'schedule'
-            },
-            after_hours: {
-                barColor: '#2196f3',
-                iconColor: '#1565c0',
-                icon: 'bedtime'
-            },
-            closed: {
-                barColor: '#9e9e9e',
-                iconColor: '#616161',
-                icon: 'night_sight_max'
-            }
-        };
     }
     
     init() {
@@ -89,7 +65,6 @@ class MarketStatusManager {
             return;
         }
         this.updateProgressBar(data.progress_pct);
-        this.updateStatusStyle(data.status);
         this.updateTimeDisplay(data.time_remaining, data.status);
         this.updateTooltip(data);
     }
@@ -101,21 +76,6 @@ class MarketStatusManager {
         this.elements.indicator.style.left = 'calc(' + pct + '% - 12px)';
         this.elements.progressBar.style.transition = 'width 1s ease-in-out';
         this.elements.indicator.style.transition = 'left 1s ease-in-out';
-    }
-    
-    updateStatusStyle(status) {
-        const style = this.statusStyles[status] || this.statusStyles.closed;
-        if (this.elements.progressBar) {
-            this.elements.progressBar.style.backgroundColor = style.barColor;
-        }
-        if (this.elements.trainIcon) {
-            this.elements.trainIcon.textContent = style.icon;
-            this.elements.trainIcon.style.color = style.iconColor;
-        }
-        if (this.elements.indicator) {
-            this.elements.indicator.style.backgroundColor = style.barColor;
-            this.elements.indicator.style.borderColor = style.iconColor;
-        }
     }
     
     updateTimeDisplay(timeRemaining, status) {
@@ -153,7 +113,6 @@ class MarketStatusManager {
         console.error('[MarketStatus] Error:', errorMsg);
         if (this.elements.timeRemaining) this.elements.timeRemaining.textContent = 'Error';
         if (this.elements.timeRemainingMobile) this.elements.timeRemainingMobile.textContent = 'Error';
-        this.updateStatusStyle('closed');
     }
     
     startUpdates() {
