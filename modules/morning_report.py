@@ -73,8 +73,6 @@ def generate_morning_html(forecast: Dict, output_path: str = None) -> str:
             'stock_analysis': stock_analysis  # NEW: Per-stock backtest data
         }
         
-        # Extract backup stock tickers from forecast
-        backup_tickers = [stock['ticker'] for stock in forecast.get('backup_stocks', [])]
         
         # Store in database
         db.insert_morning_forecast(forecast_data)
