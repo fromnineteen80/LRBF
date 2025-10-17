@@ -14,6 +14,11 @@ class MarketStatusManager {
         this.intervalId = null;
         this.isInitialized = false;
         
+        // Countdown properties
+        this.countdownInterval = null;
+        this.remainingSeconds = 0;
+        this.lastSyncTime = 0;
+        
         // DOM elements
         this.elements = {
             container: null,
@@ -67,6 +72,11 @@ class MarketStatusManager {
         this.updateProgressBar(data.progress_pct);
         this.updateTimeDisplay(data.time_remaining, data.status);
         this.updateTooltip(data);
+        
+        // Start countdown if market is open and time_remaining is valid
+        if (data.status === 'open' && data.time_remaining && data.time_remaining !== 'Error') {
+            this.startCountdown(data.time_remaining);
+        }
     }
     
     updateProgressBar(progressPct) {
@@ -115,6 +125,85 @@ class MarketStatusManager {
         if (this.elements.timeRemainingMobile) this.elements.timeRemainingMobile.textContent = 'Error';
     }
     
+    // Countdown methods
+    startCountdown(timeString) {
+        // Stop existing countdown
+        if (this.countdownInterval) {
+            clearInterval(this.countdownInterval);
+        }
+        
+        // Parse time string to seconds
+        this.remainingSeconds = this.parseTimeToSeconds(timeString);
+        this.lastSyncTime = Date.now();
+        
+        // Update display immediately
+        this.updateCountdownDisplay();
+        
+        // Start countdown timer (updates every 1 second)
+        this.countdownInterval = setInterval(() => {
+            if (this.remainingSeconds > 0) {
+                this.remainingSeconds--;
+                this.updateCountdownDisplay();
+                this.updateProgressBarSmooth();
+            } else {
+                // Market closed, stop countdown
+                clearInterval(this.countdownInterval);
+                this.countdownInterval = null;
+            }
+        }, 1000);
+        
+        console.log('[MarketStatus] Countdown started:', timeString);
+    }
+    
+    parseTimeToSeconds(timeString) {
+        // Parse "H:MM:SS" format to total seconds
+        const parts = timeString.split(':');
+        if (parts.length !== 3) return 0;
+        
+        const hours = parseInt(parts[0], 10);
+        const minutes = parseInt(parts[1], 10);
+        const seconds = parseInt(parts[2], 10);
+        
+        if (isNaN(hours) || isNaN(minutes) || isNaN(seconds)) return 0;
+        
+        return (hours * 3600) + (minutes * 60) + seconds;
+    }
+    
+    formatSecondsToTime(totalSeconds) {
+        // Format total seconds to "H:MM:SS"
+        const hours = Math.floor(totalSeconds / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const seconds = totalSeconds % 60;
+        
+        return hours + ':' + 
+               String(minutes).padStart(2, '0') + ':' + 
+               String(seconds).padStart(2, '0');
+    }
+    
+    updateCountdownDisplay() {
+        const timeString = this.formatSecondsToTime(this.remainingSeconds);
+        if (this.elements.timeRemaining) {
+            this.elements.timeRemaining.textContent = timeString;
+        }
+        if (this.elements.timeRemainingMobile) {
+            this.elements.timeRemainingMobile.textContent = timeString;
+        }
+    }
+    
+    updateProgressBarSmooth() {
+        // Smooth progress bar update during countdown
+        // Assuming 6.5 hour trading day (9:30 AM - 4:00 PM) = 23400 seconds
+        const TRADING_DAY_SECONDS = 23400;
+        const elapsedSeconds = TRADING_DAY_SECONDS - this.remainingSeconds;
+        const progressPct = (elapsedSeconds / TRADING_DAY_SECONDS) * 100;
+        
+        if (this.elements.progressBar && this.elements.indicator) {
+            const pct = Math.max(0, Math.min(100, progressPct));
+            this.elements.progressBar.style.width = pct + '%';
+            this.elements.indicator.style.left = pct + '%';
+        }
+    }
+    
     startUpdates() {
         if (this.intervalId) clearInterval(this.intervalId);
         this.intervalId = setInterval(() => { this.updateMarketStatus(); }, this.updateInterval);
@@ -124,6 +213,10 @@ class MarketStatusManager {
         if (this.intervalId) {
             clearInterval(this.intervalId);
             this.intervalId = null;
+        }
+        if (this.countdownInterval) {
+            clearInterval(this.countdownInterval);
+            this.countdownInterval = null;
         }
     }
     
