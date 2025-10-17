@@ -1530,7 +1530,7 @@ def generate_morning_report():
     
     try:
         # Initialize morning report generator
-        morning = MorningReport()
+        morning = morning_report.MorningReport()
         
         # Generate report
         report = morning.generate_report()
