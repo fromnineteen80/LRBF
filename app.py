@@ -36,7 +36,7 @@ try:
     from modules.scheduler import scheduler
     BACKEND_AVAILABLE = True
 except ImportError as e:
-    print(f"ÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ ÃÂÃÂÃÂÃÂ¯ÃÂÃÂÃÂÃÂ¸ÃÂÃÂÃÂÃÂ  Backend modules not fully loaded: {e}")
+    print(f"ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¯ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¸ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ  Backend modules not fully loaded: {e}")
     BACKEND_AVAILABLE = False
 
 app = Flask(__name__)
@@ -51,9 +51,9 @@ if BACKEND_AVAILABLE:
     try:
         scheduler.init_app(app)
         scheduler.start()
-        print("ÃÂ¢ÃÂÃÂ Morning report scheduler started - generates at 12:01 AM EST")
+        print("ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ Morning report scheduler started - generates at 12:01 AM EST")
     except Exception as e:
-        print(f"ÃÂ¢ÃÂÃÂ ÃÂ¯ÃÂ¸ÃÂ  Scheduler failed to start: {e}")
+        print(f"ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ ÃÂÃÂ¯ÃÂÃÂ¸ÃÂÃÂ  Scheduler failed to start: {e}")
 
 # Security headers
 @app.after_request
@@ -118,6 +118,7 @@ def login_required(f):
     def decorated_function(*args, **kwargs):
         if 'username' not in session:
             return redirect(url_for('login'))
+        session.permanent = True  # Refresh session on every request
         return f(*args, **kwargs)
     return decorated_function
 
@@ -2091,7 +2092,7 @@ def market_calendar():
         return jsonify(response)
     except Exception as e:
         # Fallback to basic logic if pandas_market_calendars fails
-        print(f"ÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ ÃÂÃÂÃÂÃÂ¯ÃÂÃÂÃÂÃÂ¸ÃÂÃÂÃÂÃÂ  Market calendar error: {e}")
+        print(f"ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¯ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¸ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ  Market calendar error: {e}")
         now = datetime.now()
         is_weekend = now.weekday() >= 5
         
@@ -2125,13 +2126,13 @@ def server_error(e):
 
 if __name__ == '__main__':
     print("\n" + "="*70)
-    print("ÃÂÃÂÃÂÃÂ°ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ RAILYARD MARKETS - VWAP Recovery Trading Platform")
+    print("ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ°ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ RAILYARD MARKETS - VWAP Recovery Trading Platform")
     print("="*70)
-    print("\nÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ Server starting...")
-    print(f"ÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ Backend: {'Loaded' if BACKEND_AVAILABLE else 'Not Available (using simulation)'}")
-    print(f"ÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ Mode: {'Simulation' if not BACKEND_AVAILABLE else 'Production Ready'}")
-    print("ÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ Access: http://localhost:5000")
-    print("\nÃÂÃÂÃÂÃÂ°ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ Login Credentials:")
+    print("\nÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ Server starting...")
+    print(f"ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ Backend: {'Loaded' if BACKEND_AVAILABLE else 'Not Available (using simulation)'}")
+    print(f"ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ Mode: {'Simulation' if not BACKEND_AVAILABLE else 'Production Ready'}")
+    print("ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ Access: http://localhost:5000")
+    print("\nÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ°ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ Login Credentials:")
     print("   Username: admin")
     print("   Password: admin123")
     print("\n   Username: cofounder")
