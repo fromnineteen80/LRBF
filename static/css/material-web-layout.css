@@ -996,6 +996,7 @@ body {
 
 .market-progress-track {
     position: relative;
+    box-sizing: border-box;
     width: 220px;
     max-width: 220px;
     min-width: 0;
