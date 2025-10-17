@@ -4,6 +4,13 @@
  * Handles real-time market status updates and progress bar animation
  * for the railroad-themed Denver to DC market progress indicator.
  * 
+ * Full spectrum of market clock displays:
+ * 1. "6:28:45" - Market open countdown
+ * 2. "5:15:42 To Bell" - Pre-market countdown
+ * 3. "Closed Until Mon" - After hours/weekends
+ * 4. "Holiday" - NYSE holidays
+ * 5. (blank) - Error state
+ * 
  * Author: The Luggage Room Boys Fund
  * Date: October 2025
  */
@@ -18,6 +25,7 @@ class MarketStatusManager {
         this.countdownInterval = null;
         this.remainingSeconds = 0;
         this.lastSyncTime = 0;
+        this.isPreMarket = false;
         
         // DOM elements
         this.elements = {
@@ -69,13 +77,24 @@ class MarketStatusManager {
             this.showError(data?.error || 'Unknown error');
             return;
         }
+        
         this.updateProgressBar(data.progress_pct);
-        this.updateTimeDisplay(data.time_remaining, data.status);
+        this.updateTimeDisplay(data);
         this.updateTooltip(data);
         
-        // Start countdown if market is open and time_remaining is valid
+        // Start countdown based on market status
         if (data.status === 'open' && data.time_remaining && data.time_remaining !== 'Error') {
+            this.isPreMarket = false;
             this.startCountdown(data.time_remaining);
+        } else if (data.status === 'pre_market' && data.time_until_open) {
+            this.isPreMarket = true;
+            this.startCountdown(data.time_until_open, true);
+        } else {
+            // Stop countdown for non-countdown states
+            if (this.countdownInterval) {
+                clearInterval(this.countdownInterval);
+                this.countdownInterval = null;
+            }
         }
     }
     
@@ -88,24 +107,48 @@ class MarketStatusManager {
         this.elements.indicator.style.transition = 'left 1s ease-in-out';
     }
     
-    updateTimeDisplay(timeRemaining, status) {
-        if (this.elements.timeRemaining) this.elements.timeRemaining.textContent = timeRemaining;
-        if (this.elements.timeRemainingMobile) this.elements.timeRemainingMobile.textContent = timeRemaining;
+    updateTimeDisplay(data) {
+        let displayText = '';
+        
+        // Priority order: Error > Holiday > time_remaining
+        if (data.status === 'error') {
+            // Show blank on error
+            displayText = '';
+        } else if (data.is_holiday) {
+            // Show "Holiday" for NYSE holidays
+            displayText = 'Holiday';
+        } else {
+            // Use the time_remaining from backend
+            // Backend formats: "6:28:45", "5:15:42 To Bell", "Closed Until Mon"
+            displayText = data.time_remaining || 'Market Closed';
+        }
+        
+        if (this.elements.timeRemaining) {
+            this.elements.timeRemaining.textContent = displayText;
+        }
+        if (this.elements.timeRemainingMobile) {
+            this.elements.timeRemainingMobile.textContent = displayText;
+        }
     }
     
     updateTooltip(data) {
         if (!this.elements.container) return;
         let tooltip = 'Market Progress: Denver to DC';
-        if (data.is_trading_day) {
+        
+        if (data.is_holiday) {
+            tooltip += ' - Holiday';
+        } else if (data.is_trading_day) {
             tooltip += ' - ' + this.formatStatus(data.status);
-            if (data.progress_pct > 0) tooltip += ' - ' + Math.round(data.progress_pct) + '% complete';
+            if (data.progress_pct > 0) {
+                tooltip += ' - ' + Math.round(data.progress_pct) + '% complete';
+            }
         } else {
             tooltip += ' - Market Closed';
-            if (data.next_trading_day) {
-                const nextDay = new Date(data.next_trading_day);
-                tooltip += ' - Next: ' + nextDay.toLocaleDateString();
+            if (data.next_trading_day_name) {
+                tooltip += ' - Next: ' + data.next_trading_day_name;
             }
         }
+        
         this.elements.container.title = tooltip;
     }
     
@@ -121,20 +164,23 @@ class MarketStatusManager {
     
     showError(errorMsg) {
         console.error('[MarketStatus] Error:', errorMsg);
-        if (this.elements.timeRemaining) this.elements.timeRemaining.textContent = 'Error';
-        if (this.elements.timeRemainingMobile) this.elements.timeRemainingMobile.textContent = 'Error';
+        // Show blank on error
+        if (this.elements.timeRemaining) this.elements.timeRemaining.textContent = '';
+        if (this.elements.timeRemainingMobile) this.elements.timeRemainingMobile.textContent = '';
     }
     
     // Countdown methods
-    startCountdown(timeString) {
+    startCountdown(timeString, isPreMarket = false) {
         // Stop existing countdown
         if (this.countdownInterval) {
             clearInterval(this.countdownInterval);
         }
         
-        // Parse time string to seconds
-        this.remainingSeconds = this.parseTimeToSeconds(timeString);
+        // Parse time string to seconds (handles "5:15:42" format)
+        const parts = timeString.split(' ')[0]; // Remove " To Bell" if present
+        this.remainingSeconds = this.parseTimeToSeconds(parts);
         this.lastSyncTime = Date.now();
+        this.isPreMarket = isPreMarket;
         
         // Update display immediately
         this.updateCountdownDisplay();
@@ -144,15 +190,17 @@ class MarketStatusManager {
             if (this.remainingSeconds > 0) {
                 this.remainingSeconds--;
                 this.updateCountdownDisplay();
-                this.updateProgressBarSmooth();
+                if (!this.isPreMarket) {
+                    this.updateProgressBarSmooth();
+                }
             } else {
-                // Market closed, stop countdown
+                // Countdown finished, stop
                 clearInterval(this.countdownInterval);
                 this.countdownInterval = null;
             }
         }, 1000);
         
-        console.log('[MarketStatus] Countdown started:', timeString);
+        console.log('[MarketStatus] Countdown started:', timeString, '(pre-market:', isPreMarket + ')');
     }
     
     parseTimeToSeconds(timeString) {
@@ -182,11 +230,13 @@ class MarketStatusManager {
     
     updateCountdownDisplay() {
         const timeString = this.formatSecondsToTime(this.remainingSeconds);
+        const displayText = this.isPreMarket ? timeString + ' To Bell' : timeString;
+        
         if (this.elements.timeRemaining) {
-            this.elements.timeRemaining.textContent = timeString;
+            this.elements.timeRemaining.textContent = displayText;
         }
         if (this.elements.timeRemainingMobile) {
-            this.elements.timeRemainingMobile.textContent = timeString;
+            this.elements.timeRemainingMobile.textContent = displayText;
         }
     }
     
