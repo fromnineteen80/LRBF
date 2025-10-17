@@ -7,7 +7,7 @@
     "install-material": "npm install @material/web --save"
   },
   "dependencies": {
-    "@material/web": "^3.0.0"
+    "@material/web": "^2.4.0"
   },
   "devDependencies": {},
   "repository": {
