@@ -1,7 +1,7 @@
 """
 Morning Report Scheduler
 
-Automatically generates morning report at 12:01 AM on trading days.
+Automatically generates morning report at 5:00 AM on trading days.
 Uses APScheduler for background task execution.
 
 Author: The Luggage Room Boys Fund
@@ -48,12 +48,12 @@ class MorningReportScheduler:
             logger.warning("Scheduler already running")
             return
         
-        # Schedule morning report generation at 12:01 AM Eastern
+        # Schedule morning report generation at 5:00 AM Eastern
         self.scheduler.add_job(
             func=self._generate_morning_report_task,
             trigger=CronTrigger(
-                hour=0,
-                minute=1,
+                hour=5,
+                minute=0,
                 timezone='US/Eastern'
             ),
             id='morning_report_generation',
@@ -63,7 +63,7 @@ class MorningReportScheduler:
         
         self.scheduler.start()
         self.is_running = True
-        logger.info("Scheduler started - Morning report will generate at 12:01 AM EST on trading days")
+        logger.info("Scheduler started - Morning report will generate at 5:00 AM EST on trading days")
         
     def stop(self):
         """Stop the scheduler."""
