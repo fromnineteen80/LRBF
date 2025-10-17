@@ -97,7 +97,9 @@ class MorningReport:
             # Step 4: Generate forecast (with both selected and backup)
             forecast = generate_daily_forecast(
                 selected_stocks_df=selected_stocks,
-                backup_stocks_df=backup_stocks  # Pass backup stocks to forecast
+                total_stocks_scanned=selection['total_analyzed'],
+                stocks_qualified=selection['total_analyzed'] - selection['rejected_count'],
+                backup_stocks_df=backup_stocks
             )
             
             # Step 5: Build stock analysis dict
