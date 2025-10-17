@@ -109,6 +109,7 @@ def generate_daily_forecast(
         'summary': portfolio_forecast['summary'],
         
         'stocks': stock_forecasts,
+        'backup_stocks': backup_forecasts,
         
         'portfolio': {
             'deployed_capital': deployed_capital,
