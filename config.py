@@ -58,6 +58,9 @@ class TradingConfig:
     RAPIDAPI_ENABLED = False    # Set to True when ready for production
     YFINANCE_DELAY = 15         # Minutes delay for free tier
     
+    # === Forecast Settings ===
+    FORECAST_CONFIDENCE = 0.85      # Confidence level for forecast ranges (0-1)
+    
     # === Simulation Settings ===
     SIMULATION_MODE = True      # Use mock data for testing
     SIMULATION_SEED = 42        # Random seed for reproducible tests
