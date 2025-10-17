@@ -147,12 +147,74 @@ if (document.readyState === 'loading') {
     window.marketStatusManager.init();
 }
 
-window.addEventListener('beforeunload', () => { window.marketStatusManager.destroy(); });
     startCountdown(timeStr, status) {
-        // Clear any existing countdown
         if (this.countdownInterval) {
             clearInterval(this.countdownInterval);
         }
+        
+        if (status !== 'open' || !timeStr || timeStr === 'Closed' || timeStr === 'Pre-Market') {
+            this.countdownSeconds = 0;
+            return;
+        }
+        
+        this.countdownSeconds = this.parseTimeToSeconds(timeStr);
+        this.updateCountdownDisplay();
+        
+        this.countdownInterval = setInterval(() => {
+            if (this.countdownSeconds > 0) {
+                this.countdownSeconds--;
+                this.updateCountdownDisplay();
+                this.updateProgressBarSmooth();
+            }
+        }, 1000);
+    }
+    
+    parseTimeToSeconds(timeStr) {
+        if (!timeStr) return 0;
+        const parts = timeStr.split(':').map(p => parseInt(p) || 0);
+        if (parts.length === 3) {
+            return parts[0] * 3600 + parts[1] * 60 + parts[2];
+        } else if (parts.length === 2) {
+            return parts[0] * 60 + parts[1];
+        }
+        return 0;
+    }
+    
+    formatSecondsToTime(seconds) {
+        const hours = Math.floor(seconds / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        const secs = seconds % 60;
+        
+        if (hours > 0) {
+            return hours + ':' + String(minutes).padStart(2, '0') + ':' + String(secs).padStart(2, '0');
+        }
+        return String(minutes).padStart(2, '0') + ':' + String(secs).padStart(2, '0');
+    }
+    
+    updateCountdownDisplay() {
+        if (!this.elements.timeRemaining || !this.elements.timeRemainingMobile) return;
+        
+        if (this.countdownSeconds > 0) {
+            const timeStr = this.formatSecondsToTime(this.countdownSeconds);
+            this.elements.timeRemaining.textContent = timeStr;
+            this.elements.timeRemainingMobile.textContent = timeStr;
+        }
+    }
+    
+    updateProgressBarSmooth() {
+        const totalTradingSeconds = 23400;
+        const elapsedSeconds = totalTradingSeconds - this.countdownSeconds;
+        const progressPct = (elapsedSeconds / totalTradingSeconds) * 100;
+        
+        if (this.elements.progressBar && this.elements.indicator) {
+            const pct = Math.max(0, Math.min(100, progressPct));
+            this.elements.progressBar.style.width = pct + '%';
+            this.elements.indicator.style.left = pct + '%';
+        }
+    }
+
+
+window.addEventListener('beforeunload', () => { window.marketStatusManager.destroy(); });
         
         // Only countdown during market hours
         if (status !== 'open' || !timeStr || timeStr === 'Closed' || timeStr === 'Pre-Market') {
