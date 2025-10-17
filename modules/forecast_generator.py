@@ -25,6 +25,7 @@ def generate_daily_forecast(
     total_stocks_scanned: int,
     stocks_qualified: int,
     all_analyzed_stocks_df: pd.DataFrame = None,
+    backup_stocks_df: pd.DataFrame = None,  # NEW: Backup stocks parameter
     position_size: float = None,
     deployed_capital: float = None,
     forecast_confidence: float = None
@@ -55,7 +56,7 @@ def generate_daily_forecast(
     # Use config defaults if not specified
     if position_size is None:
         # Will be calculated from account balance in production
-        # For testing, use example: $30K × 0.80 / 8 = $3K
+        # For testing, use example: $30K Ã 0.80 / 8 = $3K
         position_size = 3000  # Placeholder for testing
     if deployed_capital is None:
         deployed_capital = position_size * cfg.NUM_STOCKS
@@ -78,6 +79,13 @@ def generate_daily_forecast(
     for idx, row in selected_stocks_df.iterrows():
         stock_forecast = _calculate_stock_forecast(row, position_size)
         stock_forecasts.append(stock_forecast)
+    
+    # Calculate backup stock forecasts
+    backup_forecasts = []
+    if backup_stocks_df is not None and not backup_stocks_df.empty:
+        for idx, row in backup_stocks_df.iterrows():
+            backup_forecast = _calculate_stock_forecast(row, position_size)
+            backup_forecasts.append(backup_forecast)
     
     # Calculate portfolio totals
     portfolio_forecast = _calculate_portfolio_forecast(
@@ -242,7 +250,7 @@ def _calculate_portfolio_forecast(
     total_pl = sum(s['expected_daily_pl'] for s in stock_forecasts)
     
     # Calculate ranges based on confidence interval
-    # Using ±20% for conservative/optimistic
+    # Using Â±20% for conservative/optimistic
     patterns_low = int(total_patterns * 0.80)
     patterns_high = int(total_patterns * 1.20)
     
@@ -408,13 +416,13 @@ def format_forecast_summary(forecast: Dict) -> str:
     
     # Metadata
     meta = forecast['metadata']
-    lines.append(f"📅 {meta['date_display']}")
-    lines.append(f"🕐 Generated: {meta['time_generated']}")
+    lines.append(f"ð {meta['date_display']}")
+    lines.append(f"ð Generated: {meta['time_generated']}")
     lines.append("")
     
     # Scanning summary
     scan = forecast['scanning']
-    lines.append(f"📊 Stock Scanning:")
+    lines.append(f"ð Stock Scanning:")
     lines.append(f"   Total scanned: {scan['total_scanned']}")
     lines.append(f"   Qualified: {scan['qualified']}")
     lines.append(f"   Selected: {scan['selected']}")
@@ -425,14 +433,14 @@ def format_forecast_summary(forecast: Dict) -> str:
         trades = forecast['summary']['expected_trades']
         profit = forecast['summary']['forecasted_profit']
         
-        lines.append(f"📈 Expected Performance:")
+        lines.append(f"ð Expected Performance:")
         lines.append(f"   Trades: {trades['low']} - {trades['high']} (expected: {trades['expected']})")
         lines.append(f"   Profit: ${profit['low']:,.0f} - ${profit['high']:,.0f} (expected: ${profit['expected']:,.0f})")
         lines.append(f"   ROI: {profit['roi_low']:.1f}% - {profit['roi_high']:.1f}% (expected: {profit['roi_expected']:.1f}%)")
         lines.append("")
     
     # Selected stocks
-    lines.append(f"🎯 Selected Stocks ({len(forecast['stocks'])}):")
+    lines.append(f"ð¯ Selected Stocks ({len(forecast['stocks'])}):")
     lines.append("")
     
     for stock in forecast['stocks']:
@@ -482,7 +490,7 @@ if __name__ == "__main__":
         # Calculate quality scores
         results = calculate_quality_scores(results)
         
-        print(f"✅ Analyzed {len(results)} stocks")
+        print(f"â Analyzed {len(results)} stocks")
         print()
         
         # Select portfolio
@@ -496,7 +504,7 @@ if __name__ == "__main__":
         )
         
         if not selection['selected'].empty:
-            print(f"✅ Selected {len(selection['selected'])} stocks")
+            print(f"â Selected {len(selection['selected'])} stocks")
             print()
             
             # Generate forecast
@@ -517,11 +525,11 @@ if __name__ == "__main__":
             
             # Save to JSON
             json_path = save_forecast_to_json(forecast)
-            print(f"✅ Forecast saved to: {json_path}")
+            print(f"â Forecast saved to: {json_path}")
             print()
             
             # Show JSON structure
-            print("📋 Forecast JSON Structure:")
+            print("ð Forecast JSON Structure:")
             print(f"   - metadata: {len(forecast['metadata'])} fields")
             print(f"   - scanning: {len(forecast['scanning'])} fields")
             print(f"   - summary: {len(forecast['summary'])} cards")
@@ -531,7 +539,7 @@ if __name__ == "__main__":
             print()
             
         else:
-            print("❌ No stocks selected")
+            print("â No stocks selected")
     
     else:
-        print("❌ No analysis results")
+        print("â No analysis results")
