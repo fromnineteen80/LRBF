@@ -33,9 +33,10 @@ try:
     from modules.auth_helper import AuthHelper
     from modules.email_service import EmailService
     from modules.sms_service import SMSService
+    from modules.scheduler import scheduler
     BACKEND_AVAILABLE = True
 except ImportError as e:
-    print(f"⚠️  Backend modules not fully loaded: {e}")
+    print(f"â ï¸  Backend modules not fully loaded: {e}")
     BACKEND_AVAILABLE = False
 
 app = Flask(__name__)
@@ -1539,6 +1540,36 @@ def get_morning_data():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+
+
+@app.route('/api/scheduler/trigger', methods=['POST'])
+@login_required
+@admin_required
+def trigger_morning_report():
+    """Manually trigger morning report generation (admin only)."""
+    if not BACKEND_AVAILABLE:
+        return jsonify({'error': 'Backend modules not available'}), 500
+    
+    try:
+        result = scheduler.trigger_manual_generation()
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/scheduler/status')
+@login_required
+def get_scheduler_status():
+    """Get scheduler status and next run time."""
+    if not BACKEND_AVAILABLE:
+        return jsonify({'error': 'Backend modules not available'}), 500
+    
+    try:
+        status = scheduler.get_status()
+        return jsonify(status)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/morning/prompts')
 @login_required
 def download_prompts():
@@ -1989,7 +2020,7 @@ def market_calendar():
         return jsonify(response)
     except Exception as e:
         # Fallback to basic logic if pandas_market_calendars fails
-        print(f"⚠️  Market calendar error: {e}")
+        print(f"â ï¸  Market calendar error: {e}")
         now = datetime.now()
         is_weekend = now.weekday() >= 5
         
@@ -2023,13 +2054,13 @@ def server_error(e):
 
 if __name__ == '__main__':
     print("\n" + "="*70)
-    print("🚂 RAILYARD MARKETS - VWAP Recovery Trading Platform")
+    print("ð RAILYARD MARKETS - VWAP Recovery Trading Platform")
     print("="*70)
-    print("\n✓ Server starting...")
-    print(f"✓ Backend: {'Loaded' if BACKEND_AVAILABLE else 'Not Available (using simulation)'}")
-    print(f"✓ Mode: {'Simulation' if not BACKEND_AVAILABLE else 'Production Ready'}")
-    print("✓ Access: http://localhost:5000")
-    print("\n🔐 Login Credentials:")
+    print("\nâ Server starting...")
+    print(f"â Backend: {'Loaded' if BACKEND_AVAILABLE else 'Not Available (using simulation)'}")
+    print(f"â Mode: {'Simulation' if not BACKEND_AVAILABLE else 'Production Ready'}")
+    print("â Access: http://localhost:5000")
+    print("\nð Login Credentials:")
     print("   Username: admin")
     print("   Password: admin123")
     print("\n   Username: cofounder")
