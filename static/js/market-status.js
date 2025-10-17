@@ -133,19 +133,6 @@ class MarketStatusManager {
         }
     }
     
-    destroy() {
-        this.stopUpdates();
-        this.isInitialized = false;
-    }
-}
-
-window.marketStatusManager = new MarketStatusManager();
-
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => { window.marketStatusManager.init(); });
-} else {
-    window.marketStatusManager.init();
-}
 
     startCountdown(timeStr, status) {
         if (this.countdownInterval) {
@@ -213,6 +200,82 @@ if (document.readyState === 'loading') {
         }
     }
 
+    destroy() {
+        this.stopUpdates();
+        this.isInitialized = false;
+    }
+}
+
+
+window.marketStatusManager = new MarketStatusManager();
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => { window.marketStatusManager.init(); });
+} else {
+    window.marketStatusManager.init();
+}
+
+        if (this.countdownInterval) {
+            clearInterval(this.countdownInterval);
+        }
+        
+        if (status !== 'open' || !timeStr || timeStr === 'Closed' || timeStr === 'Pre-Market') {
+            this.countdownSeconds = 0;
+            return;
+        }
+        
+        this.countdownSeconds = this.parseTimeToSeconds(timeStr);
+        this.updateCountdownDisplay();
+        
+        this.countdownInterval = setInterval(() => {
+            if (this.countdownSeconds > 0) {
+                this.countdownSeconds--;
+                this.updateCountdownDisplay();
+                this.updateProgressBarSmooth();
+            }
+        }, 1000);
+    }
+    
+        if (!timeStr) return 0;
+        const parts = timeStr.split(':').map(p => parseInt(p) || 0);
+        if (parts.length === 3) {
+            return parts[0] * 3600 + parts[1] * 60 + parts[2];
+        } else if (parts.length === 2) {
+            return parts[0] * 60 + parts[1];
+        }
+        return 0;
+    }
+    
+        const hours = Math.floor(seconds / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        const secs = seconds % 60;
+        
+        if (hours > 0) {
+            return hours + ':' + String(minutes).padStart(2, '0') + ':' + String(secs).padStart(2, '0');
+        }
+        return String(minutes).padStart(2, '0') + ':' + String(secs).padStart(2, '0');
+    }
+    
+        if (!this.elements.timeRemaining || !this.elements.timeRemainingMobile) return;
+        
+        if (this.countdownSeconds > 0) {
+            const timeStr = this.formatSecondsToTime(this.countdownSeconds);
+            this.elements.timeRemaining.textContent = timeStr;
+            this.elements.timeRemainingMobile.textContent = timeStr;
+        }
+    }
+    
+        const totalTradingSeconds = 23400;
+        const elapsedSeconds = totalTradingSeconds - this.countdownSeconds;
+        const progressPct = (elapsedSeconds / totalTradingSeconds) * 100;
+        
+        if (this.elements.progressBar && this.elements.indicator) {
+            const pct = Math.max(0, Math.min(100, progressPct));
+            this.elements.progressBar.style.width = pct + '%';
+            this.elements.indicator.style.left = pct + '%';
+        }
+    }
+
 
 window.addEventListener('beforeunload', () => { window.marketStatusManager.destroy(); });
         
@@ -239,7 +302,6 @@ window.addEventListener('beforeunload', () => { window.marketStatusManager.destr
         }, 1000);
     }
     
-    parseTimeToSeconds(timeStr) {
         if (!timeStr) return 0;
         const parts = timeStr.split(':').map(p => parseInt(p) || 0);
         if (parts.length === 3) {
@@ -252,7 +314,6 @@ window.addEventListener('beforeunload', () => { window.marketStatusManager.destr
         return 0;
     }
     
-    formatSecondsToTime(seconds) {
         const hours = Math.floor(seconds / 3600);
         const minutes = Math.floor((seconds % 3600) / 60);
         const secs = seconds % 60;
@@ -263,7 +324,6 @@ window.addEventListener('beforeunload', () => { window.marketStatusManager.destr
         return String(minutes).padStart(2, '0') + ':' + String(secs).padStart(2, '0');
     }
     
-    updateCountdownDisplay() {
         if (!this.elements.timeRemaining || !this.elements.timeRemainingMobile) return;
         
         if (this.countdownSeconds > 0) {
@@ -273,7 +333,6 @@ window.addEventListener('beforeunload', () => { window.marketStatusManager.destr
         }
     }
     
-    updateProgressBarSmooth() {
         // Smooth progress bar movement during countdown
         // 6.5 hour trading day = 23,400 seconds
         const totalTradingSeconds = 23400;
