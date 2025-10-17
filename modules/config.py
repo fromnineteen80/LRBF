@@ -14,6 +14,12 @@ class TradingConfig:
     All hardcoded values should be moved here. Modules import from this
     single source of truth.
     """
+
+    # === RAPIDAPI YAHOO FINANCE ===
+    RAPIDAPI_KEY = "97b31186b2msh4a897ce25410ffbp119fa8jsnd8661cc1bab0"
+    RAPIDAPI_HOST = "yahoo-finance166.p.rapidapi.com"
+    RAPIDAPI_REGION = "US"  # Market region for data requests
+
     
     # ========================================================================
     # CAPITAL MANAGEMENT
