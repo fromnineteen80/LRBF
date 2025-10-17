@@ -497,6 +497,75 @@ class TradingDatabase:
     # SYSTEM EVENTS TABLE
     # ========================================================================
     
+
+    def get_todays_forecast(self) -> Optional[Dict]:
+        """
+        Get today's morning forecast (convenience method).
+        
+        Returns:
+            Forecast dictionary or None if not found
+        """
+        from datetime import date
+        return self.get_morning_forecast(date.today())
+    
+    def get_daily_summaries(self, days: int = 30) -> List[Dict]:
+        """
+        Get daily summaries for the last N days.
+        
+        Args:
+            days: Number of days to retrieve (default: 30)
+        
+        Returns:
+            List of daily summary dictionaries
+        """
+        cursor = self.conn.cursor()
+        cursor.execute("""
+            SELECT * FROM daily_summaries
+            ORDER BY date DESC
+            LIMIT ?
+        """, (days,))
+        
+        return [dict(row) for row in cursor.fetchall()]
+    
+    def get_aggregate_stats(self, days: int = 30) -> Dict:
+        """
+        Calculate aggregate statistics for the last N days.
+        
+        Args:
+            days: Number of days to analyze (default: 30)
+        
+        Returns:
+            Dictionary with aggregate statistics
+        """
+        summaries = self.get_daily_summaries(days)
+        
+        if not summaries:
+            return {
+                'total_trades': 0,
+                'total_wins': 0,
+                'total_losses': 0,
+                'win_rate': 0.0,
+                'total_realized_pl': 0.0,
+                'avg_daily_roi': 0.0,
+                'days_analyzed': 0
+            }
+        
+        total_trades = sum(s['trade_count'] for s in summaries)
+        total_wins = sum(s['win_count'] for s in summaries)
+        total_losses = sum(s['loss_count'] for s in summaries)
+        total_pl = sum(s['realized_pl'] for s in summaries)
+        avg_roi = sum(s['roi_pct'] for s in summaries) / len(summaries) if summaries else 0.0
+        
+        return {
+            'total_trades': total_trades,
+            'total_wins': total_wins,
+            'total_losses': total_losses,
+            'win_rate': (total_wins / total_trades * 100) if total_trades > 0 else 0.0,
+            'total_realized_pl': total_pl,
+            'avg_daily_roi': avg_roi,
+            'days_analyzed': len(summaries)
+        }
+
     def log_event(
         self,
         event_type: str,
