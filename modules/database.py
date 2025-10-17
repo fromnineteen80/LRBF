@@ -485,6 +485,12 @@ class TradingDatabase:
             result = dict(row)
             result['selected_stocks'] = json.loads(result['selected_stocks_json'])
             
+            # Parse backup_stocks_json if present
+            if result.get('backup_stocks_json'):
+                result['backup_stocks'] = json.loads(result['backup_stocks_json'])
+            else:
+                result['backup_stocks'] = []
+            
             # Parse stock_analysis_json if present
             if result.get('stock_analysis_json'):
                 result['stock_analysis'] = json.loads(result['stock_analysis_json'])
