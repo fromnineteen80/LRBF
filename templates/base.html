@@ -310,7 +310,7 @@
                             <div class="profile-menu-info">
                                 <div class="profile-menu-name">
                                     <span>Colin</span>
-                                    <span class="profile-menu-badge">Ã¢ÂÂ</span>
+                                    <span class="profile-menu-badge">ÃÂ¢ÃÂÃÂ</span>
                                 </div>
                                 <div class="profile-menu-role">Co-Founder</div>
                             </div>
@@ -490,133 +490,7 @@
         }
         
         // ========================================================================
-        // MARKET PROGRESS LINE (Denver to DC)
-        // ========================================================================
-        
-        function initMarketProgress() {
-            const progressBar = document.getElementById('marketProgressBar');
-            const progressIndicator = document.getElementById('marketProgressIndicator');
-            const trainIcon = document.getElementById('marketTrainIcon');
-            const timeRemaining = document.getElementById('marketTimeRemaining');
-            
-            if (!progressBar || !progressIndicator || !trainIcon || !timeRemaining) {
-                return; // Elements not present on this page
-            }
-            
-            // Market calendar data from backend
-            let marketCalendar = {
-                is_trading_day: true,
-                market_open_hour: 9,
-                market_open_minute: 31,
-                market_close_hour: 16,
-                market_close_minute: 0,
-                is_early_close: false,
-                next_trading_day: 'Mon'
-            };
-            
-            // Fetch market calendar from backend on page load
-            async function loadMarketCalendar() {
-                try {
-                    const response = await fetch('/api/market/calendar');
-                    const data = await response.json();
-                    marketCalendar = data;
-                    console.log('Ã°ÂÂÂ Market calendar loaded:', marketCalendar);
-                } catch (error) {
-                    console.error('Ã¢ÂÂ Ã¯Â¸Â  Failed to load market calendar, using defaults:', error);
-                }
-            }
-            
-            function formatTimeRemaining(minutes) {
-                if (minutes <= 0) return '0:00:00';
-                
-                const hours = Math.floor(minutes / 60);
-                const mins = Math.floor(minutes % 60);
-                const secs = Math.floor((minutes % 1) * 60);
-                
-                return `${hours}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-            }
-            
-            function updateMarketProgress() {
-                const now = new Date();
-                
-                // Convert to Eastern Time
-                const eastern = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
-                const hours = eastern.getHours();
-                const minutes = eastern.getMinutes();
-                const seconds = eastern.getSeconds();
-                
-                // Use backend calendar data for market hours
-                const marketOpenMinutes = marketCalendar.market_open_hour * 60 + marketCalendar.market_open_minute;
-                const marketCloseMinutes = marketCalendar.market_close_hour * 60 + marketCalendar.market_close_minute;
-                const currentMinutes = hours * 60 + minutes + seconds / 60;
-                
-                let progress = 0;
-                let remainingMinutes = 0;
-                
-                if (!marketCalendar.is_trading_day) {
-                    // Holiday or weekend - train at Denver
-                    progress = 0;
-                    timeRemaining.textContent = 'Closed until ' + marketCalendar.next_trading_day;
-                } else if (currentMinutes < marketOpenMinutes) {
-                    // Before market open (12:01 AM - 9:30 AM on trading day)
-                    progress = 0;
-                    remainingMinutes = marketOpenMinutes - currentMinutes;
-                    timeRemaining.textContent = 'Opens in ' + formatTimeRemaining(remainingMinutes);
-                } else if (currentMinutes >= marketOpenMinutes && currentMinutes < marketCloseMinutes) {
-                    // Market is OPEN - train moves along track
-                    const elapsedMinutes = currentMinutes - marketOpenMinutes;
-                    const totalMarketMinutes = marketCloseMinutes - marketOpenMinutes;
-                    progress = elapsedMinutes / totalMarketMinutes;
-                    remainingMinutes = totalMarketMinutes - elapsedMinutes;
-                    
-                    // Show early close warning if applicable
-                    if (marketCalendar.is_early_close) {
-                        timeRemaining.textContent = formatTimeRemaining(remainingMinutes) + ' (Early Close)';
-                    } else {
-                        timeRemaining.textContent = formatTimeRemaining(remainingMinutes);
-                    }
-                } else {
-                    // After market close
-                    progress = 1;
-                    timeRemaining.textContent = 'Closed until ' + marketCalendar.next_trading_day;
-                }
-                
-                // Clamp progress between 0 and 1
-                progress = Math.max(0, Math.min(1, progress));
-                
-                // Update progress bar width
-                progressBar.style.width = `${progress * 100}%`;
-                
-                // Position indicator
-                progressIndicator.style.left = `${progress * 100}%`;
-                
-                // Update mobile time display
-                const timeRemainingMobile = document.getElementById('marketTimeRemainingMobile');
-                if (timeRemainingMobile) {
-                    timeRemainingMobile.textContent = timeRemaining.textContent;
-                }
-            }
-            
-            // Toggle mobile time display on click
-            const container = document.getElementById('marketProgressContainer');
-            if (container) {
-                container.addEventListener('click', function() {
-                    this.classList.toggle('show-mobile-time');
-                });
-            }
-            
-            // Load market calendar, then start updating
-            loadMarketCalendar().then(() => {
-                updateMarketProgress();
-                setInterval(updateMarketProgress, 1000);
-            });
-            
-            // Refresh calendar data once per hour (in case of day change or early close updates)
-            setInterval(loadMarketCalendar, 3600000); // 1 hour
-        }
-        
         // Initialize market progress on page load
-        document.addEventListener('DOMContentLoaded', initMarketProgress);
         
         // Toggle Navigation Rail (Collapse/Expand)
         // Toggle Navigation Rail (Expand/Collapse)
