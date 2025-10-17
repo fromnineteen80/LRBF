@@ -44,6 +44,24 @@
                 <h4 class="title-medium" style="margin: 0;">Selected Stocks</h4>
             </div>
             <div id="stocksList"></div>
+            
+            <!-- Backup Stocks Section -->
+            <div style="margin-top: 32px;">
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
+                    <md-icon style="color: var(--md-sys-color-tertiary);">backup</md-icon>
+                    <h4 class="title-medium" style="margin: 0;">Backup Stocks (N+4)</h4>
+                </div>
+                <div style="padding: 16px; background: var(--md-sys-color-surface-variant); border-radius: 12px; margin-bottom: 16px;">
+                    <p class="body-medium" style="color: var(--md-sys-color-on-surface-variant); margin: 0;">
+                        Reserve stocks ranked by quality. Use if primary stock becomes ineligible or shows degraded performance.
+                    </p>
+                </div>
+                <div id="backupStocksList"></div>
+                <div id="noBackupStocks" style="display: none; padding: 32px; text-align: center;">
+                    <md-icon style="font-size: 48px; color: var(--md-sys-color-outline); opacity: 0.5;">info</md-icon>
+                    <p class="body-medium" style="color: var(--md-sys-color-on-surface-variant); margin-top: 8px;">No backup stocks available</p>
+                </div>
+            </div>
         </div>
     </div>
     <div style="padding: 16px; border-top: 1px solid var(--md-sys-color-outline-variant); display: flex; justify-content: flex-end;">
@@ -99,6 +117,34 @@ async function generateReport() {
                 </div>
             </div>
         `).join('');
+        
+        // Render backup stocks
+        const backupStocksList = document.getElementById('backupStocksList');
+        const noBackupStocks = document.getElementById('noBackupStocks');
+        
+        if (data.backup_stocks && data.backup_stocks.length > 0) {
+            backupStocksList.innerHTML = data.backup_stocks.map((stock, index) => `
+                <div style="padding: 16px; border-bottom: 1px solid var(--md-sys-color-outline-variant); display: flex; justify-content: space-between; align-items: center;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <span class="label-large" style="color: var(--md-sys-color-on-surface-variant); width: 24px;">${index + 1}</span>
+                        <md-icon style="color: var(--md-sys-color-tertiary); font-size: 20px;">show_chart</md-icon>
+                        <span class="title-medium">${stock.ticker}</span>
+                    </div>
+                    <div style="display: flex; gap: 16px; align-items: center;">
+                        <span class="label-small" style="padding: 4px 8px; background: var(--md-sys-color-tertiary-container); color: var(--md-sys-color-on-tertiary-container); border-radius: 6px;">
+                            ${stock.category}
+                        </span>
+                        <span class="body-small" style="color: var(--md-sys-color-on-surface-variant);">
+                            Quality: ${(stock.quality_score * 100).toFixed(1)}
+                        </span>
+                    </div>
+                </div>
+            `).join('');
+            noBackupStocks.style.display = 'none';
+        } else {
+            backupStocksList.innerHTML = '';
+            noBackupStocks.style.display = 'block';
+        }
         
         document.getElementById('loadingState').style.display = 'none';
         document.getElementById('reportContent').style.display = 'block';
