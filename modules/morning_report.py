@@ -73,10 +73,10 @@ def generate_morning_html(forecast: Dict, output_path: str = None) -> str:
             'stock_analysis': stock_analysis  # NEW: Per-stock backtest data
         }
         
-        # Extract backup stock tickers
-    backup_tickers = selected_stocks_df['backup']['ticker'].tolist() if 'backup' in selected_stocks_df and not selected_stocks_df['backup'].empty else []
-    
-    # Store in database
+        # Extract backup stock tickers from forecast
+        backup_tickers = [stock['ticker'] for stock in forecast.get('backup_stocks', [])]
+        
+        # Store in database
         db.insert_morning_forecast(forecast_data)
         print(f"   ✅ Forecast stored in database")
         print(f"      Selected stocks: {', '.join(selected_tickers)}")
