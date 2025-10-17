@@ -73,7 +73,7 @@ class MarketStatusManager {
         if (!this.elements.progressBar || !this.elements.indicator) return;
         const pct = Math.max(0, Math.min(100, progressPct));
         this.elements.progressBar.style.width = pct + '%';
-        this.elements.indicator.style.left = 'calc(' + pct + '% - 12px)';
+        this.elements.indicator.style.left = pct + '%';
         this.elements.progressBar.style.transition = 'width 1s ease-in-out';
         this.elements.indicator.style.transition = 'left 1s ease-in-out';
     }
