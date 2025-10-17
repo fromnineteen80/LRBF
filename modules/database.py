@@ -433,49 +433,36 @@ class TradingDatabase:
     # ========================================================================
     
     def insert_morning_forecast(self, forecast_data: Dict) -> int:
-        """
-        Insert morning forecast snapshot.
-        
-        Args:
-            forecast_data: Dictionary with forecast information
-                Required keys: date, generated_at, selected_stocks,
-                              expected_trades_low, expected_trades_high,
-                              expected_pl_low, expected_pl_high
-                Optional keys: stock_analysis (dict with per-stock backtest data)
-        
-        Returns:
-            Row ID of inserted forecast
-        """
+        """Insert morning forecast snapshot with backup stocks support."""
         cursor = self.conn.cursor()
         
-        # Convert selected stocks list to JSON
         stocks_json = json.dumps(forecast_data['selected_stocks'])
         
-        # Convert stock analysis to JSON if provided
+        backup_stocks_json = None
+        if 'backup_stocks' in forecast_data and forecast_data['backup_stocks']:
+            backup_stocks_json = json.dumps(forecast_data['backup_stocks'])
+        
         stock_analysis_json = None
         if 'stock_analysis' in forecast_data and forecast_data['stock_analysis']:
             stock_analysis_json = json.dumps(forecast_data['stock_analysis'])
         
         cursor.execute("""
             INSERT INTO morning_forecasts (
-                date, generated_at, selected_stocks_json,
+                date, generated_at, selected_stocks_json, backup_stocks_json,
                 expected_trades_low, expected_trades_high,
                 expected_pl_low, expected_pl_high, stock_analysis_json
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
-            forecast_data['date'],
-            forecast_data['generated_at'],
-            stocks_json,
-            forecast_data['expected_trades_low'],
-            forecast_data['expected_trades_high'],
-            forecast_data['expected_pl_low'],
-            forecast_data['expected_pl_high'],
+            forecast_data['date'], forecast_data['generated_at'],
+            stocks_json, backup_stocks_json,
+            forecast_data['expected_trades_low'], forecast_data['expected_trades_high'],
+            forecast_data['expected_pl_low'], forecast_data['expected_pl_high'],
             stock_analysis_json
         ))
         
         self.conn.commit()
         return cursor.lastrowid
-    
+
     def get_morning_forecast(self, target_date: date) -> Optional[Dict]:
         """
         Get morning forecast for a specific date.
