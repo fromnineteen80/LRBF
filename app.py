@@ -36,12 +36,21 @@ try:
     from modules.scheduler import scheduler
     BACKEND_AVAILABLE = True
 except ImportError as e:
-    print(f"â ï¸  Backend modules not fully loaded: {e}")
+    print(f"Ã¢ÂÂ Ã¯Â¸Â  Backend modules not fully loaded: {e}")
     BACKEND_AVAILABLE = False
 
 app = Flask(__name__)
 app.secret_key = secrets.token_hex(32)
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=24)
+
+# Initialize scheduler for automatic morning report generation
+if BACKEND_AVAILABLE:
+    try:
+        scheduler.init_app(app)
+        scheduler.start()
+        print("✓ Morning report scheduler started - generates at 12:01 AM EST")
+    except Exception as e:
+        print(f"⚠️  Scheduler failed to start: {e}")
 
 # Security headers
 @app.after_request
@@ -2020,7 +2029,7 @@ def market_calendar():
         return jsonify(response)
     except Exception as e:
         # Fallback to basic logic if pandas_market_calendars fails
-        print(f"â ï¸  Market calendar error: {e}")
+        print(f"Ã¢ÂÂ Ã¯Â¸Â  Market calendar error: {e}")
         now = datetime.now()
         is_weekend = now.weekday() >= 5
         
@@ -2054,13 +2063,13 @@ def server_error(e):
 
 if __name__ == '__main__':
     print("\n" + "="*70)
-    print("ð RAILYARD MARKETS - VWAP Recovery Trading Platform")
+    print("Ã°ÂÂÂ RAILYARD MARKETS - VWAP Recovery Trading Platform")
     print("="*70)
-    print("\nâ Server starting...")
-    print(f"â Backend: {'Loaded' if BACKEND_AVAILABLE else 'Not Available (using simulation)'}")
-    print(f"â Mode: {'Simulation' if not BACKEND_AVAILABLE else 'Production Ready'}")
-    print("â Access: http://localhost:5000")
-    print("\nð Login Credentials:")
+    print("\nÃ¢ÂÂ Server starting...")
+    print(f"Ã¢ÂÂ Backend: {'Loaded' if BACKEND_AVAILABLE else 'Not Available (using simulation)'}")
+    print(f"Ã¢ÂÂ Mode: {'Simulation' if not BACKEND_AVAILABLE else 'Production Ready'}")
+    print("Ã¢ÂÂ Access: http://localhost:5000")
+    print("\nÃ°ÂÂÂ Login Credentials:")
     print("   Username: admin")
     print("   Password: admin123")
     print("\n   Username: cofounder")
