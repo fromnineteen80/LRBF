@@ -237,8 +237,17 @@ def select_balanced_portfolio(
     # Sort by quality score
     final_selection = final_selection.sort_values('quality_score', ascending=False).reset_index(drop=True)
     
+    # Select 4 backup stocks (next best after primary selection)
+    backup_stocks = pd.DataFrame()
+    remaining_stocks = df_quality[~df_quality['ticker'].isin(final_selection['ticker'])]
+    if len(remaining_stocks) >= 4:
+        backup_stocks = remaining_stocks.nlargest(4, 'quality_score').reset_index(drop=True)
+    elif len(remaining_stocks) > 0:
+        backup_stocks = remaining_stocks.sort_values('quality_score', ascending=False).reset_index(drop=True)
+    
     return {
         'selected': final_selection,
+        'backup': backup_stocks,
         'conservative': selected_conservative,
         'medium': selected_medium,
         'aggressive': selected_aggressive,
@@ -248,7 +257,8 @@ def select_balanced_portfolio(
             'conservative_count': len(selected_conservative),
             'medium_count': len(selected_medium),
             'aggressive_count': len(selected_aggressive),
-            'total_selected': len(final_selection)
+            'total_selected': len(final_selection),
+            'backup_count': len(backup_stocks)
         }
     }
 
