@@ -47,7 +47,7 @@ def download_stock_data(
         return generate_simulated_stock_data(ticker, period, interval)
     
     try:
-        import yfinance as yf
+        from modules.data_provider import get_data_provider
     except ImportError:
         print("⚠️  yfinance not installed. Using simulation mode.")
         return generate_simulated_stock_data(ticker, period, interval)
@@ -55,8 +55,12 @@ def download_stock_data(
     for attempt in range(max_retries):
         try:
             # Download data
-            stock = yf.Ticker(ticker)
-            data = stock.history(period=period, interval=interval)
+            # Using RapidAPI data provider
+            data_provider = get_data_provider()
+            data = data_provider.get_historical_data(ticker=ticker, interval=interval, range_str=period, region='US')
+            
+            if data is not None:
+                data = data.reset_index()
             
             if data.empty:
                 # Fallback to simulation
@@ -572,7 +576,7 @@ if __name__ == "__main__":
     
     # Test with small sample
     print("Testing with 10 sample stocks (SIMULATION MODE)...")
-    print("(Using realistic synthetic data - real yfinance unavailable)")
+    print("(Using realistic synthetic data - RapidAPI data unavailable)")
     print()
     
     sample_tickers = get_sample_tickers(10)
@@ -614,5 +618,5 @@ if __name__ == "__main__":
         print()
         
     else:
-        print("❌ No results - check internet connection or yfinance installation")
+        print("❌ No results - check internet connection or data provider")
         print()
