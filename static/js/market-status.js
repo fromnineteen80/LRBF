@@ -70,7 +70,7 @@ class MarketStatusManager {
             return;
         }
         this.updateProgressBar(data.progress_pct);
-        this.updateTimeDisplay(data.time_remaining, data.status);
+        this.updateTimeDisplay(data.time_remaining, data.status, data);
             this.startCountdown(data.time_remaining, data.status);
         this.updateTooltip(data);
     }
