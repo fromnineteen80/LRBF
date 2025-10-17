@@ -42,6 +42,11 @@ class MarketStatusManager {
         
         this.isInitialized = true;
         this.updateMarketStatus();
+
+        // Countdown timer for real-time clock updates
+        this.countdownSeconds = 0;
+        this.countdownInterval = null;
+        this.lastAPIUpdate = null;
         this.startUpdates();
         
         console.log('[MarketStatus] Initialized - updating every 30 seconds');
@@ -66,6 +71,7 @@ class MarketStatusManager {
         }
         this.updateProgressBar(data.progress_pct);
         this.updateTimeDisplay(data.time_remaining, data.status);
+            this.startCountdown(data.time_remaining, data.status);
         this.updateTooltip(data);
     }
     
@@ -142,3 +148,81 @@ if (document.readyState === 'loading') {
 }
 
 window.addEventListener('beforeunload', () => { window.marketStatusManager.destroy(); });
+    startCountdown(timeStr, status) {
+        // Clear any existing countdown
+        if (this.countdownInterval) {
+            clearInterval(this.countdownInterval);
+        }
+        
+        // Only countdown during market hours
+        if (status !== 'open' || !timeStr || timeStr === 'Closed' || timeStr === 'Pre-Market') {
+            this.countdownSeconds = 0;
+            return;
+        }
+        
+        // Parse time string (H:MM:SS or MM:SS)
+        this.countdownSeconds = this.parseTimeToSeconds(timeStr);
+        this.lastAPIUpdate = Date.now();
+        
+        // Update display immediately
+        this.updateCountdownDisplay();
+        
+        // Start countdown (every second)
+        this.countdownInterval = setInterval(() => {
+            if (this.countdownSeconds > 0) {
+                this.countdownSeconds--;
+                this.updateCountdownDisplay();
+                this.updateProgressBarSmooth();
+            }
+        }, 1000);
+    }
+    
+    parseTimeToSeconds(timeStr) {
+        if (!timeStr) return 0;
+        const parts = timeStr.split(':').map(p => parseInt(p) || 0);
+        if (parts.length === 3) {
+            // H:MM:SS format
+            return parts[0] * 3600 + parts[1] * 60 + parts[2];
+        } else if (parts.length === 2) {
+            // MM:SS format
+            return parts[0] * 60 + parts[1];
+        }
+        return 0;
+    }
+    
+    formatSecondsToTime(seconds) {
+        const hours = Math.floor(seconds / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        const secs = seconds % 60;
+        
+        if (hours > 0) {
+            return hours + ':' + String(minutes).padStart(2, '0') + ':' + String(secs).padStart(2, '0');
+        }
+        return String(minutes).padStart(2, '0') + ':' + String(secs).padStart(2, '0');
+    }
+    
+    updateCountdownDisplay() {
+        if (!this.elements.timeRemaining || !this.elements.timeRemainingMobile) return;
+        
+        if (this.countdownSeconds > 0) {
+            const timeStr = this.formatSecondsToTime(this.countdownSeconds);
+            this.elements.timeRemaining.textContent = timeStr;
+            this.elements.timeRemainingMobile.textContent = timeStr;
+        }
+    }
+    
+    updateProgressBarSmooth() {
+        // Smooth progress bar movement during countdown
+        // 6.5 hour trading day = 23,400 seconds
+        const totalTradingSeconds = 23400;
+        const elapsedSeconds = totalTradingSeconds - this.countdownSeconds;
+        const progressPct = (elapsedSeconds / totalTradingSeconds) * 100;
+        
+        if (this.elements.progressBar && this.elements.indicator) {
+            const pct = Math.max(0, Math.min(100, progressPct));
+            this.elements.progressBar.style.width = pct + '%';
+            this.elements.indicator.style.left = pct + '%';
+        }
+    }
+
+
