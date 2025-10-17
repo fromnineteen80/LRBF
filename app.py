@@ -54,7 +54,7 @@ if BACKEND_AVAILABLE:
     try:
         scheduler.init_app(app)
         scheduler.start()
-        print(" Morning report scheduler started - generates at 12:01 AM EST")
+        print(" Morning report scheduler started - generates at 5:00 AM EST")
     except Exception as e:
         print(f"  Scheduler failed to start: {e}")
 
