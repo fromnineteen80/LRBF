@@ -996,7 +996,7 @@ body {
 
 .market-progress-track {
     position: relative;
-    width: calc(100% - 180px);
+    flex: 1;
     height: 3px;
     background-color: var(--md-sys-color-secondary);
     border-radius: 2px;
