@@ -2,11 +2,13 @@
 {% block title %}500 - Server Error{% endblock %}
 {% block page_title %}Server Error{% endblock %}
 {% block content %}
-<div class="card">
-    <div class="card-content" style="text-align: center; padding: var(--md-sys-spacing-12);">
-        <h1 class="display-small">500</h1>
-        <p class="body-large">Something went wrong on our end.</p>
-        <a href="/" class="button button-filled mt-4">Go Home</a>
-    </div>
-</div>
+<md-elevated-card style="padding: var(--md-sys-spacing-12); text-align: center; max-width: 600px; margin: 0 auto;">
+    <h1 style="font-size: 96px; font-weight: 300; margin: 0; color: var(--md-sys-color-error);">500</h1>
+    <p style="font-size: 24px; margin: 24px 0; color: var(--md-sys-color-on-surface);">Something went wrong on our end.</p>
+    <p style="font-size: 16px; margin: 16px 0; color: var(--md-sys-color-on-surface-variant);">We're working to fix the issue. Please try again later.</p>
+    <md-filled-button href="/" style="margin-top: 16px;">
+        <span slot="icon" class="material-symbols-outlined">home</span>
+        Go Home
+    </md-filled-button>
+</md-elevated-card>
 {% endblock %}
