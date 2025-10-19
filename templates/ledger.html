@@ -1,86 +1,87 @@
 {% extends "base.html" %}
 
 {% block title %}Ledger - Luggage Room Boys Fund{% endblock %}
+{% block page_title %}Ledger{% endblock %}
 
 {% block content %}
-<div class="container" style="max-width: 1400px; margin-top: 40px;">
-    <h1 class="headline-large" style="margin-bottom: 8px;">Your Ledger</h1>
-    <p class="body-medium" style="color: var(--md-sys-color-on-surface-variant); margin-bottom: 32px;">
+<div style="max-width: 1400px; margin: 40px auto; padding: 0 16px;">
+    <h1 style="font-size: 32px; font-weight: 500; margin: 0 0 8px 0; color: var(--md-sys-color-on-surface);">Your Ledger</h1>
+    <p style="font-size: 14px; color: var(--md-sys-color-on-surface-variant); margin: 0 0 32px 0;">
         Track your capital contributions, distributions, and account balance
     </p>
     
     <!-- Account Summary -->
-    <div class="surface elevation-1" style="padding: 24px; margin-bottom: 24px; border-radius: 12px;">
-        <h2 class="title-large" style="margin-bottom: 20px;">Account Summary</h2>
+    <md-elevated-card style="padding: 24px; margin-bottom: 24px;">
+        <h2 style="font-size: 22px; font-weight: 500; margin: 0 0 20px 0; color: var(--md-sys-color-on-surface);">Account Summary</h2>
         
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 24px;">
             <div>
-                <div class="label-small" style="color: var(--md-sys-color-on-surface-variant); margin-bottom: 8px;">
+                <div style="font-size: 12px; color: var(--md-sys-color-on-surface-variant); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">
                     Current Balance
                 </div>
-                <div class="headline-medium" id="currentBalance" style="color: var(--md-sys-color-primary);">
-                    <span class="loading-spinner" style="display: inline-block; width: 20px; height: 20px; border: 2px solid var(--md-sys-color-outline); border-top-color: var(--md-sys-color-primary); border-radius: 50%; animation: spin 1s linear infinite;"></span>
+                <div style="font-size: 28px; font-weight: 500; color: var(--md-sys-color-primary);" id="currentBalance">
+                    <md-circular-progress indeterminate style="--md-circular-progress-size: 24px;"></md-circular-progress>
                 </div>
             </div>
             
             <div>
-                <div class="label-small" style="color: var(--md-sys-color-on-surface-variant); margin-bottom: 8px;">
+                <div style="font-size: 12px; color: var(--md-sys-color-on-surface-variant); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">
                     Total Contributions
                 </div>
-                <div class="headline-medium" id="totalContributions">
-                    <span class="loading-spinner" style="display: inline-block; width: 20px; height: 20px; border: 2px solid var(--md-sys-color-outline); border-top-color: var(--md-sys-color-primary); border-radius: 50%; animation: spin 1s linear infinite;"></span>
+                <div style="font-size: 28px; font-weight: 500; color: var(--md-sys-color-on-surface);" id="totalContributions">
+                    <md-circular-progress indeterminate style="--md-circular-progress-size: 24px;"></md-circular-progress>
                 </div>
             </div>
             
             <div>
-                <div class="label-small" style="color: var(--md-sys-color-on-surface-variant); margin-bottom: 8px;">
+                <div style="font-size: 12px; color: var(--md-sys-color-on-surface-variant); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">
                     YTD Profit/Loss
                 </div>
-                <div class="headline-medium" id="ytdPL">
-                    <span class="loading-spinner" style="display: inline-block; width: 20px; height: 20px; border: 2px solid var(--md-sys-color-outline); border-top-color: var(--md-sys-color-primary); border-radius: 50%; animation: spin 1s linear infinite;"></span>
+                <div style="font-size: 28px; font-weight: 500;" id="ytdPL">
+                    <md-circular-progress indeterminate style="--md-circular-progress-size: 24px;"></md-circular-progress>
                 </div>
             </div>
             
             <div>
-                <div class="label-small" style="color: var(--md-sys-color-on-surface-variant); margin-bottom: 8px;">
+                <div style="font-size: 12px; color: var(--md-sys-color-on-surface-variant); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">
                     Your Ownership
                 </div>
-                <div class="headline-medium" id="ownership">
-                    <span class="loading-spinner" style="display: inline-block; width: 20px; height: 20px; border: 2px solid var(--md-sys-color-outline); border-top-color: var(--md-sys-color-primary); border-radius: 50%; animation: spin 1s linear infinite;"></span>
+                <div style="font-size: 28px; font-weight: 500; color: var(--md-sys-color-on-surface);" id="ownership">
+                    <md-circular-progress indeterminate style="--md-circular-progress-size: 24px;"></md-circular-progress>
                 </div>
             </div>
         </div>
-    </div>
+    </md-elevated-card>
     
     <!-- Transaction History -->
-    <div class="surface elevation-1" style="padding: 24px; margin-bottom: 24px; border-radius: 12px;">
+    <md-elevated-card style="padding: 24px; margin-bottom: 24px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 16px;">
-            <h2 class="title-large" style="margin: 0;">Transaction History</h2>
+            <h2 style="font-size: 22px; font-weight: 500; margin: 0; color: var(--md-sys-color-on-surface);">Transaction History</h2>
             
             {% if session.get('role') == 'admin' %}
-            <button onclick="openTransactionModal()" class="btn-filled">
-                <span class="material-icons" style="font-size: 18px; margin-right: 8px;">add</span>
+            <md-filled-button onclick="openTransactionModal()">
+                <span slot="icon" class="material-symbols-outlined">add</span>
                 Record Transaction
-            </button>
+            </md-filled-button>
             {% endif %}
         </div>
         
         <div style="overflow-x: auto;">
-            <table class="data-table" style="width: 100%; min-width: 700px;">
+            <table style="width: 100%; min-width: 700px; border-collapse: collapse;">
                 <thead>
                     <tr>
-                        <th style="text-align: left;">Date</th>
-                        <th style="text-align: left;">Type</th>
-                        <th style="text-align: right;">Amount</th>
-                        <th style="text-align: right;">Balance After</th>
-                        <th style="text-align: left;">Notes</th>
+                        <th style="text-align: left; padding: 12px 16px; border-bottom: 1px solid var(--md-sys-color-outline); color: var(--md-sys-color-on-surface-variant); font-weight: 500;">Date</th>
+                        <th style="text-align: left; padding: 12px 16px; border-bottom: 1px solid var(--md-sys-color-outline); color: var(--md-sys-color-on-surface-variant); font-weight: 500;">Type</th>
+                        <th style="text-align: right; padding: 12px 16px; border-bottom: 1px solid var(--md-sys-color-outline); color: var(--md-sys-color-on-surface-variant); font-weight: 500;">Amount</th>
+                        <th style="text-align: right; padding: 12px 16px; border-bottom: 1px solid var(--md-sys-color-outline); color: var(--md-sys-color-on-surface-variant); font-weight: 500;">Balance After</th>
+                        <th style="text-align: left; padding: 12px 16px; border-bottom: 1px solid var(--md-sys-color-outline); color: var(--md-sys-color-on-surface-variant); font-weight: 500;">Notes</th>
                     </tr>
                 </thead>
                 <tbody id="transactionsTable">
                     <tr>
                         <td colspan="5" style="text-align: center; padding: 40px;">
-                            <span class="loading-spinner" style="display: inline-block; width: 24px; height: 24px; border: 3px solid var(--md-sys-color-outline); border-top-color: var(--md-sys-color-primary); border-radius: 50%; animation: spin 1s linear infinite;"></span>
-                            <div class="body-medium" style="margin-top: 12px; color: var(--md-sys-color-on-surface-variant);">
+                            <md-circular-progress indeterminate></md-circular-progress>
+                            <div style="margin-top: 12px; font-size: 14px; color: var(--md-sys-color-on-surface-variant);">
                                 Loading transactions...
                             </div>
                         </td>
@@ -88,88 +89,90 @@
                 </tbody>
             </table>
         </div>
-    </div>
+    </md-elevated-card>
     
     <!-- Monthly Statements -->
-    <div class="surface elevation-1" style="padding: 24px; border-radius: 12px;">
-        <h2 class="title-large" style="margin-bottom: 20px;">Monthly Statements</h2>
+    <md-elevated-card style="padding: 24px;">
+        <h2 style="font-size: 22px; font-weight: 500; margin: 0 0 20px 0; color: var(--md-sys-color-on-surface);">Monthly Statements</h2>
         
         <div id="statementsGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;">
             <div style="padding: 20px; border: 1px dashed var(--md-sys-color-outline); border-radius: 8px; text-align: center;">
-                <span class="material-icons" style="font-size: 48px; color: var(--md-sys-color-on-surface-variant); opacity: 0.5;">description</span>
-                <p class="body-medium" style="margin-top: 12px; color: var(--md-sys-color-on-surface-variant);">
+                <span class="material-symbols-outlined" style="font-size: 48px; color: var(--md-sys-color-on-surface-variant); opacity: 0.5;">description</span>
+                <p style="font-size: 14px; margin-top: 12px; color: var(--md-sys-color-on-surface-variant);">
                     Monthly statements will appear here once generated
                 </p>
             </div>
         </div>
-    </div>
+    </md-elevated-card>
 </div>
 
 {% if session.get('role') == 'admin' %}
-<!-- Record Transaction Modal (Admin Only) -->
-<div id="transactionModal" class="modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); align-items: center; justify-content: center; z-index: 1000;">
-    <div class="modal-content surface elevation-3" style="background: var(--md-sys-color-surface); padding: 24px; border-radius: 12px; max-width: 500px; width: 90%; max-height: 90vh; overflow-y: auto;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-            <h2 class="title-large" style="margin: 0;">Record Capital Transaction</h2>
-            <button onclick="closeTransactionModal()" class="btn-icon" style="background: none; border: none; cursor: pointer; padding: 8px; border-radius: 50%;" onmouseover="this.style.background='var(--md-sys-color-surface-variant)'" onmouseout="this.style.background='none'">
-                <span class="material-icons" style="color: var(--md-sys-color-on-surface);">close</span>
-            </button>
-        </div>
+<!-- Record Transaction Dialog (Admin Only) -->
+<md-dialog id="transactionModal" style="--md-dialog-container-color: var(--md-sys-color-surface);">
+    <div slot="headline">Record Capital Transaction</div>
+    <form slot="content" id="transactionForm" method="dialog" style="display: flex; flex-direction: column; gap: 20px; padding: 8px 0;">
+        <md-filled-select id="transactionUser" name="user_id" label="Co-Founder" required style="width: 100%;">
+            <md-select-option value="">
+                <div slot="headline">Select co-founder...</div>
+            </md-select-option>
+        </md-filled-select>
         
-        <form id="transactionForm">
-            <div class="text-field-container" style="margin-bottom: 20px;">
-                <label for="transactionUser" class="label-large">Co-Founder</label>
-                <select id="transactionUser" name="user_id" required style="width: 100%; padding: 12px; border: 1px solid var(--md-sys-color-outline); border-radius: 4px; font-size: 16px; background: var(--md-sys-color-surface); color: var(--md-sys-color-on-surface); font-family: 'Roboto', sans-serif;">
-                    <option value="">Select co-founder...</option>
-                </select>
-            </div>
-            
-            <div class="text-field-container" style="margin-bottom: 20px;">
-                <label for="transactionType" class="label-large">Transaction Type</label>
-                <select id="transactionType" name="transaction_type" required style="width: 100%; padding: 12px; border: 1px solid var(--md-sys-color-outline); border-radius: 4px; font-size: 16px; background: var(--md-sys-color-surface); color: var(--md-sys-color-on-surface); font-family: 'Roboto', sans-serif;">
-                    <option value="">Select type...</option>
-                    <option value="contribution">Contribution (Add Capital)</option>
-                    <option value="distribution">Distribution (Profit Distribution)</option>
-                    <option value="withdrawal">Withdrawal (Remove Capital)</option>
-                </select>
-            </div>
-            
-            <div class="text-field-container" style="margin-bottom: 20px;">
-                <label for="transactionAmount" class="label-large">Amount ($)</label>
-                <input type="number" id="transactionAmount" name="amount" step="0.01" min="0.01" required placeholder="0.00" style="width: 100%; padding: 12px; border: 1px solid var(--md-sys-color-outline); border-radius: 4px; font-size: 16px; background: var(--md-sys-color-surface); color: var(--md-sys-color-on-surface); font-family: 'Roboto', sans-serif;">
-                <span class="helper-text body-small" style="color: var(--md-sys-color-on-surface-variant); display: block; margin-top: 4px;">
-                    Enter the transaction amount in dollars
-                </span>
-            </div>
-            
-            <div class="text-field-container" style="margin-bottom: 20px;">
-                <label for="transactionDate" class="label-large">Transaction Date</label>
-                <input type="date" id="transactionDate" name="transaction_date" required style="width: 100%; padding: 12px; border: 1px solid var(--md-sys-color-outline); border-radius: 4px; font-size: 16px; background: var(--md-sys-color-surface); color: var(--md-sys-color-on-surface); font-family: 'Roboto', sans-serif;">
-            </div>
-            
-            <div class="text-field-container" style="margin-bottom: 24px;">
-                <label for="transactionNotes" class="label-large">Notes (Optional)</label>
-                <textarea id="transactionNotes" name="notes" rows="3" placeholder="Add any relevant details..." style="width: 100%; padding: 12px; border: 1px solid var(--md-sys-color-outline); border-radius: 4px; font-size: 16px; background: var(--md-sys-color-surface); color: var(--md-sys-color-on-surface); font-family: 'Roboto', sans-serif; resize: vertical;"></textarea>
-            </div>
-            
-            <div style="display: flex; gap: 12px; justify-content: flex-end;">
-                <button type="button" onclick="closeTransactionModal()" class="btn-outlined">
-                    Cancel
-                </button>
-                <button type="submit" class="btn-filled">
-                    Record Transaction
-                </button>
-            </div>
-        </form>
+        <md-filled-select id="transactionType" name="transaction_type" label="Transaction Type" required style="width: 100%;">
+            <md-select-option value="">
+                <div slot="headline">Select type...</div>
+            </md-select-option>
+            <md-select-option value="contribution">
+                <div slot="headline">Contribution (Add Capital)</div>
+            </md-select-option>
+            <md-select-option value="distribution">
+                <div slot="headline">Distribution (Profit Distribution)</div>
+            </md-select-option>
+            <md-select-option value="withdrawal">
+                <div slot="headline">Withdrawal (Remove Capital)</div>
+            </md-select-option>
+        </md-filled-select>
+        
+        <md-filled-text-field 
+            id="transactionAmount" 
+            name="amount" 
+            label="Amount ($)" 
+            type="number" 
+            step="0.01" 
+            min="0.01" 
+            required
+            supporting-text="Enter the transaction amount in dollars"
+            style="width: 100%;">
+        </md-filled-text-field>
+        
+        <md-filled-text-field 
+            id="transactionDate" 
+            name="transaction_date" 
+            label="Transaction Date" 
+            type="date" 
+            required
+            style="width: 100%;">
+        </md-filled-text-field>
+        
+        <md-filled-text-field 
+            id="transactionNotes" 
+            name="notes" 
+            label="Notes (Optional)" 
+            type="textarea" 
+            rows="3"
+            supporting-text="Add any relevant details..."
+            style="width: 100%;">
+        </md-filled-text-field>
+    </form>
+    <div slot="actions">
+        <md-text-button onclick="closeTransactionModal()">Cancel</md-text-button>
+        <md-filled-button onclick="document.getElementById('transactionForm').submit()">
+            Record Transaction
+        </md-filled-button>
     </div>
-</div>
+</md-dialog>
 {% endif %}
 
 <style>
-@keyframes spin {
-    to { transform: rotate(360deg); }
-}
-
 .chip {
     display: inline-block;
     padding: 4px 12px;
@@ -194,62 +197,33 @@
     color: var(--md-sys-color-on-error-container);
 }
 
-.data-table {
-    border-collapse: collapse;
-}
-
-.data-table thead th {
-    padding: 12px 16px;
-    border-bottom: 1px solid var(--md-sys-color-outline);
-    color: var(--md-sys-color-on-surface-variant);
-    font-weight: 500;
-}
-
-.data-table tbody td {
-    padding: 16px;
-    border-bottom: 1px solid var(--md-sys-color-outline-variant);
-}
-
-.data-table tbody tr:last-child td {
-    border-bottom: none;
-}
-
-.data-table tbody tr:hover {
+table tbody tr:hover {
     background: var(--md-sys-color-surface-variant);
     transition: background 0.2s;
 }
 
-.btn-icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 40px;
-    height: 40px;
-    transition: background 0.2s;
+table tbody td {
+    padding: 16px;
+    border-bottom: 1px solid var(--md-sys-color-outline-variant);
+}
+
+table tbody tr:last-child td {
+    border-bottom: none;
 }
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
-    .container {
-        margin-top: 20px !important;
-    }
-    
-    .headline-large {
+    h1 {
         font-size: 28px !important;
     }
     
-    .data-table {
+    table {
         font-size: 14px;
     }
     
-    .data-table thead th,
-    .data-table tbody td {
+    table thead th,
+    table tbody td {
         padding: 12px 8px;
-    }
-    
-    .modal-content {
-        width: 95% !important;
-        padding: 20px !important;
     }
 }
 </style>
