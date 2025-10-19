@@ -1,0 +1,123 @@
+# LRBFund / Railyard – Executable Policy Matrix (Full-Stack Compliance Engine)
+# All rules are ANDed within a rule; rules are evaluated top-to-bottom.
+
+meta:
+  version: 1.0
+  goal: Eliminate drift and emulation; guarantee vertical integration and production-valid outputs.
+
+rules:
+
+  - name: UI / Design Integrity
+    IF:
+      user_provides: ["screenshot", "link", "inspiration"]
+    THEN:
+      - Translate only the functional idea into Material Web (MD3) components.
+      - Use vendored MD3 from /packages/material-web (alias e.g. "@lrbf/material-web"); never remote "@material/web", CDN, or NPM.
+      - Map layouts using our tokens (colors, radii, spacing, typography).
+      - No ad-hoc HTML/CSS emulation, custom shadows, ripples, or focus rings.
+      - Bind data to live API endpoints (no mockups outside /tests/mock_test_only).
+      - Confirm vertical integration: backend -> API -> frontend -> MD3.
+      - OUTPUT: code that compiles in-repo and renders live data (no screenshots/pseudo-markup).
+
+  - name: Code Editing / Integrity Checks
+    IF:
+      request_type: "edit_existing_code"
+    THEN:
+      - Modify only requested sections; do not add new elements/IDs/variables unless approved.
+      - Preserve file structure, headings, comments, fenced blocks, and indentation.
+      - Validate: no undefined vars, unclosed tags, missing imports, or incomplete logic.
+      - OUTPUT: minimal diff, clean compile, no unverified placeholders.
+
+  - name: Color & Token Management
+    IF:
+      request_includes_colors: ["HSL", "RGB", "HEX"]
+    THEN:
+      - Convert to HEX and update only MD3 tokens in section 13.2.
+      - Allowed oranges: "#D87757" (CTA only). Body text: "#3A3A39". Metadata: "#B1ADA1".
+      - Keep **Light** and **Dark** blocks exactly as formatted.
+      - OUTPUT: formatted code block identical to baseline structure.
+
+  - name: Backend / Schema Discipline
+    IF:
+      change_requires: ["new_endpoint", "new_schema", "backend_logic"]
+    THEN:
+      - Pause UI work; define API contract first (path, method, request/response schema, validation rules).
+      - Implement endpoint in FastAPI/Flask; connect schema/ORM and migrations.
+      - Write tests + migration plan; link PR -> Epic -> Phase for traceability.
+      - Resume frontend after endpoint exists and returns live data.
+
+  - name: Framework Enforcement
+    IF:
+      user_says: ["use MD3", "use Material Web", "use @material/web"]
+    THEN:
+      - Import components only from vendored MD3 path (e.g., "@lrbf/material-web" -> /packages/material-web).
+      - Deny imports from CDN/NPM/external URLs for MD3.
+      - No third-party UI frameworks unless pre-approved in the issue and added to the repo.
+      - CI: reject imports starting with "@material/web" or external URLs.
+
+  - name: Code Generation / Output Validation
+    IF:
+      code_generation_requested: true
+    THEN:
+      - Verify all logic paths close properly; no hanging braces/tags or TODO placeholders.
+      - Validate imports, dependencies, and `make run` compatibility.
+      - No console/log placeholder behavior in production code.
+      - Ensure snippets are complete (no missing providers/context/setup).
+      - OUTPUT: ready-to-run, production-valid code only.
+
+  - name: Data Integrity & Mocking
+    IF:
+      request_would_require_mock_data: true
+    THEN:
+      - Request real endpoint definition first.
+      - If temporary data is unavoidable, create `/tests/mock_test_only` fixture with a scheduled removal task.
+      - Never embed mocks in production paths/app logic.
+
+  - name: Typography & Spacing
+    IF:
+      user_requests_typography_or_spacing_changes: true
+    THEN:
+      - Enforce fonts: Roboto Flex (UI/data/headings/sidebar); Roboto Serif (body only).
+      - Maintain compact sizes/line heights; subtle radii (10px/6px).
+      - Adjust only variables inside section 13.2; preserve formatting and order.
+
+  - name: Theme & Dark Mode
+    IF:
+      user_requests_dark_theme_changes: true
+    THEN:
+      - Edit only inside the Dark fenced block:
+        - "@media (prefers-color-scheme:dark){ :root { ... } }"
+      - Do not rename or relocate the block.
+      - Keep indentation, ordering, and formatting identical to base.
+
+  - name: Cross-Stack Vertical Verification
+    IF:
+      any_code_written: true
+    THEN:
+      - Ensure every layer connects vertically: Frontend -> API -> Backend -> Database.
+      - Confirm no orphan components, unreferenced routes, or dead imports.
+      - Verify backend returns payload actually consumed by frontend fields.
+      - Validate API endpoints against schema models before UI render.
+      - No standalone demo code permitted.
+
+  - name: Blind Coding & Scope Control
+    IF:
+      user_instructions_are_ambiguous: true
+    THEN:
+      - Do not assume or fabricate context.
+      - Re-check phase docs or ask for explicit clarification.
+      - OUTPUT: "Awaiting spec confirmation" note instead of speculative code.
+
+  - name: Unauthorized Scope Expansion
+    IF:
+      feature_expands_scope_without_authorization: true
+    THEN:
+      - Halt implementation and flag in issue comments.
+      - Resume only after written approval from project lead.
+
+  - name: Final Validation Rule
+    IF:
+      code_ready_for_output: true
+    THEN:
+      - Preflight: syntax pass; imports verified; live data call tested; theme/typography compliance confirmed.
+      - OUTPUT: code guaranteed to compile, deploy, and visually match MD3 standard in-repo.
