@@ -237,7 +237,7 @@ async function loadUsersForTransaction() {
 function openTransactionModal() {
     const modal = document.getElementById('transactionModal');
     if (modal) {
-        modal.style.display = 'flex';
+        modal.show();
         
         // Focus first input
         const firstInput = document.getElementById('transactionUser');
@@ -253,7 +253,7 @@ function openTransactionModal() {
 function closeTransactionModal() {
     const modal = document.getElementById('transactionModal');
     if (modal) {
-        modal.style.display = 'none';
+        modal.close();
         
         // Reset form
         const form = document.getElementById('transactionForm');
