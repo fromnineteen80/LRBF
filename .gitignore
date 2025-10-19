@@ -62,3 +62,6 @@ test*.py
 test*.db
 temp/
 tmp/
+
+# Developer Notes
+developer_notes/notes/
