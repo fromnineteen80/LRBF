@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LRBF Trading Dashboard</title>
+    <!-- This is index.html - Complete dashboard with ALL features from trading-dashboard.tsx -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20,300,0,0" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:wght@400;500;600;700&display=swap" />
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Roboto Flex', -apple-system, sans-serif; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        const MaterialIcon = ({ children, style = {} }) => (
+            <span style={{ fontFamily: 'Material Symbols Outlined', fontWeight: 300, fontSize: '20px', ...style }}>
+                {children}
+            </span>
+        );
+
+        const StockSymbolButton = ({ stock }) => {
+            const [showTooltip, setShowTooltip] = useState(false);
+            
+            const getRiskColor = (risk) => {
+                switch(risk) {
+                    case 'conservative': return '#4A90E2';
+                    case 'moderate': return '#F5A623';
+                    case 'aggressive': return '#E74C3C';
+                    default: return '#3d3d3a';
+                }
+            };
+            
+            return (
+                <div style={{ position: 'relative' }}>
+                    <button
+                        onMouseEnter={() => setShowTooltip(true)}
+                        onMouseLeave={() => setShowTooltip(false)}
+                        style={{
+                            background: 'transparent',
+                            border: 'none',
+                            cursor: 'pointer',
+                            padding: '4px 8px',
+                            fontSize: '13px',
+                            fontWeight: 600,
+                            color: getRiskColor(stock.risk),
+                            borderRadius: '4px',
+                            transition: 'background 0.2s'
+                        }}
+                    >
+                        {stock.symbol}
+                    </button>
+                    
+                    {showTooltip && (
+                        <div style={{
+                            position: 'absolute',
+                            top: '100%',
+                            left: '0',
+                            marginTop: '8px',
+                            background: '#3d3d3a',
+                            color: '#fff',
+                            padding: '12px',
+                            borderRadius: '8px',
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                            zIndex: 1000,
+                            minWidth: '200px',
+                            fontSize: '12px',
+                            pointerEvents: 'none'
+                        }}>
+                            <div style={{ fontWeight: 600, marginBottom: '8px' }}>{stock.symbol}</div>
+                            <div style={{ display: 'grid', gap: '4px' }}>
+                                <div>Avg Price: ${stock.avg?.toFixed(2) || 'N/A'}</div>
+                                <div>High: ${stock.high?.toFixed(2) || 'N/A'}</div>
+                                <div>Low: ${stock.low?.toFixed(2) || 'N/A'}</div>
+                                <div>Std Dev: {stock.stdDev?.toFixed(1) || 'N/A'}%</div>
+                                <div style={{ marginTop: '4px', paddingTop: '4px', borderTop: '1px solid rgba(255,255,255,0.2)' }}>
+                                    Risk: <span style={{ color: getRiskColor(stock.risk), fontWeight: 600 }}>{stock.risk}</span>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        function TradingDashboard() {
+            const [sidebarExpanded, setSidebarExpanded] = useState(true);
+            const [activeTab, setActiveTab] = useState('premarket');
+            const [premarketData, setPremarketData] = useState([]);
+            const [summary, setSummary] = useState({});
+            const [loading, setLoading] = useState(true);
+            const [error, setError] = useState(null);
+
+            useEffect(() => {
+                fetchPremarketData();
+            }, []);
+
+            const fetchPremarketData = async () => {
+                try {
+                    setLoading(true);
+                    const response = await fetch('/api/premarket');
+                    const data = await response.json();
+                    setPremarketData(data.stocks || []);
+                    setSummary(data.summary || {});
+                    setError(null);
+                } catch (err) {
+                    setError('Failed to load data');
+                    console.error('Error fetching data:', err);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const navItems = [
+                { id: 'premarket', icon: 'bar_chart', label: 'Forecast' },
+                { id: 'live', icon: 'show_chart', label: 'Live' },
+                { id: 'report', icon: 'description', label: 'Report' },
+                { id: 'settings', icon: 'settings', label: 'Settings' }
+            ];
+
+            const titles = {
+                premarket: { title: 'Premarket Forecast', subtitle: '20-day historical analysis' },
+                live: { title: 'Live Monitor', subtitle: 'Real-time position tracking' },
+                report: { title: 'Daily Report', subtitle: 'Performance summary' },
+                settings: { title: 'Settings', subtitle: 'Configure your trading preferences' }
+            };
+
+            const dataCards = [
+                { label: 'Total Positions', value: summary.total_positions || '0' },
+                { label: 'Avg Score', value: summary.avg_score || '0' },
+                { label: 'High Confidence', value: summary.high_confidence || '0' },
+                { label: 'Volatility Avg', value: summary.volatility_avg || '0%' },
+                { label: 'Momentum Score', value: summary.momentum_score || '0' },
+                { label: 'Volume (Total)', value: summary.volume_total || '0' },
+                { label: 'Conservative', value: summary.conservative || '0' },
+                { label: 'Aggressive', value: summary.aggressive || '0' }
+            ];
+
+            return (
+                <div style={{ display: 'flex', height: '100vh', background: '#faf9f5' }}>
+                    <aside style={{
+                        width: sidebarExpanded ? '220px' : '56px',
+                        background: sidebarExpanded ? '#f5f4ed' : '#faf9f5',
+                        borderRight: '1px solid #CFC9C1',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        transition: 'width 0.3s ease, background 0.3s ease'
+                    }}>
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '12px',
+                            minHeight: '64px'
+                        }}>
+                            <div 
+                                onClick={() => !sidebarExpanded && setSidebarExpanded(true)}
+                                style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}
+                            >
+                                <MaterialIcon style={{ color: '#D87757', fontSize: '24px' }}>
+                                    {sidebarExpanded ? 'trending_up' : 'menu'}
+                                </MaterialIcon>
+                                {sidebarExpanded && (
+                                    <span style={{ fontSize: '14px', fontWeight: 600, color: '#3d3d3a' }}>
+                                        LRBF Trading
+                                    </span>
+                                )}
+                            </div>
+                            {sidebarExpanded && (
+                                <button
+                                    onClick={() => setSidebarExpanded(false)}
+                                    style={{
+                                        background: 'transparent',
+                                        border: 'none',
+                                        cursor: 'pointer',
+                                        padding: '4px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center'
+                                    }}
+                                >
+                                    <MaterialIcon style={{ fontSize: '20px', color: '#3d3d3a' }}>
+                                        chevron_left
+                                    </MaterialIcon>
+                                </button>
+                            )}
+                        </div>
+
+                        <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px', padding: '8px' }}>
+                            {navItems.map(item => (
+                                <button
+                                    key={item.id}
+                                    onClick={() => setActiveTab(item.id)}
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '12px',
+                                        padding: '12px',
+                                        borderRadius: '8px',
+                                        background: activeTab === item.id ? '#e7e5dc' : 'transparent',
+                                        color: '#3d3d3a',
+                                        fontSize: '13px',
+                                        fontWeight: activeTab === item.id ? 600 : 500,
+                                        border: 'none',
+                                        cursor: 'pointer',
+                                        justifyContent: sidebarExpanded ? 'flex-start' : 'center',
+                                        transition: 'all 0.2s ease'
+                                    }}
+                                >
+                                    <MaterialIcon>{item.icon}</MaterialIcon>
+                                    {sidebarExpanded && <span>{item.label}</span>}
+                                </button>
+                            ))}
+                        </nav>
+
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '12px',
+                            padding: '12px',
+                            cursor: 'pointer'
+                        }}>
+                            <div style={{
+                                width: '32px',
+                                height: '32px',
+                                borderRadius: '50%',
+                                background: '#D87757',
+                                color: '#fff',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: '14px',
+                                fontWeight: 600,
+                                flexShrink: 0
+                            }}>
+                                C
+                            </div>
+                            {sidebarExpanded && (
+                                <div style={{ flex: 1 }}>
+                                    <div style={{ fontSize: '13px', fontWeight: 600, lineHeight: '16px', color: '#3d3d3a' }}>
+                                        Colin
+                                    </div>
+                                    <div style={{ fontSize: '11px', lineHeight: '14px', color: '#666' }}>
+                                        Co-Founder
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </aside>
+
+                    <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                        <header style={{
+                            background: '#fff',
+                            borderBottom: '1px solid #CFC9C1',
+                            padding: '16px 24px',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center'
+                        }}>
+                            <div>
+                                <h1 style={{ fontSize: '20px', fontWeight: 600, margin: 0, color: '#3d3d3a' }}>
+                                    {titles[activeTab].title}
+                                </h1>
+                                <p style={{ fontSize: '12px', margin: '4px 0 0 0', color: '#666' }}>
+                                    {titles[activeTab].subtitle}
+                                </p>
+                            </div>
+
+                            <button 
+                                onClick={fetchPremarketData}
+                                style={{
+                                    background: '#D87757',
+                                    color: '#fff',
+                                    border: 'none',
+                                    padding: '8px 16px',
+                                    borderRadius: '8px',
+                                    cursor: 'pointer',
+                                    fontSize: '13px',
+                                    fontWeight: 500
+                                }}
+                            >
+                                Refresh Data
+                            </button>
+                        </header>
+
+                        <div style={{ flex: 1, overflowY: 'auto', padding: '16px' }}>
+                            {activeTab === 'premarket' && (
+                                <div style={{ maxWidth: '1400px' }}>
+                                    {loading && (
+                                        <div style={{ padding: '40px', textAlign: 'center', color: '#666' }}>
+                                            Loading forecast data...
+                                        </div>
+                                    )}
+
+                                    {error && (
+                                        <div style={{ 
+                                            padding: '20px', 
+                                            background: '#fee', 
+                                            border: '1px solid #fcc',
+                                            borderRadius: '8px',
+                                            color: '#c33'
+                                        }}>
+                                            {error}
+                                        </div>
+                                    )}
+
+                                    {!loading && !error && premarketData.length === 0 && (
+                                        <div style={{
+                                            padding: '40px',
+                                            textAlign: 'center',
+                                            background: '#f5f4ed',
+                                            borderRadius: '8px',
+                                            border: '1px solid #CFC9C1'
+                                        }}>
+                                            <p style={{ fontSize: '16px', color: '#666', marginBottom: '8px' }}>
+                                                No forecast data available
+                                            </p>
+                                            <p style={{ fontSize: '13px', color: '#999' }}>
+                                                Markets may be closed or API rate limit reached
+                                            </p>
+                                        </div>
+                                    )}
+
+                                    {!loading && !error && premarketData.length > 0 && (
+                                        <>
+                                            <div style={{
+                                                background: '#f5f4ed',
+                                                border: '1px solid #CFC9C1',
+                                                borderRadius: '8px',
+                                                overflow: 'hidden',
+                                                marginBottom: '16px'
+                                            }}>
+                                                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                                    <thead style={{ background: '#e7e5dc', borderBottom: '1px solid #CFC9C1' }}>
+                                                        <tr>
+                                                            <th style={{ padding: '8px 12px', fontSize: '11px', fontWeight: 600, color: '#3d3d3a', textAlign: 'left' }}>Rank</th>
+                                                            <th style={{ padding: '8px 12px', fontSize: '11px', fontWeight: 600, color: '#3d3d3a', textAlign: 'left' }}>Symbol</th>
+                                                            <th style={{ padding: '8px 12px', fontSize: '11px', fontWeight: 600, color: '#3d3d3a', textAlign: 'right' }}>Score</th>
+                                                            <th style={{ padding: '8px 12px', fontSize: '11px', fontWeight: 600, color: '#3d3d3a', textAlign: 'right' }}>Volatility</th>
+                                                            <th style={{ padding: '8px 12px', fontSize: '11px', fontWeight: 600, color: '#3d3d3a', textAlign: 'right' }}>Momentum</th>
+                                                            <th style={{ padding: '8px 12px', fontSize: '11px', fontWeight: 600, color: '#3d3d3a', textAlign: 'right' }}>Volume</th>
+                                                            <th style={{ padding: '8px 12px', fontSize: '11px', fontWeight: 600, color: '#3d3d3a', textAlign: 'right' }}>Confidence</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {premarketData.map((stock, idx) => (
+                                                            <tr key={stock.symbol} style={{ borderBottom: '1px solid #CFC9C1' }}>
+                                                                <td style={{ padding: '10px 12px', fontSize: '12px', color: '#3d3d3a' }}>
+                                                                    #{idx + 1}
+                                                                </td>
+                                                                <td style={{ padding: '10px 12px' }}>
+                                                                    <StockSymbolButton stock={stock} />
+                                                                </td>
+                                                                <td style={{ padding: '10px 12px', fontSize: '13px', fontWeight: 500, color: '#3d3d3a', textAlign: 'right' }}>
+                                                                    {stock.score}
+                                                                </td>
+                                                                <td style={{ padding: '10px 12px', fontSize: '12px', color: '#3d3d3a', textAlign: 'right' }}>
+                                                                    {stock.volatility?.toFixed(1)}%
+                                                                </td>
+                                                                <td style={{ padding: '10px 12px', fontSize: '12px', color: '#3d3d3a', textAlign: 'right' }}>
+                                                                    {stock.momentum?.toFixed(1)}
+                                                                </td>
+                                                                <td style={{ padding: '10px 12px', fontSize: '12px', color: '#3d3d3a', textAlign: 'right' }}>
+                                                                    {stock.volume}
+                                                                </td>
+                                                                <td style={{ padding: '10px 12px', fontSize: '12px', color: '#3d3d3a', textAlign: 'right' }}>
+                                                                    {stock.confidence}%
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+
+                                            <div style={{
+                                                display: 'grid',
+                                                gridTemplateColumns: 'repeat(4, 1fr)',
+                                                gap: '12px'
+                                            }}>
+                                                {dataCards.map((card, idx) => (
+                                                    <div key={idx} style={{
+                                                        background: '#f5f4ed',
+                                                        border: '1px solid #CFC9C1',
+                                                        borderRadius: '8px',
+                                                        padding: '16px'
+                                                    }}>
+                                                        <div style={{ fontSize: '11px', color: '#3d3d3a', marginBottom: '8px' }}>
+                                                            {card.label}
+                                                        </div>
+                                                        <div style={{ fontSize: '24px', fontWeight: 600, color: '#3d3d3a' }}>
+                                                            {card.value}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+                            )}
+
+                            {activeTab !== 'premarket' && (
+                                <div style={{
+                                    background: '#f5f4ed',
+                                    border: '1px solid #CFC9C1',
+                                    borderRadius: '8px',
+                                    padding: '20px',
+                                    maxWidth: '1400px'
+                                }}>
+                                    <div style={{ fontSize: '13px', color: '#3d3d3a' }}>
+                                        {activeTab === 'live' && 'Live trading monitor coming soon...'}
+                                        {activeTab === 'report' && 'Daily performance report coming soon...'}
+                                        {activeTab === 'settings' && 'Settings panel coming soon...'}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </main>
+                </div>
+            );
+        }
+
+        ReactDOM.render(<TradingDashboard />, document.getElementById('root'));
+    </script>
+</body>
+</html>
