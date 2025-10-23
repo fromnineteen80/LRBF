@@ -27,14 +27,14 @@ try:
     from modules import morning_report
     from modules import live_monitor
     from modules import eod_reporter
-    from modules.database import Database
+    from backend.models.database import Database
     from modules import capitalise_prompts
     from modules import ibkr_connector
-    from modules.stock_universe import get_stock_universe
-    from modules.auth_helper import AuthHelper
-    from modules.email_service import EmailService
-    from modules.sms_service import SMSService
-    from modules.scheduler import scheduler
+    from backend.data.stock_universe import get_stock_universe
+    from backend.utils.auth_helper import AuthHelper
+    from backend.services.email_service import EmailService
+    from backend.services.sms_service import SMSService
+    from backend.utils.scheduler import scheduler
     BACKEND_AVAILABLE = True
 except ImportError as e:
     print(f"  Backend modules not fully loaded: {e}")
@@ -482,7 +482,7 @@ def api_resend_code():
             return jsonify({'error': 'Phone number required'}), 400
         
         if BACKEND_AVAILABLE:
-            from modules.auth_helper import AuthHelper, NotificationService
+            from backend.utils.auth_helper import AuthHelper, NotificationService
             
             cursor = db.conn.cursor()
             cursor.execute("SELECT verification_code FROM users WHERE phone_number = ? AND is_verified = 0", 
@@ -521,7 +521,7 @@ def api_verify_phone():
             return jsonify({'error': 'Phone number and code required'}), 400
         
         if BACKEND_AVAILABLE:
-            from modules.auth_helper import NotificationService
+            from backend.utils.auth_helper import NotificationService
             
             cursor = db.conn.cursor()
             
@@ -585,7 +585,7 @@ def api_update_profile():
                 
                 # Validate email if provided
                 if field == 'email' and value:
-                    from modules.auth_helper import AuthHelper
+                    from backend.utils.auth_helper import AuthHelper
                     valid, msg = AuthHelper.validate_email(value)
                     if not valid:
                         return jsonify({'error': msg}), 400
@@ -598,7 +598,7 @@ def api_update_profile():
                 
                 # Validate phone if provided
                 if field == 'phone_number' and value:
-                    from modules.auth_helper import AuthHelper
+                    from backend.utils.auth_helper import AuthHelper
                     valid, msg = AuthHelper.validate_phone(value)
                     if not valid:
                         return jsonify({'error': msg}), 400
@@ -629,7 +629,7 @@ def api_update_profile():
         if success:
             # If fund_contribution changed, notify other co-founders
             if 'fund_contribution' in updates:
-                from modules.auth_helper import NotificationService
+                from backend.utils.auth_helper import NotificationService
                 notification_service = NotificationService()
                 
                 # Get updated user info
@@ -680,7 +680,7 @@ def api_change_password():
         if not current_password or not new_password:
             return jsonify({'error': 'Current and new passwords required'}), 400
         
-        from modules.auth_helper import AuthHelper
+        from backend.utils.auth_helper import AuthHelper
         
         user_id = session['user_id']
         
@@ -812,7 +812,7 @@ def api_delete_account():
         request_id = db.create_deletion_request(user_id, current_fund_value, payout_amount, notes)
         
         # Send notifications to all other co-founders
-        from modules.auth_helper import NotificationService
+        from backend.utils.auth_helper import NotificationService
         notification_service = NotificationService()
         
         all_users = db.get_all_users()
@@ -1591,7 +1591,7 @@ def get_scheduler_status():
 def get_market_status_api():
     """Get current market status and progress information."""
     try:
-        from modules.market_calendar import get_market_status
+        from backend.data.market_calendar import get_market_status
         from datetime import datetime
         
         status = get_market_status()
@@ -1972,7 +1972,7 @@ def update_settings():
 def get_trading_mode():
     """Get current trading mode (live or simulation)"""
     try:
-        from modules.simulation_helper import get_simulation_status
+        from backend.utils.simulation_helper import get_simulation_status
         
         # Get mode from session (defaults to 'live')
         mode = session.get('trading_mode', 'live')
@@ -2012,7 +2012,7 @@ def set_trading_mode():
 def get_simulation_status_api():
     """Get simulation status information"""
     try:
-        from modules.simulation_helper import get_simulation_status
+        from backend.utils.simulation_helper import get_simulation_status
         
         status = get_simulation_status()
         return jsonify(status)
