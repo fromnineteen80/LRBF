@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% block title %}Profile - Railyard Markets{% endblock %}
+{% block page_title %}Your Profile{% endblock %}
+{% block content %}
+
+<!-- Personal Details Card -->
+<md-elevated-card style="margin-bottom: 24px;">
+    <div style="padding: 16px; border-bottom: 1px solid var(--md-sys-color-outline-variant);">
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <span class="material-symbols-outlined" style="color: var(--md-sys-color-primary); font-size: 28px;">account_circle</span>
+            <h3 style="margin: 0;">Personal Details</h3>
+        </div>
+    </div>
+    
+    <div style="padding: 32px;">
+        <form id="profileForm">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+                <md-filled-text-field 
+                    label="First Name" 
+                    name="first_name" 
+                    value="{{ user.first_name }}"
+                    required
+                    id="firstName">
+                </md-filled-text-field>
+                
+                <md-filled-text-field 
+                    label="Last Name" 
+                    name="last_name" 
+                    value="{{ user.last_name }}"
+                    required
+                    id="lastName">
+                </md-filled-text-field>
+                
+                <md-filled-text-field 
+                    label="Email Address" 
+                    name="email" 
+                    type="email"
+                    value="{{ user.email }}"
+                    disabled
+                    id="email"
+                    supporting-text="Email cannot be changed">
+                </md-filled-text-field>
+                
+                <md-filled-text-field 
+                    label="Phone Number" 
+                    name="phone" 
+                    type="tel"
+                    value="{{ user.phone_number or '' }}"
+                    id="phone">
+                </md-filled-text-field>
+            </div>
+            
+            <div style="margin-top: 24px; display: flex; gap: 12px;">
+                <md-filled-button type="submit">
+                    <span class="material-symbols-outlined" slot="icon">save</span>
+                    Save Changes
+                </md-filled-button>
+                <md-outlined-button type="button" onclick="resetProfileForm()">
+                    <span class="material-symbols-outlined" slot="icon">undo</span>
+                    Reset
+                </md-outlined-button>
+            </div>
+        </form>
+    </div>
+</md-elevated-card>
+
+<!-- Change Password Card -->
+<md-elevated-card style="margin-bottom: 24px;">
+    <div style="padding: 16px; border-bottom: 1px solid var(--md-sys-color-outline-variant);">
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <span class="material-symbols-outlined" style="color: var(--md-sys-color-primary); font-size: 28px;">lock</span>
+            <h3 style="margin: 0;">Change Password</h3>
+        </div>
+    </div>
+    
+    <div style="padding: 32px;">
+        <form id="passwordForm">
+            <div style="display: grid; grid-template-columns: 1fr; gap: 20px; max-width: 500px;">
+                <md-filled-text-field 
+                    label="Current Password" 
+                    name="current_password" 
+                    type="password"
+                    required
+                    id="currentPassword">
+                </md-filled-text-field>
+                
+                <md-filled-text-field 
+                    label="New Password" 
+                    name="new_password" 
+                    type="password"
+                    required
+                    id="newPassword"
+                    supporting-text="Minimum 8 characters, at least one number and one special character">
+                </md-filled-text-field>
+                
+                <md-filled-text-field 
+                    label="Confirm New Password" 
+                    name="confirm_password" 
+                    type="password"
+                    required
+                    id="confirmPassword">
+                </md-filled-text-field>
+            </div>
+            
+            <div style="margin-top: 24px;">
+                <md-filled-button type="submit">
+                    <span class="material-symbols-outlined" slot="icon">lock_reset</span>
+                    Update Password
+                </md-filled-button>
+            </div>
+        </form>
+    </div>
+</md-elevated-card>
+
+<!-- Account Actions Card -->
+<md-elevated-card>
+    <div style="padding: 16px; border-bottom: 1px solid var(--md-sys-color-outline-variant);">
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <span class="material-symbols-outlined" style="color: var(--md-sys-color-error); font-size: 28px;">warning</span>
+            <h3 style="margin: 0;">Danger Zone</h3>
+        </div>
+    </div>
+    
+    <div style="padding: 32px;">
+        <p style="margin: 0 0 16px; color: var(--md-sys-color-on-surface-variant);">
+            Once you delete your account, there is no going back. Please be certain.
+        </p>
+        
+        <md-outlined-button onclick="location.href='{{ url_for('delete_account') }}'" style="--md-sys-color-primary: var(--md-sys-color-error);">
+            <span class="material-symbols-outlined" slot="icon">delete_forever</span>
+            Delete Account
+        </md-outlined-button>
+    </div>
+</md-elevated-card>
+
+<script src="{{ url_for('static', filename='js/profile.js') }}"></script>
+
+{% endblock %}
