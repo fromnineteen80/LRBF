@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Railyard Markets{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<!-- Stats Cards -->
+<div class="grid grid-3 gap-lg mb-lg">
+    <md-elevated-card style="padding: 24px;">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+            <span class="material-symbols-outlined" style="font-size: 32px; color: var(--md-sys-color-primary);">
+                account_balance_wallet
+            </span>
+            <p style="margin: 0; font-size: 14px; color: var(--md-sys-color-on-surface-variant);">Account Balance</p>
+        </div>
+        <h2 style="margin: 0; font-size: 32px; font-weight: 500; color: var(--md-sys-color-on-surface);" id="accountBalance">$0.00</h2>
+    </md-elevated-card>
+    
+    <md-elevated-card style="padding: 24px;">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+            <span class="material-symbols-outlined" style="font-size: 32px; color: var(--md-sys-color-primary);">
+                trending_up
+            </span>
+            <p style="margin: 0; font-size: 14px; color: var(--md-sys-color-on-surface-variant);">Today's P&L</p>
+        </div>
+        <h2 style="margin: 0; font-size: 32px; font-weight: 500;" id="todayPL">$0.00</h2>
+    </md-elevated-card>
+    
+    <md-elevated-card style="padding: 24px;">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+            <span class="material-symbols-outlined" style="font-size: 32px; color: var(--md-sys-color-primary);">
+                percent
+            </span>
+            <p style="margin: 0; font-size: 14px; color: var(--md-sys-color-on-surface-variant);">Win Rate</p>
+        </div>
+        <h2 style="margin: 0; font-size: 32px; font-weight: 500; color: var(--md-sys-color-on-surface);" id="winRate">0%</h2>
+    </md-elevated-card>
+</div>
+
+<!-- Quick Actions Card -->
+<md-elevated-card style="padding: 24px; margin-bottom: 24px;">
+    <h3 style="margin: 0 0 16px 0; font-size: 20px; font-weight: 500;">Quick Actions</h3>
+    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+        <md-filled-button href="/morning">
+            <span slot="icon" class="material-symbols-outlined">wb_twilight</span>
+            Generate Morning Report
+        </md-filled-button>
+        <md-outlined-button href="/live">
+            <span slot="icon" class="material-symbols-outlined">monitoring</span>
+            Live Monitor
+        </md-outlined-button>
+        <md-outlined-button href="/eod">
+            <span slot="icon" class="material-symbols-outlined">nightlight</span>
+            EOD Report
+        </md-outlined-button>
+    </div>
+</md-elevated-card>
+
+<!-- Performance Chart Card -->
+<md-elevated-card style="padding: 24px;">
+    <h3 style="margin: 0 0 16px 0; font-size: 20px; font-weight: 500;">Recent Performance</h3>
+    <div style="position: relative; height: 300px;">
+        <canvas id="performanceChart"></canvas>
+    </div>
+</md-elevated-card>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function loadDashboard() {
+    try {
+        const data = await apiCall('/api/live/data');
+        document.getElementById('accountBalance').textContent = formatCurrency(data.current_balance);
+        document.getElementById('todayPL').textContent = formatCurrency(data.pl_today);
+        document.getElementById('winRate').textContent = data.win_rate.toFixed(1) + '%';
+        
+        // Load chart
+        const history = await apiCall('/api/history/range?days=7');
+        const ctx = document.getElementById('performanceChart');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: history.history.map(d => new Date(d.date).toLocaleDateString()),
+                datasets: [{
+                    label: 'Daily P&L',
+                    data: history.history.map(d => d.realized_pl),
+                    borderColor: '#1976d2',
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        });
+    } catch (error) {
+        console.error('Failed to load dashboard:', error);
+    }
+}
+
+loadDashboard();
+</script>
+{% endblock %}
