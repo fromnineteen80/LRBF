@@ -57,6 +57,13 @@ class MorningReport:
             - forecast_data: Expected performance
             - metadata: Report generation info
         """
+
+        CRITICAL CHANGES (October 2025):
+        - Now uses IBKR Historical Data API instead of yfinance/RapidAPI
+        - Calculates ATR per stock for adaptive confirmation thresholds
+        - Adaptive thresholds: 0.5% (low volatility) to 1.0% (high volatility)
+        - All pattern detection uses volatility-adjusted entry confirmation
+        
         try:
             from backend.core.batch_analyzer import analyze_batch, calculate_quality_scores
             from backend.core.stock_selector import select_balanced_portfolio
@@ -71,7 +78,7 @@ class MorningReport:
                 tickers,
                 period="20d",
                 interval="1m",
-                entry_confirmation_pct=1.5,
+                entry_confirmation_pct=None,
                 verbose=False,
                 use_simulation=self.use_simulation
             )
@@ -113,7 +120,11 @@ class MorningReport:
                     'losses': stock.get('losses_20d', 0),
                     'win_rate': stock.get('win_rate', 0),
                     'avg_win_pct': stock.get('avg_win_pct', 0),
-                    'avg_loss_pct': stock.get('avg_loss_pct', 0)
+                    'avg_loss_pct': stock.get('avg_loss_pct', 0),
+                    'atr_pct': stock.get('atr_pct', 0.02),
+                    'adaptive_threshold': stock.get('adaptive_threshold', 0.75),
+                    'volatility_category': stock.get('volatility_category', 'medium'),
+                    'liquidity_score': stock.get('liquidity_score', 0.0)
                 }
             
             # Step 6: Prepare forecast data for database
