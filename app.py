@@ -21,7 +21,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'modules'))
 
 # Import backend modules
 try:
-    from modules.config import TradingConfig as cfg
+    from config.config import TradingConfig as cfg
     from modules import stock_selector
     from modules import forecast_generator
     from modules import morning_report
