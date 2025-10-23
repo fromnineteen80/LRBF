@@ -1,0 +1,248 @@
+{% extends "base.html" %}
+
+{% block title %}Documents - Luggage Room Boys Fund{% endblock %}
+{% block page_title %}Documents{% endblock %}
+
+{% block content %}
+<div style="max-width: 1400px; margin: 40px auto; padding: 0 16px;">
+    <h1 style="font-size: 32px; font-weight: 500; margin: 0 0 8px 0; color: var(--md-sys-color-on-surface);">Documents</h1>
+    <p style="font-size: 14px; color: var(--md-sys-color-on-surface-variant); margin: 0 0 32px 0;">
+        Access quarterly reports, tax documents, and fund materials
+    </p>
+    
+    <!-- Quarterly Performance Reports -->
+    <md-elevated-card style="padding: 24px; margin-bottom: 24px;">
+        <h2 style="font-size: 22px; font-weight: 500; margin: 0 0 20px 0; color: var(--md-sys-color-on-surface);">Quarterly Performance Reports</h2>
+        
+        <div id="quarterlyReportsGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;">
+            <!-- Placeholder for Q1 2025 -->
+            <md-outlined-card style="padding: 20px; cursor: pointer;">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                    <span class="material-symbols-outlined" style="font-size: 32px; color: var(--md-sys-color-primary);">assessment</span>
+                    <div>
+                        <div style="font-size: 18px; font-weight: 500; color: var(--md-sys-color-on-surface);">Q1 2025</div>
+                        <div style="font-size: 12px; color: var(--md-sys-color-on-surface-variant);">Jan - Mar 2025</div>
+                    </div>
+                </div>
+                <div style="font-size: 14px; margin-bottom: 16px; color: var(--md-sys-color-on-surface-variant);">
+                    Quarterly performance summary, risk metrics, and analysis
+                </div>
+                <md-outlined-button disabled style="width: 100%;">
+                    <span slot="icon" class="material-symbols-outlined">download</span>
+                    Available Apr 15, 2025
+                </md-outlined-button>
+            </md-outlined-card>
+            
+            <!-- Placeholder card -->
+            <div style="padding: 40px; border: 1px dashed var(--md-sys-color-outline); border-radius: 12px; text-align: center;">
+                <span class="material-symbols-outlined" style="font-size: 48px; color: var(--md-sys-color-on-surface-variant); opacity: 0.5;">description</span>
+                <p style="font-size: 14px; margin-top: 12px; color: var(--md-sys-color-on-surface-variant);">
+                    Additional quarterly reports will appear here
+                </p>
+            </div>
+        </div>
+    </md-elevated-card>
+    
+    <!-- Annual Tax Documents -->
+    <md-elevated-card style="padding: 24px; margin-bottom: 24px;">
+        <h2 style="font-size: 22px; font-weight: 500; margin: 0 0 20px 0; color: var(--md-sys-color-on-surface);">Annual Tax Documents</h2>
+        
+        <div id="taxDocumentsGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;">
+            <!-- Placeholder for 2024 K-1 -->
+            <md-outlined-card style="padding: 20px; cursor: pointer;">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                    <span class="material-symbols-outlined" style="font-size: 32px; color: var(--md-sys-color-tertiary);">receipt</span>
+                    <div>
+                        <div style="font-size: 18px; font-weight: 500; color: var(--md-sys-color-on-surface);">2024 Schedule K-1</div>
+                        <div style="font-size: 12px; color: var(--md-sys-color-on-surface-variant);">Tax Year 2024</div>
+                    </div>
+                </div>
+                <div style="font-size: 14px; margin-bottom: 16px; color: var(--md-sys-color-on-surface-variant);">
+                    Partner's share of income, deductions, and credits
+                </div>
+                <md-outlined-button disabled style="width: 100%;">
+                    <span slot="icon" class="material-symbols-outlined">download</span>
+                    Available Mar 15, 2025
+                </md-outlined-button>
+            </md-outlined-card>
+            
+            <!-- Placeholder card -->
+            <div style="padding: 40px; border: 1px dashed var(--md-sys-color-outline); border-radius: 12px; text-align: center;">
+                <span class="material-symbols-outlined" style="font-size: 48px; color: var(--md-sys-color-on-surface-variant); opacity: 0.5;">folder_open</span>
+                <p style="font-size: 14px; margin-top: 12px; color: var(--md-sys-color-on-surface-variant);">
+                    Tax documents will be available before filing deadlines
+                </p>
+            </div>
+        </div>
+    </md-elevated-card>
+    
+    <!-- Fund Documents -->
+    <md-elevated-card style="padding: 24px; margin-bottom: 24px;">
+        <h2 style="font-size: 22px; font-weight: 500; margin: 0 0 20px 0; color: var(--md-sys-color-on-surface);">Fund Documents</h2>
+        
+        <md-list>
+            <!-- Operating Agreement -->
+            <md-list-item>
+                <span slot="start" class="material-symbols-outlined" style="color: var(--md-sys-color-primary);">gavel</span>
+                <div slot="headline">Operating Agreement</div>
+                <div slot="supporting-text">Legal structure and governance rules</div>
+                <md-text-button slot="end" disabled>
+                    <span slot="icon" class="material-symbols-outlined">download</span>
+                    Coming Soon
+                </md-text-button>
+            </md-list-item>
+            
+            <md-divider></md-divider>
+            
+            <!-- Investment Policy Statement -->
+            <md-list-item>
+                <span slot="start" class="material-symbols-outlined" style="color: var(--md-sys-color-primary);">policy</span>
+                <div slot="headline">Investment Policy Statement</div>
+                <div slot="supporting-text">Strategy objectives, risk parameters, and guidelines</div>
+                <md-text-button slot="end" disabled>
+                    <span slot="icon" class="material-symbols-outlined">download</span>
+                    Coming Soon
+                </md-text-button>
+            </md-list-item>
+            
+            <md-divider></md-divider>
+            
+            <!-- Risk Disclosure Statement -->
+            <md-list-item>
+                <span slot="start" class="material-symbols-outlined" style="color: var(--md-sys-color-primary);">shield</span>
+                <div slot="headline">Risk Disclosure Statement</div>
+                <div slot="supporting-text">Important risk factors and disclosures</div>
+                <md-text-button slot="end" disabled>
+                    <span slot="icon" class="material-symbols-outlined">download</span>
+                    Coming Soon
+                </md-text-button>
+            </md-list-item>
+        </md-list>
+    </md-elevated-card>
+    
+    {% if session.get('role') == 'admin' %}
+    <!-- Audit Trail (Admin Only) -->
+    <md-elevated-card style="padding: 24px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 16px;">
+            <div>
+                <h2 style="font-size: 22px; font-weight: 500; margin: 0; color: var(--md-sys-color-on-surface);">Audit Trail</h2>
+                <p style="font-size: 12px; color: var(--md-sys-color-on-surface-variant); margin-top: 4px;">
+                    Complete history of system actions and changes
+                </p>
+            </div>
+            
+            <md-outlined-button onclick="refreshAuditLog()">
+                <span slot="icon" class="material-symbols-outlined">refresh</span>
+                Refresh
+            </md-outlined-button>
+        </div>
+        
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; min-width: 900px; border-collapse: collapse;">
+                <thead>
+                    <tr>
+                        <th style="text-align: left; width: 180px; padding: 12px 16px; border-bottom: 1px solid var(--md-sys-color-outline); color: var(--md-sys-color-on-surface-variant); font-weight: 500;">Timestamp</th>
+                        <th style="text-align: left; width: 150px; padding: 12px 16px; border-bottom: 1px solid var(--md-sys-color-outline); color: var(--md-sys-color-on-surface-variant); font-weight: 500;">User</th>
+                        <th style="text-align: left; width: 180px; padding: 12px 16px; border-bottom: 1px solid var(--md-sys-color-outline); color: var(--md-sys-color-on-surface-variant); font-weight: 500;">Action</th>
+                        <th style="text-align: left; padding: 12px 16px; border-bottom: 1px solid var(--md-sys-color-outline); color: var(--md-sys-color-on-surface-variant); font-weight: 500;">Details</th>
+                        <th style="text-align: left; width: 120px; padding: 12px 16px; border-bottom: 1px solid var(--md-sys-color-outline); color: var(--md-sys-color-on-surface-variant); font-weight: 500;">IP Address</th>
+                    </tr>
+                </thead>
+                <tbody id="auditTable">
+                    <tr>
+                        <td colspan="5" style="text-align: center; padding: 40px;">
+                            <md-circular-progress indeterminate></md-circular-progress>
+                            <div style="margin-top: 12px; font-size: 14px; color: var(--md-sys-color-on-surface-variant);">
+                                Loading audit log...
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Pagination (placeholder) -->
+        <div style="display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 20px;">
+            <md-icon-button disabled>
+                <span class="material-symbols-outlined">chevron_left</span>
+            </md-icon-button>
+            <span style="font-size: 12px; color: var(--md-sys-color-on-surface-variant);">
+                Showing last 100 events
+            </span>
+            <md-icon-button disabled>
+                <span class="material-symbols-outlined">chevron_right</span>
+            </md-icon-button>
+        </div>
+    </md-elevated-card>
+    {% endif %}
+</div>
+
+<style>
+table tbody tr:hover {
+    background: var(--md-sys-color-surface-variant);
+    transition: background 0.2s;
+}
+
+table tbody td {
+    padding: 16px;
+    border-bottom: 1px solid var(--md-sys-color-outline-variant);
+}
+
+table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* Action type badges */
+.action-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: lowercase;
+}
+
+.action-badge.invite {
+    background: var(--md-sys-color-primary-container);
+    color: var(--md-sys-color-on-primary-container);
+}
+
+.action-badge.transaction {
+    background: var(--md-sys-color-tertiary-container);
+    color: var(--md-sys-color-on-tertiary-container);
+}
+
+.action-badge.profile {
+    background: var(--md-sys-color-secondary-container);
+    color: var(--md-sys-color-on-secondary-container);
+}
+
+.action-badge.system {
+    background: var(--md-sys-color-surface-variant);
+    color: var(--md-sys-color-on-surface-variant);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    h1 {
+        font-size: 28px !important;
+    }
+    
+    #quarterlyReportsGrid,
+    #taxDocumentsGrid {
+        grid-template-columns: 1fr !important;
+    }
+    
+    table {
+        font-size: 14px;
+    }
+    
+    table thead th,
+    table tbody td {
+        padding: 12px 8px;
+    }
+}
+</style>
+
+<script src="{{ url_for('static', filename='js/documents.js') }}"></script>
+{% endblock %}
