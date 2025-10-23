@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+
+{% block title %}Morning Report - Railyard Markets{% endblock %}
+{% block page_title %}Morning Report{% endblock %}
+
+{% block content %}
+<md-elevated-card style="margin-bottom: 16px;">
+    <div style="padding: 16px; border-bottom: 1px solid var(--md-sys-color-outline-variant);">
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <md-icon style="color: var(--md-sys-color-primary);">wb_sunny</md-icon>
+                <h3 class="card-title" style="margin: 0;">Stock Selection & Forecast</h3>
+            </div>
+            <md-filled-button onclick="generateReport()">
+                <md-icon slot="icon">analytics</md-icon>
+                Generate Report
+            </md-filled-button>
+        </div>
+    </div>
+    <div style="padding: 24px;">
+        <div id="loadingState" style="display: none; text-align: center; padding: 32px;">
+            <md-circular-progress indeterminate></md-circular-progress>
+            <p class="body-large" style="margin-top: 16px;">Analyzing stocks...</p>
+        </div>
+        <div id="reportContent" style="display: none;">
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 24px;">
+                <div style="padding: 16px; background: var(--md-sys-color-surface-container); border-radius: 12px;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                        <md-icon style="color: var(--md-sys-color-primary);">trending_up</md-icon>
+                        <p class="label-medium" style="color: var(--md-sys-color-on-surface-variant); margin: 0;">Expected Trades</p>
+                    </div>
+                    <p class="title-large" id="expectedTrades" style="margin: 0; color: var(--md-sys-color-primary);">-</p>
+                </div>
+                <div style="padding: 16px; background: var(--md-sys-color-surface-container); border-radius: 12px;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                        <md-icon style="color: var(--md-sys-color-tertiary);">attach_money</md-icon>
+                        <p class="label-medium" style="color: var(--md-sys-color-on-surface-variant); margin: 0;">Expected P&L</p>
+                    </div>
+                    <p class="title-large" id="expectedPL" style="margin: 0; color: var(--md-sys-color-tertiary);">-</p>
+                </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
+                <md-icon style="color: var(--md-sys-color-secondary);">list</md-icon>
+                <h4 class="title-medium" style="margin: 0;">Selected Stocks</h4>
+            </div>
+            <div id="stocksList"></div>
+            
+            <!-- Backup Stocks Section -->
+            <div style="margin-top: 32px;">
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
+                    <md-icon style="color: var(--md-sys-color-tertiary);">backup</md-icon>
+                    <h4 class="title-medium" style="margin: 0;">Backup Stocks (N+4)</h4>
+                </div>
+                <div style="padding: 16px; background: var(--md-sys-color-surface-variant); border-radius: 12px; margin-bottom: 16px;">
+                    <p class="body-medium" style="color: var(--md-sys-color-on-surface-variant); margin: 0;">
+                        Reserve stocks ranked by quality. Use if primary stock becomes ineligible or shows degraded performance.
+                    </p>
+                </div>
+                <div id="backupStocksList"></div>
+                <div id="noBackupStocks" style="display: none; padding: 32px; text-align: center;">
+                    <md-icon style="font-size: 48px; color: var(--md-sys-color-outline); opacity: 0.5;">info</md-icon>
+                    <p class="body-medium" style="color: var(--md-sys-color-on-surface-variant); margin-top: 8px;">No backup stocks available</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div style="padding: 16px; border-top: 1px solid var(--md-sys-color-outline-variant); display: flex; justify-content: flex-end;">
+        <md-outlined-button onclick="downloadPrompts()">
+            <md-icon slot="icon">download</md-icon>
+            Download Prompts
+        </md-outlined-button>
+    </div>
+</md-elevated-card>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function generateReport() {
+    document.getElementById('loadingState').style.display = 'block';
+    document.getElementById('reportContent').style.display = 'none';
+    
+    try {
+        const data = await apiCall('/api/morning/generate', {method: 'POST'});
+        
+        document.getElementById('expectedTrades').textContent = `${data.expected_trades_low}-${data.expected_trades_high}`;
+        document.getElementById('expectedPL').textContent = formatCurrency(data.expected_pl_low) + ' - ' + formatCurrency(data.expected_pl_high);
+        
+        const stocksList = document.getElementById('stocksList');
+        stocksList.innerHTML = data.selected_stocks.map(stock => `
+            <div style="padding: 16px; border-bottom: 1px solid var(--md-sys-color-outline-variant); display: flex; flex-direction: column; gap: 8px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <md-icon style="color: var(--md-sys-color-primary);">show_chart</md-icon>
+                        <span class="title-medium">${stock.ticker}</span>
+                    </div>
+                    <span class="label-large" style="padding: 4px 12px; background: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-secondary-container); border-radius: 8px;">${stock.category}</span>
+                </div>
+                <div style="display: flex; gap: 24px;">
+                    <div style="display: flex; align-items: center; gap: 4px;">
+                        <md-icon style="font-size: 16px; color: var(--md-sys-color-on-surface-variant);">input</md-icon>
+                        <p class="body-small" style="color: var(--md-sys-color-on-surface-variant); margin: 0;">
+                            Entries: ${stock.expected_daily_entries}
+                        </p>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 4px;">
+                        <md-icon style="font-size: 16px; color: var(--md-sys-color-on-surface-variant);">check_circle</md-icon>
+                        <p class="body-small" style="color: var(--md-sys-color-on-surface-variant); margin: 0;">
+                            Win Rate: ${stock.win_rate}%
+                        </p>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 4px;">
+                        <md-icon style="font-size: 16px; color: var(--md-sys-color-on-surface-variant);">payments</md-icon>
+                        <p class="body-small" style="color: var(--md-sys-color-on-surface-variant); margin: 0;">
+                            P&L: ${formatCurrency(stock.expected_daily_pl)}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+        
+        // Render backup stocks
+        const backupStocksList = document.getElementById('backupStocksList');
+        const noBackupStocks = document.getElementById('noBackupStocks');
+        
+        if (data.backup_stocks && data.backup_stocks.length > 0) {
+            backupStocksList.innerHTML = data.backup_stocks.map((stock, index) => `
+                <div style="padding: 16px; border-bottom: 1px solid var(--md-sys-color-outline-variant); display: flex; justify-content: space-between; align-items: center;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <span class="label-large" style="color: var(--md-sys-color-on-surface-variant); width: 24px;">${index + 1}</span>
+                        <md-icon style="color: var(--md-sys-color-tertiary); font-size: 20px;">show_chart</md-icon>
+                        <span class="title-medium">${stock.ticker}</span>
+                    </div>
+                    <div style="display: flex; gap: 16px; align-items: center;">
+                        <span class="label-small" style="padding: 4px 8px; background: var(--md-sys-color-tertiary-container); color: var(--md-sys-color-on-tertiary-container); border-radius: 6px;">
+                            ${stock.category}
+                        </span>
+                        <span class="body-small" style="color: var(--md-sys-color-on-surface-variant);">
+                            Quality: ${(stock.quality_score * 100).toFixed(1)}
+                        </span>
+                    </div>
+                </div>
+            `).join('');
+            noBackupStocks.style.display = 'none';
+        } else {
+            backupStocksList.innerHTML = '';
+            noBackupStocks.style.display = 'block';
+        }
+        
+        document.getElementById('loadingState').style.display = 'none';
+        document.getElementById('reportContent').style.display = 'block';
+        showSnackbar('Morning report generated successfully');
+    } catch (error) {
+        document.getElementById('loadingState').style.display = 'none';
+        showSnackbar('Failed to generate report');
+    }
+}
+
+async function downloadPrompts() {
+    try {
+        const data = await apiCall('/api/morning/prompts');
+        const content = data.prompts.map(p => `[${p.ticker}]\n${p.prompt}\n\n`).join('---\n\n');
+        const blob = new Blob([content], {type: 'text/plain'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'capitalise_prompts.txt';
+        a.click();
+        showSnackbar('Prompts downloaded');
+    } catch (error) {
+        showSnackbar('Failed to download prompts');
+    }
+}
+</script>
+{% endblock %}
