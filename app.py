@@ -40,7 +40,9 @@ except ImportError as e:
     print(f"  Backend modules not fully loaded: {e}")
     BACKEND_AVAILABLE = False
 
-app = Flask(__name__)
+app = Flask(__name__,
+               template_folder='frontend/templates',
+               static_folder='frontend/static')
 # Development: Use fixed key so sessions persist across Flask reloads
 # Production: Use environment variable
 app.secret_key = os.environ.get('SECRET_KEY', 'dev-railyard-secret-key-DO-NOT-USE-IN-PRODUCTION')
