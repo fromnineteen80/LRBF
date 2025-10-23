@@ -1,0 +1,456 @@
+{% extends "base.html" %}
+
+{% block title %}How It Works - Railyard Markets{% endblock %}
+{% block page_title %}How It Works{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Blog Layout */
+    .blog-container {
+        display: grid;
+        grid-template-columns: 1fr 340px;
+        gap: var(--spacing-xl);
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: var(--spacing-xl);
+    }
+    
+    /* Main Content Column - Roboto Serif */
+    .blog-content {
+        font-family: 'Roboto Serif', serif;
+        font-size: 18px;
+        line-height: 1.8;
+        color: var(--md-sys-color-on-surface);
+    }
+    
+    .blog-content h1 {
+        font-family: 'Roboto Serif', serif;
+        font-size: 42px;
+        font-weight: 700;
+        line-height: 1.2;
+        margin: 0 0 var(--spacing-md) 0;
+        color: var(--md-sys-color-on-surface);
+    }
+    
+    .blog-content h2 {
+        font-family: 'Roboto Serif', serif;
+        font-size: 32px;
+        font-weight: 600;
+        line-height: 1.3;
+        margin: var(--spacing-xl) 0 var(--spacing-md) 0;
+        color: var(--md-sys-color-on-surface);
+    }
+    
+    .blog-content h3 {
+        font-family: 'Roboto Serif', serif;
+        font-size: 24px;
+        font-weight: 600;
+        line-height: 1.4;
+        margin: var(--spacing-lg) 0 var(--spacing-sm) 0;
+        color: var(--md-sys-color-on-surface);
+    }
+    
+    .blog-content p {
+        margin: 0 0 var(--spacing-lg) 0;
+    }
+    
+    .blog-content strong {
+        font-weight: 600;
+        color: var(--md-sys-color-primary);
+    }
+    
+    .blog-content blockquote {
+        border-left: 4px solid var(--md-sys-color-primary);
+        padding-left: var(--spacing-lg);
+        margin: var(--spacing-xl) 0;
+        font-style: italic;
+        color: var(--md-sys-color-on-surface-variant);
+    }
+    
+    .blog-content ul, .blog-content ol {
+        margin: var(--spacing-md) 0 var(--spacing-lg) var(--spacing-lg);
+        padding-left: var(--spacing-lg);
+    }
+    
+    .blog-content li {
+        margin-bottom: var(--spacing-sm);
+    }
+    
+    .blog-content code {
+        font-family: 'Roboto Mono', monospace;
+        background-color: var(--md-sys-color-surface-variant);
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 16px;
+    }
+    
+    .blog-meta {
+        font-family: 'Roboto Flex', sans-serif;
+        font-size: 14px;
+        color: var(--md-sys-color-on-surface-variant);
+        margin-bottom: var(--spacing-xl);
+        padding-bottom: var(--spacing-lg);
+        border-bottom: 1px solid var(--md-sys-color-outline-variant);
+    }
+    
+    .blog-meta-item {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--spacing-xs);
+        margin-right: var(--spacing-lg);
+    }
+    
+    /* Pattern Steps - Visual Cards */
+    .pattern-step {
+        background-color: var(--md-sys-color-surface-container);
+        border-left: 4px solid var(--md-sys-color-primary);
+        padding: var(--spacing-lg);
+        margin: var(--spacing-lg) 0;
+        border-radius: var(--md-shape-corner-medium);
+    }
+    
+    .pattern-step h4 {
+        font-family: 'Roboto Flex', sans-serif;
+        font-size: 16px;
+        font-weight: 600;
+        margin: 0 0 var(--spacing-sm) 0;
+        color: var(--md-sys-color-primary);
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+    }
+    
+    .pattern-step p {
+        margin: 0;
+        font-size: 16px;
+        font-family: 'Roboto Flex', sans-serif;
+    }
+    
+    .step-number {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        background-color: var(--md-sys-color-primary);
+        color: var(--md-sys-color-on-primary);
+        border-radius: 50%;
+        font-weight: 600;
+        font-size: 14px;
+    }
+    
+    /* Sidebar - Roboto Flex */
+    .blog-sidebar {
+        font-family: 'Roboto Flex', sans-serif;
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-lg);
+        position: sticky;
+        top: var(--spacing-lg);
+        height: fit-content;
+    }
+    
+    .sidebar-card {
+        padding: var(--spacing-lg);
+    }
+    
+    .sidebar-card h4 {
+        font-size: 16px;
+        font-weight: 600;
+        margin: 0 0 var(--spacing-md) 0;
+    }
+    
+    .sidebar-card p {
+        font-size: 14px;
+        line-height: 1.5;
+        margin: 0 0 var(--spacing-sm) 0;
+        color: var(--md-sys-color-on-surface-variant);
+    }
+    
+    .sidebar-link {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+        padding: var(--spacing-sm) 0;
+        color: var(--md-sys-color-primary);
+        text-decoration: none;
+        font-size: 14px;
+    }
+    
+    .sidebar-link:hover {
+        text-decoration: underline;
+    }
+    
+    .key-metric {
+        display: flex;
+        flex-direction: column;
+        padding: var(--spacing-md);
+        background-color: var(--md-sys-color-surface-container-high);
+        border-radius: var(--md-shape-corner-small);
+        margin-bottom: var(--spacing-sm);
+    }
+    
+    .key-metric-label {
+        font-size: 12px;
+        color: var(--md-sys-color-on-surface-variant);
+        margin-bottom: 4px;
+    }
+    
+    .key-metric-value {
+        font-size: 20px;
+        font-weight: 600;
+        color: var(--md-sys-color-primary);
+    }
+    
+    /* Responsive */
+    @media (max-width: 1024px) {
+        .blog-container {
+            grid-template-columns: 1fr;
+        }
+        
+        .blog-sidebar {
+            position: static;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="blog-container">
+    <!-- Main Content -->
+    <article class="blog-content">
+        <h1>The VWAP Recovery Pattern</h1>
+        
+        <div class="blog-meta">
+            <span class="blog-meta-item">
+                <span class="material-symbols-outlined" style="font-size: 18px;">science</span>
+                <span>Technical Deep Dive</span>
+            </span>
+            <span class="blog-meta-item">
+                <span class="material-symbols-outlined" style="font-size: 18px;">schedule</span>
+                <span>20 min read</span>
+            </span>
+        </div>
+        
+        <p>Our trading strategy is built on a single, repeatable pattern that occurs hundreds of times per day across liquid markets. Understanding this pattern is key to understanding how Railyard Markets operates.</p>
+        
+        <h2>What is VWAP?</h2>
+        
+        <p>The <strong>Volume Weighted Average Price (VWAP)</strong> is the average price a stock trades at throughout the day, weighted by volume. Institutional traders use VWAP as a benchmark for execution quality — their goal is to fill large orders close to this average price.</p>
+        
+        <blockquote>
+            When price deviates from VWAP, institutional algorithms automatically adjust their orders to pull price back toward the average. This creates predictable micro-reversions that our system captures.
+        </blockquote>
+        
+        <h2>The 3-Step Pattern</h2>
+        
+        <p>Our Recovery Engine identifies a specific 3-step price geometry that signals an imminent reversal:</p>
+        
+        <div class="pattern-step">
+            <h4>
+                <span class="step-number">1</span>
+                Initial Decline
+            </h4>
+            <p>Price drops from a recent high. This decline creates the opportunity — sellers push price below VWAP, triggering institutional rebalancing algorithms.</p>
+        </div>
+        
+        <div class="pattern-step">
+            <h4>
+                <span class="step-number">2</span>
+                50% Recovery
+            </h4>
+            <p>Price rebounds by 50% of the initial decline. This confirms that buyers are absorbing the selling pressure and institutional orders are activating.</p>
+        </div>
+        
+        <div class="pattern-step">
+            <h4>
+                <span class="step-number">3</span>
+                50% Retracement
+            </h4>
+            <p>Price pulls back by 50% of the recovery. This final test creates the "last low" — the optimal entry point where selling pressure is exhausted.</p>
+        </div>
+        
+        <h3>Entry Confirmation</h3>
+        
+        <p>After the pattern completes, we wait for confirmation: <strong>price must climb a configurable threshold (typically 1.5-2%) from the last low</strong>. This climb confirms that the recovery is genuine and not a false signal.</p>
+        
+        <p>If price fails to climb the threshold and instead falls further, we do not enter — no capital is risked on unconfirmed patterns.</p>
+        
+        <h2>Risk Management</h2>
+        
+        <p>Every trade operates within strict parameters:</p>
+        
+        <ul>
+            <li><strong>Position Size:</strong> Fixed percentage of deployed capital (typically 10% per stock in an 8-stock portfolio)</li>
+            <li><strong>Stop Loss:</strong> Automatic exit at -0.5% from entry price</li>
+            <li><strong>Profit Targets:</strong> Two-tier system at +0.75% and +2.0%</li>
+            <li><strong>Daily Loss Limit:</strong> All trading halts if daily losses exceed -1.5%</li>
+            <li><strong>Intraday Only:</strong> All positions close before market close — zero overnight risk</li>
+        </ul>
+        
+        <h2>The X then X+ Exit Strategy</h2>
+        
+        <p>Once entered, our system uses a unique two-target exit approach:</p>
+        
+        <ol>
+            <li>When price reaches Target 1 (+0.75%), we <strong>wait</strong></li>
+            <li>If price continues to Target 2 (+2.0%), we sell at Target 2</li>
+            <li>If price returns to Target 1, we sell at Target 1</li>
+            <li>If price hits the stop loss (-0.5%), we exit immediately</li>
+        </ol>
+        
+        <p>This approach maximizes profit on strong moves while protecting gains on weaker recoveries.</p>
+        
+        <h2>Why It Works</h2>
+        
+        <p>The strategy exploits a <strong>structural asymmetry</strong> in the market:</p>
+        
+        <p>Large institutional traders must execute gradually to avoid moving the market against themselves. When price drifts too far from VWAP, their algorithms automatically rebalance — buying when price is below VWAP, selling when above.</p>
+        
+        <p>Our system positions itself on the other side of this rebalancing behavior, capturing the predictable micro-reversions that result from institutional order flow.</p>
+        
+        <h3>The Advantage</h3>
+        
+        <p>Most traders try to predict market direction. We don't predict — we <strong>react to structural behavior</strong> with mathematical precision:</p>
+        
+        <ul>
+            <li>Smaller capital allows faster execution</li>
+            <li>Zero discretionary bias (AI-driven rules)</li>
+            <li>Hundreds of opportunities per day</li>
+            <li>Consistent win rate of 60-70%</li>
+            <li>Controlled risk on every trade</li>
+        </ul>
+        
+        <h2>Technology Stack</h2>
+        
+        <p>Our execution relies on three integrated systems:</p>
+        
+        <h3>1. Railyard.ai (Analytics Layer)</h3>
+        <p>Python-based pattern detection and forecasting. Analyzes historical data to select the best stocks and predict daily performance.</p>
+        
+        <h3>2. Capitalise.ai (Execution Layer)</h3>
+        <p>Automated trading platform that executes our prompts in real-time through Interactive Brokers (IBKR).</p>
+        
+        <h3>3. Interactive Brokers (Brokerage Layer)</h3>
+        <p>Institutional-grade broker providing sub-10ms execution and competitive fees.</p>
+        
+        <h2>Performance Metrics</h2>
+        
+        <p>In simulation and prototype testing, the Recovery Engine has demonstrated:</p>
+        
+        <ul>
+            <li><strong>Win Rate:</strong> 65-70% of trades reach profit targets</li>
+            <li><strong>Average Win:</strong> 1.4% per winning trade</li>
+            <li><strong>Average Loss:</strong> 0.5% per losing trade (protected by stop loss)</li>
+            <li><strong>Expected Daily ROI:</strong> 3-5% on deployed capital</li>
+            <li><strong>Sharpe Ratio:</strong> Above 2.3 (excellent risk-adjusted returns)</li>
+        </ul>
+        
+        <h2>The Road Ahead</h2>
+        
+        <p>As The Luggage Room Boys Fund matures, we will:</p>
+        
+        <ol>
+            <li>Scale from 8 to 16+ stocks for increased diversification</li>
+            <li>Develop proprietary execution engine (Railyard Markets brokerage)</li>
+            <li>Reduce fees by 8-12% annually through internal routing</li>
+            <li>Expand to futures, commodities, and international markets</li>
+        </ol>
+        
+        <p>The foundation is mathematical. The execution is automated. The advantage is structural.</p>
+        
+    </article>
+    
+    <!-- Sidebar -->
+    <aside class="blog-sidebar">
+        <!-- Quick Reference Card -->
+        <md-elevated-card class="sidebar-card">
+            <h4>Quick Reference</h4>
+            
+            <div class="key-metric">
+                <span class="key-metric-label">Pattern Steps</span>
+                <span class="key-metric-value">3-Step Geometry</span>
+            </div>
+            
+            <div class="key-metric">
+                <span class="key-metric-label">Entry Threshold</span>
+                <span class="key-metric-value">+1.5-2.0%</span>
+            </div>
+            
+            <div class="key-metric">
+                <span class="key-metric-label">Stop Loss</span>
+                <span class="key-metric-value">-0.5%</span>
+            </div>
+            
+            <div class="key-metric">
+                <span class="key-metric-label">Profit Targets</span>
+                <span class="key-metric-value">+0.75% / +2.0%</span>
+            </div>
+            
+            <div class="key-metric">
+                <span class="key-metric-label">Win Rate</span>
+                <span class="key-metric-value">65-70%</span>
+            </div>
+        </md-elevated-card>
+        
+        <!-- Trading Hours Card -->
+        <md-elevated-card class="sidebar-card">
+            <h4>Trading Hours</h4>
+            <p><strong>Market Open:</strong> 9:31 AM ET</p>
+            <p><strong>New Entries Stop:</strong> 3:50 PM ET</p>
+            <p><strong>All Positions Close:</strong> 3:50 PM ET</p>
+            <p style="margin-top: var(--spacing-md); color: var(--md-sys-color-on-surface-variant);">
+                <em>Zero overnight exposure. All positions intraday only.</em>
+            </p>
+        </md-elevated-card>
+        
+        <!-- Configuration Card -->
+        <md-elevated-card class="sidebar-card">
+            <h4>System Configuration</h4>
+            <p style="margin-bottom: var(--spacing-lg);">View and modify trading parameters.</p>
+            <a href="{{ url_for('settings') }}" class="sidebar-link">
+                <span class="material-symbols-outlined" style="font-size: 18px;">settings</span>
+                <span>Settings</span>
+            </a>
+            <a href="{{ url_for('api_credentials') }}" class="sidebar-link">
+                <span class="material-symbols-outlined" style="font-size: 18px;">vpn_key</span>
+                <span>API Credentials</span>
+            </a>
+        </md-elevated-card>
+        
+        <!-- Navigation Card -->
+        <md-elevated-card class="sidebar-card">
+            <h4>See It In Action</h4>
+            <a href="{{ url_for('morning') }}" class="sidebar-link">
+                <span class="material-symbols-outlined" style="font-size: 18px;">wb_twilight</span>
+                <span>Morning Analysis</span>
+            </a>
+            <a href="{{ url_for('live') }}" class="sidebar-link">
+                <span class="material-symbols-outlined" style="font-size: 18px;">monitoring</span>
+                <span>Live Monitoring</span>
+            </a>
+            <a href="{{ url_for('eod') }}" class="sidebar-link">
+                <span class="material-symbols-outlined" style="font-size: 18px;">nightlight</span>
+                <span>EOD Analysis</span>
+            </a>
+            <a href="{{ url_for('calculator') }}" class="sidebar-link">
+                <span class="material-symbols-outlined" style="font-size: 18px;">calculate</span>
+                <span>Performance Calculator</span>
+            </a>
+        </md-elevated-card>
+        
+        <!-- Learn More Card -->
+        <md-elevated-card class="sidebar-card">
+            <h4>Additional Resources</h4>
+            <a href="{{ url_for('about') }}" class="sidebar-link">
+                <span class="material-symbols-outlined" style="font-size: 18px;">info</span>
+                <span>About The Fund</span>
+            </a>
+            <a href="{{ url_for('practice') }}" class="sidebar-link">
+                <span class="material-symbols-outlined" style="font-size: 18px;">science</span>
+                <span>Practice Mode</span>
+            </a>
+        </md-elevated-card>
+    </aside>
+</div>
+{% endblock %}
