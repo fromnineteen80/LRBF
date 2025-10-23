@@ -29,7 +29,10 @@ def download_stock_data(
     use_simulation: bool = False
 ) -> Optional[pd.DataFrame]:
     """
-    Download historical price data for a stock.
+    Download historical price data using IBKR API.
+    
+    CRITICAL CHANGE: Now uses IBKR Historical Data API instead of yfinance/RapidAPI.
+    This ensures data consistency with live trading system.
     
     Args:
         ticker: Stock ticker symbol
@@ -44,6 +47,43 @@ def download_stock_data(
     
     # If simulation mode, generate synthetic data
     if use_simulation:
+        return generate_simulated_stock_data(ticker, period, interval)
+    
+    try:
+        from backend.data.ibkr_connector import IBKRConnector
+        
+        # Connect to IBKR
+        ibkr = IBKRConnector(use_simulation=use_simulation)
+        ibkr.connect()
+        
+        # Parse period to get days
+        period_days = int(period.replace('d', ''))
+        
+        # Convert interval to IBKR bar size format
+        # "1m" -> "1 min", "5m" -> "5 min", etc.
+        if interval.endswith('m'):
+            bar_size = f"{interval[:-1]} min"
+        else:
+            bar_size = "1 min"  # Default
+        
+        # Fetch historical data from IBKR
+        data = ibkr.get_historical_data(
+            ticker=ticker,
+            period_days=period_days,
+            bar_size=bar_size
+        )
+        
+        ibkr.disconnect()
+        
+        if data is None or data.empty:
+            print(f"⚠️  No data returned from IBKR for {ticker}, using simulation")
+            return generate_simulated_stock_data(ticker, period, interval)
+        
+        return data
+        
+    except Exception as e:
+        print(f"❌ IBKR data fetch failed for {ticker}: {e}")
+        print(f"   Falling back to simulation data")
         return generate_simulated_stock_data(ticker, period, interval)
     
     try:
@@ -319,6 +359,20 @@ def analyze_single_stock(
     
     # Analyze patterns
     try:
+    
+    # Calculate ATR and adaptive confirmation threshold
+    from backend.utils.metrics_utils import analyze_stock_metrics
+    
+    metrics = analyze_stock_metrics(data)
+    atr_pct = metrics['atr_pct']
+    adaptive_threshold = metrics['adaptive_threshold']
+    
+    if verbose:
+        print(f"   ATR: {atr_pct*100:.2f}%, Adaptive Threshold: {adaptive_threshold:.2f}%")
+    
+    # Use adaptive threshold instead of fixed entry_confirmation_pct
+    actual_threshold = adaptive_threshold if entry_confirmation_pct is None else entry_confirmation_pct
+
         results = analyze_patterns_with_outcomes(
             data,
             entry_confirmation_pct=entry_confirmation_pct
