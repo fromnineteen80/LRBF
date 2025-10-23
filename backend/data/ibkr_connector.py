@@ -375,6 +375,114 @@ class IBKRConnector:
     # ========================================================================
     # CONNECTION HEALTH
     # ========================================================================
+    # HISTORICAL DATA
+    # ========================================================================
+    
+    def get_historical_data(
+        self,
+        ticker: str,
+        period_days: int = 20,
+        bar_size: str = "1 min",
+        what_to_show: str = "TRADES"
+    ):
+        """
+        Get historical 1-minute bar data from IBKR.
+        
+        Args:
+            ticker: Stock ticker symbol
+            period_days: Number of days of historical data (default: 20)
+            bar_size: Bar interval (default: "1 min")
+            what_to_show: Data type (default: "TRADES")
+        
+        Returns:
+            DataFrame with columns: [timestamp, open, high, low, close, volume]
+            Returns None if data fetch fails
+        """
+        if not self.connected:
+            raise ConnectionError("Not connected to IBKR")
+        
+        if self.use_simulation:
+            return self._sim_get_historical_data(ticker, period_days, bar_size)
+        else:
+            return self._prod_get_historical_data(ticker, period_days, bar_size, what_to_show)
+    
+    def _prod_get_historical_data(
+        self,
+        ticker: str,
+        period_days: int,
+        bar_size: str,
+        what_to_show: str
+    ):
+        """
+        Production: Fetch historical data from IBKR Client Portal Gateway API.
+        
+        IBKR Endpoint: /v1/api/iserver/marketdata/history
+        """
+        import pandas as pd
+        
+        base_url = "https://localhost:5000/v1/api"
+        bar_size_param = bar_size.replace(" ", "")
+        period_param = f"{period_days}d"
+        
+        search_url = f"{base_url}/iserver/secdef/search"
+        search_params = {
+            "symbol": ticker,
+            "secType": "STK",
+            "name": "false"
+        }
+        
+        try:
+            search_response = requests.get(search_url, params=search_params, verify=False)
+            search_response.raise_for_status()
+            search_data = search_response.json()
+            
+            if not search_data:
+                return None
+            
+            conid = search_data[0]['conid']
+            
+            history_url = f"{base_url}/iserver/marketdata/history"
+            history_params = {
+                "conid": conid,
+                "period": period_param,
+                "bar": bar_size_param,
+                "outsideRth": "false"
+            }
+            
+            history_response = requests.get(history_url, params=history_params, verify=False)
+            history_response.raise_for_status()
+            history_data = history_response.json()
+            
+            bars = history_data.get('data', [])
+            if not bars:
+                return None
+            
+            df = pd.DataFrame(bars)
+            df.rename(columns={'t': 'timestamp', 'o': 'open', 'h': 'high', 'l': 'low', 'c': 'close', 'v': 'volume'}, inplace=True)
+            df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
+            
+            for col in ['open', 'high', 'low', 'close', 'volume']:
+                df[col] = pd.to_numeric(df[col], errors='coerce')
+            
+            return df
+            
+        except Exception as e:
+            print(f"❌ IBKR API error for {ticker}: {e}")
+            return None
+    
+    def _sim_get_historical_data(self, ticker: str, period_days: int, bar_size: str):
+        """Simulation: Generate realistic historical data for testing."""
+        try:
+            from backend.core.batch_analyzer import generate_simulated_stock_data
+            period_str = f"{period_days}d"
+            interval = bar_size.replace(" ", "").replace("min", "m")
+            return generate_simulated_stock_data(ticker, period_str, interval)
+        except Exception as e:
+            print(f"❌ Error generating simulated data: {e}")
+            return None
+
+
+    # ========================================================================
     
     def check_connection(self) -> Dict:
         """
