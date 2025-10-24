@@ -282,84 +282,25 @@ class CategoryScorer:
         """
         VWAP Stability Score (5% weight)
         
-        Multi-tier professional analysis of VWAP pattern cleanliness.
-        Focus: Clean patterns + precise recoveries + curve preservation.
+        Pattern cleanliness - clean VWAP = reliable patterns, less noise.
         
         Inputs:
-        - vwap_stability_score: Price deviation from VWAP (lower = better)
-        - vwap_distance_pct: Average distance price strays from VWAP
-        - recovery_precision: How accurately patterns recover to VWAP (0-1)
-        - vwap_calculation_stability: VWAP's own consistency (std dev)
-        - false_breakout_rate: % of VWAP crosses that don't complete pattern
+        - vwap_stability_score: Consistency metric
+        - vwap_distance_pct: How far price strays from VWAP
         
-        3-tier scoring:
-        - VWAP Adherence (35%): Price tracks VWAP closely
-        - Recovery Precision (35%): Patterns recover accurately to VWAP
-        - Calculation Stability (30%): VWAP itself is stable (not jumpy)
-        
-        Target: Deviation <1.2%, precision >0.75, stable VWAP calculation
-        Scale: 0-100 (higher = better)
+        Target: Stability score < 1.5%
+        Scale: 0-100 (higher = better, lower stability value = better)
         """
-        stability = stock_data.get('vwap_stability_score', 5.0)  # % deviation
-        vwap_distance = stock_data.get('vwap_distance_pct', 3.0)  # % average distance
-        recovery_precision = stock_data.get('recovery_precision', 0.70)  # 0-1
+        stability = stock_data.get('vwap_stability_score', 5.0)
         
-        # === 1. VWAP Adherence (35% weight) ===
-        # How closely does price track VWAP throughout the day?
-        # Lower deviation = cleaner patterns, less noise
-        if stability <= 0.8:
-            adherence_score = 100.0  # Excellent adherence
-        elif stability <= 1.2:
-            adherence_score = 90.0 + ((1.2 - stability) / 0.4) * 10.0  # Very good
-        elif stability <= 1.8:
-            adherence_score = 75.0 + ((1.8 - stability) / 0.6) * 15.0  # Good
+        if stability <= 1.0:
+            score = 100.0
+        elif stability <= 1.5:
+            score = 100.0 - ((stability - 1.0) / 0.5) * 20.0
         elif stability <= 2.5:
-            adherence_score = 50.0 + ((2.5 - stability) / 0.7) * 25.0  # Acceptable
-        elif stability <= 3.5:
-            adherence_score = 25.0 + ((3.5 - stability) / 1.0) * 25.0  # Marginal
+            score = 80.0 - ((stability - 1.5) / 1.0) * 40.0
         else:
-            adherence_score = max(0.0, 25.0 - ((stability - 3.5) * 7.0))  # Poor
-        
-        # === 2. Recovery Precision (35% weight) ===
-        # How accurately do patterns recover to VWAP after deviation?
-        # High precision = reliable entries, predictable behavior
-        if recovery_precision >= 0.85:
-            precision_score = 100.0  # Elite precision
-        elif recovery_precision >= 0.75:
-            precision_score = 88.0 + ((recovery_precision - 0.75) / 0.1) * 12.0  # Excellent
-        elif recovery_precision >= 0.65:
-            precision_score = 72.0 + ((recovery_precision - 0.65) / 0.1) * 16.0  # Good
-        elif recovery_precision >= 0.55:
-            precision_score = 52.0 + ((recovery_precision - 0.55) / 0.1) * 20.0  # Acceptable
-        elif recovery_precision >= 0.45:
-            precision_score = 30.0 + ((recovery_precision - 0.45) / 0.1) * 22.0  # Marginal
-        else:
-            precision_score = (recovery_precision / 0.45) * 30.0  # Poor
-        
-        # Penalty for high false breakout rate
-        false_breakout_rate = stock_data.get('false_breakout_rate', 0.20)  # 0-1
-        if false_breakout_rate > 0.30:
-            false_penalty = min(20.0, (false_breakout_rate - 0.30) * 50.0)
-            precision_score = max(0.0, precision_score - false_penalty)
-        
-        # === 3. VWAP Calculation Stability (30% weight) ===
-        # Is VWAP itself stable (not jumpy) throughout the day?
-        # Stable VWAP = predictable patterns, easier to trade
-        vwap_calc_stability = stock_data.get('vwap_calculation_stability', 0.5)  # Std dev (lower = better)
-        
-        if vwap_calc_stability <= 0.3:
-            calc_score = 100.0  # Very stable VWAP
-        elif vwap_calc_stability <= 0.5:
-            calc_score = 85.0 + ((0.5 - vwap_calc_stability) / 0.2) * 15.0
-        elif vwap_calc_stability <= 0.8:
-            calc_score = 65.0 + ((0.8 - vwap_calc_stability) / 0.3) * 20.0
-        elif vwap_calc_stability <= 1.2:
-            calc_score = 40.0 + ((1.2 - vwap_calc_stability) / 0.4) * 25.0
-        else:
-            calc_score = max(0.0, 40.0 - ((vwap_calc_stability - 1.2) * 20.0))
-        
-        # === Composite VWAP Stability Score ===
-        score = (adherence_score * 0.35) + (precision_score * 0.35) + (calc_score * 0.30)
+            score = max(0.0, 40.0 - ((stability - 2.5) * 10.0))
         
         return min(100.0, max(0.0, score))
     
@@ -367,26 +308,88 @@ class CategoryScorer:
         """
         Time Efficiency Score (5% weight)
         
-        Fast execution & resolution = capital turnover = more profit.
+        Multi-tier professional analysis of capital turnover speed.
+        Focus: Fast compounding + quick wins + capital efficiency.
         
         Inputs:
         - avg_hold_time_minutes: Average position duration
-        - avg_bars_to_entry: How quickly patterns confirm
-        - time_to_target: How fast targets are hit
+        - avg_bars_to_entry: Bars needed for pattern confirmation
+        - time_to_target_minutes: Average time to hit profit target
+        - capital_idle_rate: % of trading day capital is unused (lower = better)
+        - win_speed_vs_loss_speed: Ratio of time to win vs time to loss
         
-        Target: Avg hold < 15 minutes
+        3-tier scoring:
+        - Position Duration (35%): Fast trade resolution
+        - Entry Confirmation Speed (30%): Quick pattern validation
+        - Target Achievement Time (35%): Rapid profit realization
+        
+        Target: Hold <12 min, confirm <3 bars, target <10 min
         Scale: 0-100 (higher = better)
         """
         hold_time = stock_data.get('avg_hold_time_minutes', 30.0)
+        bars_to_entry = stock_data.get('avg_bars_to_entry', 5.0)  # 1-min bars
+        time_to_target = stock_data.get('time_to_target_minutes', 20.0)
         
-        if hold_time <= 10:
-            score = 100.0
-        elif hold_time <= 15:
-            score = 100.0 - ((hold_time - 10) / 5) * 20.0
+        # === 1. Position Duration (35% weight) ===
+        # Fast resolution = more opportunities to compound per day
+        if hold_time <= 8:
+            duration_score = 100.0  # Elite speed (8 min avg)
+        elif hold_time <= 12:
+            duration_score = 90.0 + ((12 - hold_time) / 4) * 10.0  # Excellent
+        elif hold_time <= 18:
+            duration_score = 75.0 + ((18 - hold_time) / 6) * 15.0  # Good
         elif hold_time <= 25:
-            score = 80.0 - ((hold_time - 15) / 10) * 40.0
+            duration_score = 55.0 + ((25 - hold_time) / 7) * 20.0  # Acceptable
+        elif hold_time <= 35:
+            duration_score = 30.0 + ((35 - hold_time) / 10) * 25.0  # Marginal
         else:
-            score = max(0.0, 40.0 - ((hold_time - 25) * 2.0))
+            duration_score = max(0.0, 30.0 - ((hold_time - 35) * 1.5))  # Poor
+        
+        # === 2. Entry Confirmation Speed (30% weight) ===
+        # Fast confirmation = less capital idle, more entries per day
+        # With 1-min bars, 2-3 bars = 2-3 minutes confirmation
+        if bars_to_entry <= 2:
+            entry_speed_score = 100.0  # Very fast (2 min)
+        elif bars_to_entry <= 3:
+            entry_speed_score = 88.0 + ((3 - bars_to_entry) / 1) * 12.0  # Fast
+        elif bars_to_entry <= 5:
+            entry_speed_score = 70.0 + ((5 - bars_to_entry) / 2) * 18.0  # Good
+        elif bars_to_entry <= 8:
+            entry_speed_score = 50.0 + ((8 - bars_to_entry) / 3) * 20.0  # Acceptable
+        elif bars_to_entry <= 12:
+            entry_speed_score = 25.0 + ((12 - bars_to_entry) / 4) * 25.0  # Slow
+        else:
+            entry_speed_score = max(0.0, 25.0 - ((bars_to_entry - 12) * 2.0))  # Very slow
+        
+        # === 3. Target Achievement Time (35% weight) ===
+        # Fast profit realization = reduced risk exposure, faster compounding
+        if time_to_target <= 7:
+            target_speed_score = 100.0  # Elite (7 min to profit)
+        elif time_to_target <= 10:
+            target_speed_score = 90.0 + ((10 - time_to_target) / 3) * 10.0  # Excellent
+        elif time_to_target <= 15:
+            target_speed_score = 75.0 + ((15 - time_to_target) / 5) * 15.0  # Good
+        elif time_to_target <= 22:
+            target_speed_score = 55.0 + ((22 - time_to_target) / 7) * 20.0  # Acceptable
+        elif time_to_target <= 30:
+            target_speed_score = 30.0 + ((30 - time_to_target) / 8) * 25.0  # Marginal
+        else:
+            target_speed_score = max(0.0, 30.0 - ((time_to_target - 30) * 1.5))  # Poor
+        
+        # Boost for favorable win speed vs loss speed ratio
+        # Winners that hit fast and losers that exit fast = ideal
+        speed_ratio = stock_data.get('win_speed_vs_loss_speed', 1.0)  # >1 = wins faster than losses
+        if speed_ratio >= 1.5:
+            speed_boost = 10.0  # Wins much faster than losses
+        elif speed_ratio >= 1.2:
+            speed_boost = 5.0  # Wins faster than losses
+        else:
+            speed_boost = 0.0
+        
+        target_speed_score = min(100.0, target_speed_score + speed_boost)
+        
+        # === Composite Time Efficiency Score ===
+        score = (duration_score * 0.35) + (entry_speed_score * 0.30) + (target_speed_score * 0.35)
         
         return min(100.0, max(0.0, score))
     
