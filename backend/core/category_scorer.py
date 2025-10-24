@@ -31,8 +31,8 @@ class CategoryScorer:
     WEIGHTS = {
         # TIER 1: Profitability & Pattern Quality (45%)
         'expected_value': 0.15,
-        'pattern_frequency': 0.15,
-        'dead_zone': 0.15,
+        'pattern_frequency': 0.25,  # Occurrences are king
+        'dead_zone': 0.05,
         
         # TIER 2: Execution Quality (30%)
         'liquidity': 0.10,
