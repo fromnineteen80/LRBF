@@ -201,3 +201,49 @@ def get_data_provider() -> RapidAPIDataProvider:
     if _data_provider is None:
         _data_provider = RapidAPIDataProvider()
     return _data_provider
+
+
+# ============================================================================
+# Standalone Function for Morning Report Integration
+# ============================================================================
+
+def fetch_market_data(
+    ticker: str,
+    period: str = "20d",
+    interval: str = "1m",
+    use_simulation: bool = False
+) -> Optional[pd.DataFrame]:
+    """
+    Standalone function to fetch market data for a single ticker.
+    
+    Args:
+        ticker: Stock symbol
+        period: Time period (e.g., "20d", "1mo")
+        interval: Data interval (e.g., "1m", "5m")
+        use_simulation: Use mock data for testing
+    
+    Returns:
+        DataFrame with OHLCV data or None if unavailable
+    """
+    if use_simulation:
+        # Return mock data for testing
+        from datetime import datetime, timedelta
+        dates = pd.date_range(end=datetime.now(), periods=20*390, freq='1min')
+        np.random.seed(hash(ticker) % 10000)
+        
+        base_price = 100 + np.random.rand() * 100
+        returns = np.random.randn(len(dates)) * 0.001
+        prices = base_price * (1 + returns).cumprod()
+        
+        return pd.DataFrame({
+            'timestamp': dates,
+            'open': prices,
+            'high': prices * 1.002,
+            'low': prices * 0.998,
+            'close': prices,
+            'volume': np.random.randint(100000, 1000000, len(dates))
+        })
+    
+    # Production: Use RapidAPI data provider
+    provider = RapidAPIDataProvider()
+    return provider.get_historical_data(ticker, interval=interval, range_str=period)
