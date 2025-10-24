@@ -20,6 +20,7 @@ import numpy as np
 from typing import List, Dict, Optional, Tuple
 from datetime import datetime, timedelta
 import uuid
+from backend.core.filter_engine import FilterEngine
 
 
 class PatternDetector:
@@ -33,7 +34,8 @@ class PatternDetector:
         entry_confirmation_pct: float = 1.5,
         target_1_pct: float = 0.75,
         target_2_pct: float = 2.0,
-        stop_loss_pct: float = 0.5
+        stop_loss_pct: float = 0.5,
+        filter_engine: FilterEngine = None
     ):
         """
         Initialize pattern detector.
@@ -50,6 +52,7 @@ class PatternDetector:
         self.target_1 = target_1_pct
         self.target_2 = target_2_pct
         self.stop_loss = stop_loss_pct
+        self.filter_engine = filter_engine
     
     def detect_all_patterns(
         self,
@@ -151,6 +154,42 @@ class PatternDetector:
                 }
                 patterns.append(pattern)
                 continue
+            
+            # === FILTER CHECK ===
+            if self.filter_engine:
+                pattern_data_for_filter = {
+                    'entry_price': entry_result['entry_price'],
+                    'target_1': entry_result['entry_price'] * (1 + self.target_1 / 100),
+                    'target_2': entry_result['entry_price'] * (1 + self.target_2 / 100),
+                    'stop_loss': entry_result['entry_price'] * (1 - self.stop_loss / 100)
+                }
+                
+                filter_passed, filter_reason, filter_results = self.filter_engine.should_trade_pattern(
+                    ticker=ticker,
+                    pattern_data=pattern_data_for_filter,
+                    market_data=df,
+                    current_time=entry_result['entry_timestamp']
+                )
+                
+                if not filter_passed:
+                    # Pattern detected and confirmed, but blocked by filters
+                    pattern = {
+                        'pattern_id': f"{ticker}_{analysis_date.isoformat()}_{uuid.uuid4().hex[:8]}",
+                        'ticker': ticker,
+                        'date': analysis_date.isoformat(),
+                        'timestamp': pattern_complete_timestamp,
+                        'detection_time_bars': detection_time_bars,
+                        'entry_confirmed': True,
+                        'entry_price': entry_result['entry_price'],
+                        'filter_checked': True,
+                        'filter_passed': False,
+                        'filter_reason': filter_reason,
+                        'filter_results': filter_results,
+                        'outcome': 'filtered_out',
+                        'failure_reason': f"Blocked by filter: {filter_reason}"
+                    }
+                    patterns.append(pattern)
+                    continue
             
             # ENTRY CONFIRMED - Simulate trade execution
             entry_bar_idx = pattern_complete_idx + entry_result['bars_to_entry']
