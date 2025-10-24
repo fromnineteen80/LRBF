@@ -635,27 +635,88 @@ class CategoryScorer:
     
     def score_drawdown(self, stock_data: Dict) -> float:
         """
-        Drawdown Score (3% weight)
+        Drawdown Score (3% weight) - Risk Tier
         
-        Downside protection - avoid catastrophic trades.
+        Multi-tier professional analysis of downside risk and recovery capability.
+        Focus: Stocks that recover quickly preserve compounding curve.
         
         Inputs:
-        - max_drawdown_intraday: Worst intraday loss %
-        - largest_loss_20d: Single largest loss
+        - max_drawdown_magnitude: Deepest loss from peak (%)
+        - drawdown_frequency: Number of drawdown events per 20 days
+        - recovery_speed_days: Average days to recover from drawdown to new high
+        - drawdown_duration_avg: Average time spent in drawdown (days)
         
-        Target: Max drawdown < 2%
+        3-tier scoring:
+        - Max Drawdown Magnitude (35%): Worst peak-to-trough decline
+        - Drawdown Frequency (30%): How often drawdowns occur
+        - Recovery Speed (35%): Days to recover from drawdown
+        
+        Target: <1.5% max DD, <3 drawdowns/20 days, recover within 2 days
         Scale: 0-100 (higher = better)
         """
-        max_dd = abs(stock_data.get('max_drawdown_intraday', 5.0))
+        max_dd = abs(stock_data.get('max_drawdown_magnitude', 3.5))  # % (lower = better)
+        dd_frequency = stock_data.get('drawdown_frequency', 5.0)     # count (lower = better)
+        recovery_days = stock_data.get('recovery_speed_days', 3.5)   # days (lower = better)
         
+        # === 1. Max Drawdown Magnitude (35% weight) ===
+        # Smaller drawdowns = less capital at risk = curve preserved
         if max_dd <= 1.0:
-            score = 100.0
+            magnitude_score = 100.0  # Minimal drawdown
+        elif max_dd <= 1.5:
+            magnitude_score = 92.0 + ((1.5 - max_dd) / 0.5) * 8.0  # Very small
         elif max_dd <= 2.0:
-            score = 100.0 - ((max_dd - 1.0) / 1.0) * 20.0
+            magnitude_score = 82.0 + ((2.0 - max_dd) / 0.5) * 10.0  # Small
+        elif max_dd <= 2.75:
+            magnitude_score = 68.0 + ((2.75 - max_dd) / 0.75) * 14.0  # Moderate
         elif max_dd <= 3.5:
-            score = 80.0 - ((max_dd - 2.0) / 1.5) * 40.0
+            magnitude_score = 50.0 + ((3.5 - max_dd) / 0.75) * 18.0  # Acceptable
+        elif max_dd <= 5.0:
+            magnitude_score = 28.0 + ((5.0 - max_dd) / 1.5) * 22.0  # High
         else:
-            score = max(0.0, 40.0 - ((max_dd - 3.5) * 10.0))
+            magnitude_score = max(0.0, 28.0 - ((max_dd - 5.0) * 4.0))  # Severe
+        
+        # === 2. Drawdown Frequency (30% weight) ===
+        # Fewer drawdowns = more stable performance = predictable curve
+        if dd_frequency <= 2:
+            frequency_score = 100.0  # Very rare
+        elif dd_frequency <= 3:
+            frequency_score = 90.0 + ((3 - dd_frequency) / 1) * 10.0  # Rare
+        elif dd_frequency <= 5:
+            frequency_score = 75.0 + ((5 - dd_frequency) / 2) * 15.0  # Infrequent
+        elif dd_frequency <= 7:
+            frequency_score = 58.0 + ((7 - dd_frequency) / 2) * 17.0  # Moderate
+        elif dd_frequency <= 10:
+            frequency_score = 35.0 + ((10 - dd_frequency) / 3) * 23.0  # Frequent
+        else:
+            frequency_score = max(0.0, 35.0 - ((dd_frequency - 10) * 3.5))  # Very frequent
+        
+        # === 3. Recovery Speed (35% weight) ===
+        # Fast recovery = resilient performance = compounding resumes quickly
+        if recovery_days <= 1.5:
+            recovery_score = 100.0  # Very fast recovery
+        elif recovery_days <= 2.5:
+            recovery_score = 90.0 + ((2.5 - recovery_days) / 1.0) * 10.0  # Fast
+        elif recovery_days <= 3.5:
+            recovery_score = 77.0 + ((3.5 - recovery_days) / 1.0) * 13.0  # Moderate
+        elif recovery_days <= 5.0:
+            recovery_score = 60.0 + ((5.0 - recovery_days) / 1.5) * 17.0  # Acceptable
+        elif recovery_days <= 7.5:
+            recovery_score = 38.0 + ((7.5 - recovery_days) / 2.5) * 22.0  # Slow
+        else:
+            recovery_score = max(0.0, 38.0 - ((recovery_days - 7.5) * 5.0))  # Very slow
+        
+        # Boost for consistent shallow drawdowns
+        drawdown_consistency = stock_data.get('drawdown_consistency', 0.6)  # 0-1, higher = better
+        if drawdown_consistency >= 0.80:
+            consistency_boost = 8.0  # Very consistent (predictable risk)
+        elif drawdown_consistency >= 0.70:
+            consistency_boost = 4.0  # Consistent
+        else:
+            consistency_boost = 0.0
+        
+        # === Composite Drawdown Score ===
+        score = (magnitude_score * 0.35) + (frequency_score * 0.30) + (recovery_score * 0.35)
+        score = min(100.0, score + consistency_boost)
         
         return min(100.0, max(0.0, score))
     
