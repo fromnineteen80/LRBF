@@ -16,25 +16,26 @@ import sys
 from collections import defaultdict
 import time
 
+# Add modules directory to path
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'modules'))
 
 # Import backend modules
 try:
     from config.config import TradingConfig as cfg
-    from backend.reports import morning_report
-    from backend.reports import live_monitor
-    from backend.reports import eod_reporter
+    from modules import stock_selector
+    from modules import forecast_generator
+    from modules import morning_report
+    from modules import live_monitor
+    from modules import eod_reporter
     from backend.models.database import Database
-    from backend.data import ibkr_connector
+    from modules import capitalise_prompts
+    from modules import ibkr_connector
     from backend.data.stock_universe import get_stock_universe
     from backend.utils.auth_helper import AuthHelper
     from backend.services.email_service import EmailService
     from backend.services.sms_service import SMSService
     from backend.utils.scheduler import scheduler
     BACKEND_AVAILABLE = True
-except ImportError as e:
-    print(f"⚠️  Backend modules not fully loaded: {e}")
-    BACKEND_AVAILABLE = False
-
 except ImportError as e:
     print(f"  Backend modules not fully loaded: {e}")
     BACKEND_AVAILABLE = False
@@ -1530,13 +1531,15 @@ def generate_morning_report():
         return jsonify({'error': 'Backend modules not available'}), 500
     
     try:
-        # Use the enhanced morning report generator
-        report = morning_report.generate_morning_report_api(use_simulation=False)
+        # Initialize morning report generator
+        morning = morning_report.MorningReport()
+        
+        # Generate report
+        report = morning.generate_report()
         
         return jsonify(report)
     except Exception as e:
-        print(f"Error generating morning report: {e}")
-        return jsonify({'error': str(e), 'success': False}), 500
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/morning/data')
 @login_required
@@ -1546,17 +1549,14 @@ def get_morning_data():
         return jsonify({'error': 'Backend modules not available'}), 500
     
     try:
-        # Try to get today's forecast from database
         forecast = db.get_todays_forecast()
         if forecast:
             return jsonify(forecast)
         else:
             # Generate new forecast
-            report = morning_report.generate_morning_report_api(use_simulation=False)
-            return jsonify(report)
+            return generate_morning_report()
     except Exception as e:
-        print(f"Error getting morning data: {e}")
-        return jsonify({'error': str(e), 'success': False}), 500
+        return jsonify({'error': str(e)}), 500
 
 
 
@@ -1569,15 +1569,10 @@ def trigger_morning_report():
         return jsonify({'error': 'Backend modules not available'}), 500
     
     try:
-        report = morning_report.generate_morning_report_api(use_simulation=False)
-        return jsonify({
-            'success': True,
-            'message': 'Morning report generated successfully',
-            'report': report
-        })
+        result = scheduler.trigger_manual_generation()
+        return jsonify(result)
     except Exception as e:
-        print(f"Error triggering morning report: {e}")
-        return jsonify({'error': str(e), 'success': False}), 500
+        return jsonify({'error': str(e)}), 500
 
 
 @app.route('/api/scheduler/status')
@@ -1724,20 +1719,146 @@ def download_prompts():
 @app.route('/api/live/data')
 @login_required
 def get_live_data():
-    """Get real-time trading data"""
-    # TODO: Implement proper live monitoring with live_monitor.get_current_status()
-    # For now, return mock data to unblock testing
-    mock_data = {
-        'account_balance': 30000.00,
-        'deployed_capital': 24000.00,
-        'realized_pl': 0.00,
-        'unrealized_pl': 0.00,
-        'trade_count': 0,
-        'win_rate': 0.0,
-        'open_positions': 0,
-        'status': 'simulation_mode'
-    }
-    return jsonify(mock_data)
+    """Get real-time trading data compared to morning forecast"""
+    if not BACKEND_AVAILABLE:
+        return jsonify({'error': 'Backend modules not available'}), 500
+    
+    try:
+        # Get today's morning forecast
+        today = date.today()
+        forecast = db.get_todays_forecast()
+        
+        if not forecast:
+            return jsonify({
+                'success': False,
+                'error': 'No morning forecast available. Generate morning report first.',
+                'has_forecast': False
+            }), 200
+        
+        # Get current IBKR data
+        ibkr = ibkr_connector.IBKRConnector()
+        account_data = ibkr.get_account_balance()
+        positions = ibkr.get_positions()
+        fills = ibkr.get_fills(today)
+        
+        # Calculate realized P&L from today's fills
+        realized_pl = sum(fill.get('realized_pnl', 0) for fill in fills)
+        
+        # Count trades (buy + sell = 1 complete trade)
+        trade_count = len([f for f in fills if f.get('action') == 'SELL'])
+        
+        # Calculate win rate
+        winning_trades = len([f for f in fills if f.get('realized_pnl', 0) > 0 and f.get('action') == 'SELL'])
+        win_rate = (winning_trades / trade_count * 100) if trade_count > 0 else 0.0
+        
+        # Get selected stocks from forecast
+        selected_stocks = forecast.get('selected_stocks', [])
+        
+        # Filter fills to only show trades from selected stocks
+        relevant_fills = [f for f in fills if f.get('ticker') in selected_stocks]
+        
+        # Calculate performance vs forecast
+        forecast_trades_low = forecast.get('expected_trades_low', 0)
+        forecast_trades_high = forecast.get('expected_trades_high', 0)
+        forecast_pl_low = forecast.get('expected_pl_low', 0)
+        forecast_pl_high = forecast.get('expected_pl_high', 0)
+        
+        # Determine if on track
+        trades_on_track = forecast_trades_low <= trade_count <= forecast_trades_high
+        pl_on_track = forecast_pl_low <= realized_pl <= forecast_pl_high
+        on_track = trades_on_track and pl_on_track
+        
+        # Calculate ROI
+        opening_balance = account_data.get('opening_balance', account_data.get('net_liquidation', 30000))
+        roi_pct = (realized_pl / opening_balance * 100) if opening_balance > 0 else 0.0
+        
+        # Check daily loss limit
+        daily_loss_limit = cfg.DAILY_LOSS_LIMIT
+        approaching_limit = roi_pct <= (daily_loss_limit * 0.8)
+        limit_exceeded = roi_pct <= daily_loss_limit
+        
+        # Get unrealized P&L from open positions
+        unrealized_pl = sum(pos.get('unrealized_pnl', 0) for pos in positions)
+        
+        # Build response
+        response_data = {
+            'success': True,
+            'has_forecast': True,
+            'timestamp': datetime.now().isoformat(),
+            
+            # Account data
+            'account': {
+                'balance': account_data.get('net_liquidation', 0),
+                'opening_balance': opening_balance,
+                'deployed_capital': opening_balance * cfg.DEPLOYMENT_RATIO,
+                'buying_power': account_data.get('buying_power', 0),
+                'realized_pl': realized_pl,
+                'unrealized_pl': unrealized_pl,
+                'total_pl': realized_pl + unrealized_pl,
+                'roi_pct': round(roi_pct, 2)
+            },
+            
+            # Trading metrics
+            'metrics': {
+                'trade_count': trade_count,
+                'win_rate': round(win_rate, 2),
+                'open_positions': len(positions),
+                'fills_today': len(relevant_fills)
+            },
+            
+            # Forecast comparison
+            'forecast': {
+                'expected_trades_low': forecast_trades_low,
+                'expected_trades_high': forecast_trades_high,
+                'expected_pl_low': forecast_pl_low,
+                'expected_pl_high': forecast_pl_high,
+                'trades_on_track': trades_on_track,
+                'pl_on_track': pl_on_track,
+                'overall_on_track': on_track
+            },
+            
+            # Risk management
+            'risk': {
+                'daily_loss_limit': daily_loss_limit,
+                'approaching_limit': approaching_limit,
+                'limit_exceeded': limit_exceeded,
+                'auto_pause_active': limit_exceeded
+            },
+            
+            # Selected stocks
+            'selected_stocks': selected_stocks,
+            
+            # Status
+            'status': {
+                'market_open': _is_market_open(),
+                'trading_active': not limit_exceeded,
+                'system_health': 'good' if on_track else 'warning'
+            }
+        }
+        
+        return jsonify(response_data)
+        
+    except Exception as e:
+        print(f"Error getting live data: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'has_forecast': False
+        }), 500
+
+def _is_market_open():
+    """Check if market is currently open (simple version)"""
+    now = datetime.now()
+    # Market hours: 9:30 AM - 4:00 PM Eastern
+    # This is a simple check - should use market calendar for holidays
+    if now.weekday() >= 5:  # Weekend
+        return False
+    market_open = now.replace(hour=9, minute=30, second=0, microsecond=0)
+    market_close = now.replace(hour=16, minute=0, second=0, microsecond=0)
+    return market_open <= now <= market_close
+
 
 @app.route('/api/live/positions')
 @login_required
