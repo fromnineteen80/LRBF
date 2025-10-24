@@ -722,27 +722,100 @@ class CategoryScorer:
     
     def score_news_risk(self, stock_data: Dict) -> float:
         """
-        News Risk Score (3% weight)
+        News Risk Score (3% weight) - Risk Tier
         
-        Earnings/events exposure - avoid mid-pattern news bombs.
+        Multi-tier professional analysis of event-driven volatility exposure.
+        Focus: Avoid stocks that gap unpredictably (protect overnight stops).
         
         Inputs:
-        - days_to_earnings: Days until next earnings
-        - news_event_density: Recent news volume
+        - earnings_volatility_pct: Avg price movement during earnings (%)
+        - news_sensitivity_score: Reaction intensity to headlines (0-100)
+        - after_hours_gap_risk: Average overnight gap size (%)
+        - days_to_earnings: Days until next earnings report
+        - news_event_frequency: Recent news density (events per week)
         
-        Target: No earnings within 3 days
+        3-tier scoring:
+        - Earnings Volatility (40%): Price movement during earnings
+        - News Sensitivity (35%): Reaction to headlines
+        - After-Hours Risk (25%): Gap risk from news
+        
+        Target: <3% earnings volatility, low news sensitivity, <1% gap risk
         Scale: 0-100 (higher = better)
         """
+        earnings_vol = stock_data.get('earnings_volatility_pct', 6.0)  # % (lower = better)
+        news_sensitivity = stock_data.get('news_sensitivity_score', 55.0)  # 0-100 (lower = better)
+        gap_risk = stock_data.get('after_hours_gap_risk', 1.5)  # % (lower = better)
         days_to_earnings = stock_data.get('days_to_earnings', 100)
         
-        if days_to_earnings >= 7:
-            score = 100.0
-        elif days_to_earnings >= 3:
-            score = 80.0 + ((days_to_earnings - 3) / 4) * 20.0
-        elif days_to_earnings >= 1:
-            score = 40.0 + ((days_to_earnings - 1) / 2) * 40.0
+        # === 1. Earnings Volatility (40% weight) ===
+        # Lower earnings volatility = predictable behavior = safe to trade
+        if earnings_vol <= 2.0:
+            earnings_score = 100.0  # Very stable
+        elif earnings_vol <= 3.0:
+            earnings_score = 90.0 + ((3.0 - earnings_vol) / 1.0) * 10.0  # Stable
+        elif earnings_vol <= 4.5:
+            earnings_score = 75.0 + ((4.5 - earnings_vol) / 1.5) * 15.0  # Moderate
+        elif earnings_vol <= 6.5:
+            earnings_score = 55.0 + ((6.5 - earnings_vol) / 2.0) * 20.0  # Acceptable
+        elif earnings_vol <= 9.0:
+            earnings_score = 32.0 + ((9.0 - earnings_vol) / 2.5) * 23.0  # Volatile
         else:
-            score = 0.0  # Avoid trading on earnings day
+            earnings_score = max(0.0, 32.0 - ((earnings_vol - 9.0) * 3.5))  # Very volatile
+        
+        # Penalty for near-term earnings
+        if days_to_earnings <= 2:
+            earnings_score = 0.0  # Avoid trading near earnings
+        elif days_to_earnings <= 5:
+            earnings_score *= 0.4  # Heavy penalty within 5 days
+        elif days_to_earnings <= 7:
+            earnings_score *= 0.7  # Moderate penalty within 7 days
+        
+        # === 2. News Sensitivity (35% weight) ===
+        # Lower sensitivity = stock doesn't overreact to headlines
+        # (news_sensitivity_score: 0 = very sensitive, 100 = not sensitive)
+        # Invert for scoring (lower raw score = higher penalty)
+        insensitivity = 100 - news_sensitivity  # Higher = more sensitive (worse)
+        
+        if insensitivity <= 25:
+            sensitivity_score = 100.0  # Very insensitive (stable)
+        elif insensitivity <= 35:
+            sensitivity_score = 88.0 + ((35 - insensitivity) / 10) * 12.0  # Insensitive
+        elif insensitivity <= 50:
+            sensitivity_score = 70.0 + ((50 - insensitivity) / 15) * 18.0  # Moderate
+        elif insensitivity <= 65:
+            sensitivity_score = 48.0 + ((65 - insensitivity) / 15) * 22.0  # Somewhat sensitive
+        elif insensitivity <= 80:
+            sensitivity_score = 24.0 + ((80 - insensitivity) / 15) * 24.0  # Sensitive
+        else:
+            sensitivity_score = max(0.0, 24.0 - ((insensitivity - 80) * 1.2))  # Very sensitive
+        
+        # === 3. After-Hours Gap Risk (25% weight) ===
+        # Lower gap risk = safer overnight positions (if needed)
+        if gap_risk <= 0.5:
+            gap_score = 100.0  # Minimal gap risk
+        elif gap_risk <= 1.0:
+            gap_score = 90.0 + ((1.0 - gap_risk) / 0.5) * 10.0  # Low risk
+        elif gap_risk <= 1.5:
+            gap_score = 78.0 + ((1.5 - gap_risk) / 0.5) * 12.0  # Moderate risk
+        elif gap_risk <= 2.5:
+            gap_score = 60.0 + ((2.5 - gap_risk) / 1.0) * 18.0  # Acceptable risk
+        elif gap_risk <= 4.0:
+            gap_score = 38.0 + ((4.0 - gap_risk) / 1.5) * 22.0  # High risk
+        else:
+            gap_score = max(0.0, 38.0 - ((gap_risk - 4.0) * 9.5))  # Very high risk
+        
+        # Boost for low news event frequency (stable news environment)
+        news_frequency = stock_data.get('news_event_frequency', 5.0)  # per week
+        if news_frequency <= 2.0:
+            frequency_boost = 8.0  # Quiet news cycle
+        elif news_frequency <= 3.5:
+            frequency_boost = 4.0  # Moderate news
+        else:
+            frequency_boost = 0.0  # Busy news cycle
+        
+        # === Composite News Risk Score ===
+        score = (earnings_score * 0.40) + (sensitivity_score * 0.35) + (gap_score * 0.25)
+        score = min(100.0, score + frequency_boost)
         
         return min(100.0, max(0.0, score))
     
