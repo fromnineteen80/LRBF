@@ -249,103 +249,32 @@ class CategoryScorer:
         """
         Volatility Score (10% weight)
         
-        Multi-tier professional analysis of price movement characteristics.
-        Focus: Predictable moves + strategy fit + curve preservation.
+        ATR-based adaptive threshold matching.
+        Match stock volatility to strategy (not too quiet, not too choppy).
         
         Inputs:
         - atr_pct: Average True Range as % of price
-        - volatility_20d: Rolling 20-day volatility
-        - volatility_stability: Week-to-week consistency (std dev)
-        - intraday_volatility_pattern: Hourly volatility distribution score (0-1)
-        - high_volatility_win_rate: Win rate during high-vol periods
-        - low_volatility_win_rate: Win rate during low-vol periods
+        - volatility_20d: Rolling volatility
+        - intraday_range_pct: Avg high-low range
         
-        4-tier scoring:
-        - ATR Sweet-Spot (35%): Match strategy requirements
-        - Volatility Consistency (30%): Predictable price behavior
-        - Intraday Pattern (20%): Volatility distribution throughout day
-        - Success Correlation (15%): Volatility level that produces winners
-        
-        Target: ATR 1.8%-3.2%, consistent, even intraday, high win rate
+        Target: ATR 1.5%-3.5% (sweet spot)
         Scale: 0-100 (higher = better)
         """
         atr_pct = stock_data.get('atr_pct', 0.0)
-        volatility_20d = stock_data.get('volatility_20d', 0.0)
-        volatility_stability = stock_data.get('volatility_stability', 0.5)  # Std dev (lower = better)
         
-        # === 1. ATR Sweet-Spot Matching (35% weight) ===
-        # Not too quiet (insufficient moves) or too wild (unpredictable)
-        if 1.8 <= atr_pct <= 3.2:
-            atr_score = 100.0  # Optimal for VWAP recovery strategy
-        elif 1.5 <= atr_pct < 1.8:
-            atr_score = 88.0 + ((atr_pct - 1.5) / 0.3) * 12.0  # Very good
-        elif 3.2 < atr_pct <= 3.8:
-            atr_score = 88.0 + ((3.8 - atr_pct) / 0.6) * 12.0  # Very good
-        elif 1.2 <= atr_pct < 1.5:
-            atr_score = 70.0 + ((atr_pct - 1.2) / 0.3) * 18.0  # Good but quiet
-        elif 3.8 < atr_pct <= 4.5:
-            atr_score = 70.0 + ((4.5 - atr_pct) / 0.7) * 18.0  # Good but volatile
-        elif 1.0 <= atr_pct < 1.2:
-            atr_score = 45.0 + ((atr_pct - 1.0) / 0.2) * 25.0  # Acceptable but too quiet
-        elif 4.5 < atr_pct <= 5.5:
-            atr_score = 45.0 + ((5.5 - atr_pct) / 1.0) * 25.0  # Acceptable but too wild
-        elif atr_pct < 1.0:
-            atr_score = (atr_pct / 1.0) * 45.0  # Too quiet
+        # Sweet spot scoring
+        if 1.5 <= atr_pct <= 3.5:
+            score = 100.0
+        elif 1.0 <= atr_pct < 1.5:
+            score = 70.0 + ((atr_pct - 1.0) / 0.5) * 30.0
+        elif 3.5 < atr_pct <= 5.0:
+            score = 100.0 - ((atr_pct - 3.5) / 1.5) * 20.0
+        elif atr_pct > 5.0:
+            # Too volatile
+            score = max(0.0, 80.0 - ((atr_pct - 5.0) * 10.0))
         else:
-            atr_score = max(0.0, 45.0 - ((atr_pct - 5.5) * 8.0))  # Too wild
-        
-        # === 2. Volatility Consistency (30% weight) ===
-        # Stable volatility = predictable price behavior = reliable pattern detection
-        # Low std dev = consistent, high std dev = erratic
-        if volatility_stability <= 0.3:
-            consistency_score = 100.0  # Very stable
-        elif volatility_stability <= 0.5:
-            consistency_score = 85.0 + ((0.5 - volatility_stability) / 0.2) * 15.0
-        elif volatility_stability <= 0.7:
-            consistency_score = 65.0 + ((0.7 - volatility_stability) / 0.2) * 20.0
-        elif volatility_stability <= 1.0:
-            consistency_score = 40.0 + ((1.0 - volatility_stability) / 0.3) * 25.0
-        else:
-            consistency_score = max(0.0, 40.0 - ((volatility_stability - 1.0) * 20.0))
-        
-        # === 3. Intraday Volatility Pattern (20% weight) ===
-        # Volatility should be reasonably distributed throughout the day
-        # Not just wild at open/close with dead zones in between
-        intraday_pattern_score = stock_data.get('intraday_volatility_pattern', 0.70)  # 0-1
-        
-        if intraday_pattern_score >= 0.85:
-            intraday_score = 100.0  # Very even distribution
-        elif intraday_pattern_score >= 0.75:
-            intraday_score = 88.0 + ((intraday_pattern_score - 0.75) / 0.1) * 12.0
-        elif intraday_pattern_score >= 0.65:
-            intraday_score = 70.0 + ((intraday_pattern_score - 0.65) / 0.1) * 18.0
-        elif intraday_pattern_score >= 0.50:
-            intraday_score = 45.0 + ((intraday_pattern_score - 0.50) / 0.15) * 25.0
-        else:
-            intraday_score = (intraday_pattern_score / 0.50) * 45.0
-        
-        # === 4. Success Correlation (15% weight) ===
-        # Does this volatility level actually produce winners?
-        # Some stocks win more in high-vol, others in low-vol
-        high_vol_wr = stock_data.get('high_volatility_win_rate', 0.60)  # 0-1
-        low_vol_wr = stock_data.get('low_volatility_win_rate', 0.60)  # 0-1
-        
-        # Take better of the two scenarios
-        best_wr = max(high_vol_wr, low_vol_wr)
-        
-        if best_wr >= 0.70:
-            correlation_score = 100.0  # Wins consistently
-        elif best_wr >= 0.65:
-            correlation_score = 88.0 + ((best_wr - 0.65) / 0.05) * 12.0
-        elif best_wr >= 0.60:
-            correlation_score = 72.0 + ((best_wr - 0.60) / 0.05) * 16.0
-        elif best_wr >= 0.55:
-            correlation_score = 55.0 + ((best_wr - 0.55) / 0.05) * 17.0
-        else:
-            correlation_score = (best_wr / 0.55) * 55.0
-        
-        # === Composite Volatility Score ===
-        score = (atr_score * 0.35) + (consistency_score * 0.30) + (intraday_score * 0.20) + (correlation_score * 0.15)
+            # Too quiet
+            score = (atr_pct / 1.0) * 70.0
         
         return min(100.0, max(0.0, score))
     
@@ -353,25 +282,84 @@ class CategoryScorer:
         """
         VWAP Stability Score (5% weight)
         
-        Pattern cleanliness - clean VWAP = reliable patterns, less noise.
+        Multi-tier professional analysis of VWAP pattern cleanliness.
+        Focus: Clean patterns + precise recoveries + curve preservation.
         
         Inputs:
-        - vwap_stability_score: Consistency metric
-        - vwap_distance_pct: How far price strays from VWAP
+        - vwap_stability_score: Price deviation from VWAP (lower = better)
+        - vwap_distance_pct: Average distance price strays from VWAP
+        - recovery_precision: How accurately patterns recover to VWAP (0-1)
+        - vwap_calculation_stability: VWAP's own consistency (std dev)
+        - false_breakout_rate: % of VWAP crosses that don't complete pattern
         
-        Target: Stability score < 1.5%
-        Scale: 0-100 (higher = better, lower stability value = better)
+        3-tier scoring:
+        - VWAP Adherence (35%): Price tracks VWAP closely
+        - Recovery Precision (35%): Patterns recover accurately to VWAP
+        - Calculation Stability (30%): VWAP itself is stable (not jumpy)
+        
+        Target: Deviation <1.2%, precision >0.75, stable VWAP calculation
+        Scale: 0-100 (higher = better)
         """
-        stability = stock_data.get('vwap_stability_score', 5.0)
+        stability = stock_data.get('vwap_stability_score', 5.0)  # % deviation
+        vwap_distance = stock_data.get('vwap_distance_pct', 3.0)  # % average distance
+        recovery_precision = stock_data.get('recovery_precision', 0.70)  # 0-1
         
-        if stability <= 1.0:
-            score = 100.0
-        elif stability <= 1.5:
-            score = 100.0 - ((stability - 1.0) / 0.5) * 20.0
+        # === 1. VWAP Adherence (35% weight) ===
+        # How closely does price track VWAP throughout the day?
+        # Lower deviation = cleaner patterns, less noise
+        if stability <= 0.8:
+            adherence_score = 100.0  # Excellent adherence
+        elif stability <= 1.2:
+            adherence_score = 90.0 + ((1.2 - stability) / 0.4) * 10.0  # Very good
+        elif stability <= 1.8:
+            adherence_score = 75.0 + ((1.8 - stability) / 0.6) * 15.0  # Good
         elif stability <= 2.5:
-            score = 80.0 - ((stability - 1.5) / 1.0) * 40.0
+            adherence_score = 50.0 + ((2.5 - stability) / 0.7) * 25.0  # Acceptable
+        elif stability <= 3.5:
+            adherence_score = 25.0 + ((3.5 - stability) / 1.0) * 25.0  # Marginal
         else:
-            score = max(0.0, 40.0 - ((stability - 2.5) * 10.0))
+            adherence_score = max(0.0, 25.0 - ((stability - 3.5) * 7.0))  # Poor
+        
+        # === 2. Recovery Precision (35% weight) ===
+        # How accurately do patterns recover to VWAP after deviation?
+        # High precision = reliable entries, predictable behavior
+        if recovery_precision >= 0.85:
+            precision_score = 100.0  # Elite precision
+        elif recovery_precision >= 0.75:
+            precision_score = 88.0 + ((recovery_precision - 0.75) / 0.1) * 12.0  # Excellent
+        elif recovery_precision >= 0.65:
+            precision_score = 72.0 + ((recovery_precision - 0.65) / 0.1) * 16.0  # Good
+        elif recovery_precision >= 0.55:
+            precision_score = 52.0 + ((recovery_precision - 0.55) / 0.1) * 20.0  # Acceptable
+        elif recovery_precision >= 0.45:
+            precision_score = 30.0 + ((recovery_precision - 0.45) / 0.1) * 22.0  # Marginal
+        else:
+            precision_score = (recovery_precision / 0.45) * 30.0  # Poor
+        
+        # Penalty for high false breakout rate
+        false_breakout_rate = stock_data.get('false_breakout_rate', 0.20)  # 0-1
+        if false_breakout_rate > 0.30:
+            false_penalty = min(20.0, (false_breakout_rate - 0.30) * 50.0)
+            precision_score = max(0.0, precision_score - false_penalty)
+        
+        # === 3. VWAP Calculation Stability (30% weight) ===
+        # Is VWAP itself stable (not jumpy) throughout the day?
+        # Stable VWAP = predictable patterns, easier to trade
+        vwap_calc_stability = stock_data.get('vwap_calculation_stability', 0.5)  # Std dev (lower = better)
+        
+        if vwap_calc_stability <= 0.3:
+            calc_score = 100.0  # Very stable VWAP
+        elif vwap_calc_stability <= 0.5:
+            calc_score = 85.0 + ((0.5 - vwap_calc_stability) / 0.2) * 15.0
+        elif vwap_calc_stability <= 0.8:
+            calc_score = 65.0 + ((0.8 - vwap_calc_stability) / 0.3) * 20.0
+        elif vwap_calc_stability <= 1.2:
+            calc_score = 40.0 + ((1.2 - vwap_calc_stability) / 0.4) * 25.0
+        else:
+            calc_score = max(0.0, 40.0 - ((vwap_calc_stability - 1.2) * 20.0))
+        
+        # === Composite VWAP Stability Score ===
+        score = (adherence_score * 0.35) + (precision_score * 0.35) + (calc_score * 0.30)
         
         return min(100.0, max(0.0, score))
     
