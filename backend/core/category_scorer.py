@@ -49,7 +49,7 @@ class CategoryScorer:
         # TIER 4: Portfolio Construction (7%)
         'correlation': 0.03,
         'halt_risk': 0.02,
-        'sector_balance': 0.02,
+        'execution_cycle': 0.02,
         
         # TIER 5: System Confidence (3%)
         'historical_reliability': 0.02,
@@ -498,38 +498,65 @@ class CategoryScorer:
         
         return min(100.0, max(0.0, score))
     
-    def score_sector_balance(self, stock_data: Dict, selected_stocks: List[Dict] = None) -> float:
+def score_execution_cycle(self, stock_data: Dict) -> float:
         """
-        Sector Balance Score (2% weight)
+        Execution Cycle Feasibility Score (2% weight) - REPLACES Sector Balance
         
-        Industry diversification - spread across 4-6 sectors.
+        Evaluates if there's enough time for full intraminute trade cycle.
+        
+        Full Cycle: VWAP detection → pattern confirmation → entry execution 
+                   → hold to target/stop → exit execution → cash settlement
         
         Inputs:
-        - sector_classification: GICS sector
-        - sector_allocation: % of portfolio in this sector
+        - avg_bars_to_entry: Minutes until pattern confirms
+        - avg_hold_time_minutes: Time from entry to exit
+        - avg_execution_latency_ms: Order fill speed (entry + exit)
+        - settlement_lag_minutes: Cash availability delay
         
-        Target: No sector > 30% of portfolio
-        Scale: 0-100 (higher = better)
+        Total Cycle = detection + entry_latency + hold + exit_latency + settlement
+        
+        Target: < 12 minutes (can do 15+ trades/day)
+        Scale: 0-100 (higher = better, faster cycles = more opportunities)
         """
-        # If no other stocks selected, give perfect score
-        if not selected_stocks:
-            return 100.0
+        # Component times
+        bars_to_entry = stock_data.get('avg_bars_to_entry', 3.0)  # minutes
+        hold_time = stock_data.get('avg_hold_time_minutes', 15.0)  # minutes
+        entry_latency = stock_data.get('avg_execution_latency_ms', 50.0) / 1000 / 60  # ms to minutes
+        exit_latency = entry_latency  # Assume similar
+        settlement_lag = stock_data.get('settlement_lag_minutes', 0.5)  # minutes
         
-        sector = stock_data.get('sector_classification', 'Unknown')
+        # Total cycle time
+        total_cycle_minutes = (
+            bars_to_entry +
+            entry_latency +
+            hold_time +
+            exit_latency +
+            settlement_lag
+        )
         
-        # Count current sector exposure
-        sector_count = sum(1 for s in selected_stocks if s.get('sector_classification') == sector)
-        total_count = len(selected_stocks)
-        sector_pct = (sector_count / total_count) * 100 if total_count > 0 else 0
+        # Calculate daily capacity (6.5 hour session = 390 minutes)
+        # Reserve 30 min for market open/close volatility = 360 min usable
+        max_daily_trades = 360 / total_cycle_minutes if total_cycle_minutes > 0 else 0
         
-        if sector_pct <= 25:
+        # Score based on cycle speed (capital turnover efficiency)
+        if total_cycle_minutes <= 10:
+            # Excellent: 36+ trades possible
             score = 100.0
-        elif sector_pct <= 30:
-            score = 100.0 - ((sector_pct - 25) / 5) * 20.0
-        elif sector_pct <= 40:
-            score = 80.0 - ((sector_pct - 30) / 10) * 40.0
+        elif total_cycle_minutes <= 12:
+            # Very good: 30+ trades possible
+            score = 100.0 - ((total_cycle_minutes - 10) / 2) * 10.0
+        elif total_cycle_minutes <= 15:
+            # Good: 24+ trades possible
+            score = 90.0 - ((total_cycle_minutes - 12) / 3) * 15.0
+        elif total_cycle_minutes <= 20:
+            # Acceptable: 18+ trades possible
+            score = 75.0 - ((total_cycle_minutes - 15) / 5) * 25.0
+        elif total_cycle_minutes <= 30:
+            # Marginal: 12+ trades possible
+            score = 50.0 - ((total_cycle_minutes - 20) / 10) * 30.0
         else:
-            score = max(0.0, 40.0 - ((sector_pct - 40) * 2.0))
+            # Poor: < 12 trades possible (capital turnover too slow)
+            score = max(0.0, 20.0 - ((total_cycle_minutes - 30) * 1.0))
         
         return min(100.0, max(0.0, score))
     
@@ -624,7 +651,7 @@ class CategoryScorer:
             'news_risk': self.score_news_risk(stock_data),
             'correlation': self.score_correlation(stock_data, [s.get('ticker') for s in selected_stocks] if selected_stocks else None),
             'halt_risk': self.score_halt_risk(stock_data),
-            'sector_balance': self.score_sector_balance(stock_data, selected_stocks),
+            'execution_cycle': self.score_execution_cycle(stock_data, selected_stocks),
             'historical_reliability': self.score_historical_reliability(stock_data),
             'data_quality': self.score_data_quality(stock_data)
         }
@@ -705,7 +732,7 @@ def get_category_descriptions() -> Dict[str, str]:
         'news_risk': 'Earnings/events exposure (>3 days safe)',
         'correlation': 'Diversification benefit (<0.7 correlation)',
         'halt_risk': 'Trading suspension risk (zero halts)',
-        'sector_balance': 'Industry diversification (<30% per sector)',
+        'execution_cycle': 'Full trade cycle feasibility (<12 min ideal)',
         'historical_reliability': 'Track record stability (>85% consistency)',
         'data_quality': 'Clean data, no gaps (<1% missing)'
     }
