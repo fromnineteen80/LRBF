@@ -221,15 +221,30 @@ class EnhancedMorningReport:
     
     def _calculate_market_metrics(self, df: pd.DataFrame) -> pd.DataFrame:
         """
-        Calculate all market data metrics from lrbf_data_reference.md.
+        Calculate all Layer 1 market data metrics.
         
-        Adds columns:
-        - avg_volume_20d, atr_20d, volatility_20d
-        - spread_abs, spread_bps
+        EXISTING METRICS (8):
+        - avg_volume_20d, atr_20d, atr_pct, volatility_20d
         - vwap_session, vwap_distance_pct
-        - intraday_range_pct
-        - And more...
+        - intraday_range_pct, spread_abs, spread_bps
+        
+        NEW PRIORITY 1 METRICS (18):
+        - chg_5d_pct, chg_10d_pct (price changes)
+        - ema_20d, sma_20d, rolling_vwap_20d (moving averages)
+        - candle_body_to_range, gap_open_pct (candle metrics)
+        - spread_drift_std, intraday_return_std_1m (volatility)
+        - vwap_stability_score, mean_reversion_ratio (VWAP metrics)
+        - halt_signal_count, intraday_range_consistency_5d (risk)
+        - beta_vs_spy (market correlation)
+        - vwap_60, vwap_5min (multi-timeframe VWAP)
+        - recent_high, recent_low (support/resistance)
         """
+        import yfinance as yf
+        
+        # ========================================
+        # EXISTING METRICS (Keep as-is)
+        # ========================================
+        
         # Volume metrics
         df['avg_volume_20d'] = df['volume'].rolling(20).mean()
         
@@ -248,7 +263,7 @@ class EnhancedMorningReport:
         df['returns'] = df['close'].pct_change()
         df['volatility_20d'] = df['returns'].rolling(20).std()
         
-        # VWAP
+        # VWAP (session-level)
         df['vwap_session'] = (df['close'] * df['volume']).cumsum() / df['volume'].cumsum()
         df['vwap_distance_pct'] = ((df['close'] - df['vwap_session']) / df['vwap_session']) * 100
         
@@ -258,6 +273,99 @@ class EnhancedMorningReport:
         # Spread (estimated)
         df['spread_abs'] = df['high'] - df['low']
         df['spread_bps'] = (df['spread_abs'] / ((df['high'] + df['low']) / 2)) * 10000
+        
+        
+        # ========================================
+        # NEW PRIORITY 1 METRICS
+        # ========================================
+        
+        # 1-2. Price Changes (5-day, 10-day)
+        df['chg_5d_pct'] = df['close'].pct_change(5) * 100
+        df['chg_10d_pct'] = df['close'].pct_change(10) * 100
+        
+        # 3-4. Moving Averages (EMA, SMA)
+        df['ema_20d'] = df['close'].ewm(span=20, adjust=False).mean()
+        df['sma_20d'] = df['close'].rolling(20).mean()
+        
+        # 5. Rolling VWAP (20-day rolling window)
+        df['rolling_vwap_20d'] = (
+            (df['close'] * df['volume']).rolling(20).sum() / 
+            df['volume'].rolling(20).sum()
+        )
+        
+        # 6. Candle Body to Range Ratio
+        df['candle_body'] = abs(df['close'] - df['open'])
+        df['candle_range'] = df['high'] - df['low']
+        df['candle_body_to_range'] = df['candle_body'] / df['candle_range'].replace(0, np.nan)
+        
+        # 7. Gap Open Percentage
+        df['gap_open_pct'] = ((df['open'] - df['close'].shift(1)) / df['close'].shift(1)) * 100
+        
+        # 8. Spread Drift (standard deviation of spread)
+        df['spread_drift_std'] = df['spread_bps'].rolling(20).std()
+        
+        # 9. Intraday Return Standard Deviation (1-minute bars)
+        df['intraday_return_std_1m'] = df['returns'].rolling(60).std() * 100  # 60 bars ≈ 1 hour
+        
+        # 10. VWAP Stability Score (0-100, higher = more stable)
+        vwap_dev_abs = abs(df['vwap_distance_pct'])
+        vwap_dev_mean = vwap_dev_abs.rolling(20).mean()
+        df['vwap_stability_score'] = 100 - np.minimum(vwap_dev_mean, 100)  # Invert and cap
+        
+        # 11. Mean Reversion Ratio (how often price returns to VWAP)
+        # Calculate crosses: price crosses VWAP from below or above
+        df['above_vwap'] = (df['close'] > df['vwap_session']).astype(int)
+        df['vwap_crosses'] = abs(df['above_vwap'].diff())
+        df['mean_reversion_ratio'] = df['vwap_crosses'].rolling(20).sum() / 20  # Crosses per day
+        
+        # 12. Halt Signal Count (trading halts detected via volume/price anomalies)
+        # Detect potential halts: volume drops to near-zero or massive price gaps
+        volume_threshold = df['volume'].rolling(20).mean() * 0.1  # 10% of avg volume
+        price_gap_threshold = df['atr_20d'] * 3  # 3x ATR gap
+        df['potential_halt'] = (
+            (df['volume'] < volume_threshold) | 
+            (abs(df['gap_open_pct']) > (price_gap_threshold / df['close'] * 100))
+        ).astype(int)
+        df['halt_signal_count'] = df['potential_halt'].rolling(20).sum()
+        
+        # 13. Intraday Range Consistency (5-day)
+        df['intraday_range_consistency_5d'] = df['intraday_range_pct'].rolling(5).std()
+        
+        # 14. Beta vs SPY (requires SPY data)
+        try:
+            spy = yf.Ticker('SPY')
+            spy_hist = spy.history(period='20d', interval='1m')
+            if not spy_hist.empty and len(spy_hist) == len(df):
+                spy_returns = spy_hist['Close'].pct_change()
+                # Calculate rolling beta (covariance / variance)
+                cov_matrix = df['returns'].rolling(300).cov(spy_returns)  # 300 bars ≈ 5 hours
+                spy_var = spy_returns.rolling(300).var()
+                df['beta_vs_spy'] = cov_matrix / spy_var.replace(0, np.nan)
+            else:
+                df['beta_vs_spy'] = 1.0  # Default to market beta
+        except Exception:
+            df['beta_vs_spy'] = 1.0  # Fallback if SPY fetch fails
+        
+        # 15-16. Multi-Timeframe VWAP (60-minute, 5-minute)
+        # 60-minute VWAP
+        df['vwap_60'] = (
+            (df['close'] * df['volume']).rolling(60).sum() / 
+            df['volume'].rolling(60).sum()
+        )
+        
+        # 5-minute VWAP
+        df['vwap_5min'] = (
+            (df['close'] * df['volume']).rolling(5).sum() / 
+            df['volume'].rolling(5).sum()
+        )
+        
+        # 17-18. Recent High/Low (20-day rolling)
+        df['recent_high'] = df['high'].rolling(20).max()
+        df['recent_low'] = df['low'].rolling(20).min()
+        
+        # Clean up intermediate columns
+        df.drop(['candle_body', 'candle_range', 'above_vwap', 'vwap_crosses', 'potential_halt'], 
+                axis=1, inplace=True, errors='ignore')
         
         return df
     
@@ -345,20 +453,30 @@ class EnhancedMorningReport:
                 'avg_win_pct': patterns.get('avg_win_pct', 0),
                 'risk_reward_ratio': abs(patterns.get('avg_win_pct', 1) / patterns.get('avg_loss_pct', 0.5)),
                 
-                # Category 7-11: Market Quality
-                'liquidity_score': df['avg_volume_20d'].iloc[-1] / 1_000_000,  # Normalize
+                # Category 7-11: Market Quality (UPDATED WITH PRIORITY 1 METRICS)
+                'liquidity_score': df['avg_volume_20d'].iloc[-1] / 1_000_000,  # Normalize to millions
                 'volatility_score': df['atr_pct'].iloc[-1],
                 'spread_quality': 100 - df['spread_bps'].mean(),  # Lower spread = higher quality
-                'vwap_stability': 100 - abs(df['vwap_distance_pct']).mean(),
-                'trend_alignment': 50,  # Placeholder - needs EMA/SMA calculation
                 
-                # Category 12-14: Risk Factors
+                # ✅ UPDATED: Use new vwap_stability_score from Layer 1
+                'vwap_stability': df['vwap_stability_score'].iloc[-1] if 'vwap_stability_score' in df else 50,
+                
+                # ✅ UPDATED: Calculate trend alignment using EMA/SMA crossover
+                'trend_alignment': self._calculate_trend_alignment(df),
+                
+                # Category 12-14: Risk Factors (UPDATED WITH PRIORITY 1 METRICS)
                 'dead_zone_risk': 50,  # Will be updated in dead zone analysis
-                'halt_risk': 0,  # Placeholder - needs halt detection
-                'execution_efficiency': 85,  # Placeholder - based on spread/liquidity
                 
-                # Category 15-16: Consistency
-                'backtest_consistency': 75,  # Placeholder - needs variance analysis
+                # ✅ UPDATED: Use halt_signal_count from Layer 1
+                'halt_risk': df['halt_signal_count'].iloc[-1] if 'halt_signal_count' in df else 0,
+                
+                # ✅ UPDATED: Calculate execution efficiency using spread_drift_std
+                'execution_efficiency': self._calculate_execution_efficiency(df),
+                
+                # Category 15-16: Consistency (UPDATED WITH PRIORITY 1 METRICS)
+                # ✅ UPDATED: Use intraday_range_consistency_5d from Layer 1
+                'backtest_consistency': self._calculate_backtest_consistency(df),
+                
                 'composite_rank': 0  # Will be calculated after all scores
             }
             
@@ -386,6 +504,86 @@ class EnhancedMorningReport:
             df_scores['composite_rank'] = (df_scores['composite_rank'] / max_rank) * 100
         
         return df_scores
+    
+    def _calculate_trend_alignment(self, df: pd.DataFrame) -> float:
+        """
+        Calculate trend alignment score using EMA/SMA crossover.
+        
+        Returns score 0-100:
+        - 100 = Strong uptrend (price above both EMA and SMA, EMA > SMA)
+        - 50 = Neutral (mixed signals)
+        - 0 = Strong downtrend (price below both EMA and SMA, EMA < SMA)
+        """
+        if 'ema_20d' not in df or 'sma_20d' not in df:
+            return 50  # Neutral if data missing
+        
+        try:
+            current_price = df['close'].iloc[-1]
+            ema = df['ema_20d'].iloc[-1]
+            sma = df['sma_20d'].iloc[-1]
+            
+            # Calculate alignment components
+            price_above_ema = 1 if current_price > ema else 0
+            price_above_sma = 1 if current_price > sma else 0
+            ema_above_sma = 1 if ema > sma else 0
+            
+            # Score: 0 (bearish), 50 (neutral), 100 (bullish)
+            alignment_score = (price_above_ema + price_above_sma + ema_above_sma) * 33.33
+            
+            return min(alignment_score, 100)
+            
+        except Exception:
+            return 50  # Neutral on error
+    
+    def _calculate_execution_efficiency(self, df: pd.DataFrame) -> float:
+        """
+        Calculate execution efficiency score based on spread quality and stability.
+        
+        Returns score 0-100:
+        - High score = Low spread, stable spread (good execution)
+        - Low score = High spread, volatile spread (poor execution)
+        """
+        try:
+            spread_bps = df['spread_bps'].mean()
+            spread_std = df['spread_drift_std'].iloc[-1] if 'spread_drift_std' in df else spread_bps * 0.2
+            
+            # Penalize high spreads (above 10 bps is poor)
+            spread_penalty = min(spread_bps / 10 * 50, 50)  # Max 50 point penalty
+            
+            # Penalize volatile spreads (above 5 bps std is poor)
+            volatility_penalty = min(spread_std / 5 * 25, 25)  # Max 25 point penalty
+            
+            # Start at 100, subtract penalties
+            efficiency_score = 100 - spread_penalty - volatility_penalty
+            
+            return max(efficiency_score, 0)
+            
+        except Exception:
+            return 75  # Default to "good" on error
+    
+    def _calculate_backtest_consistency(self, df: pd.DataFrame) -> float:
+        """
+        Calculate backtest consistency using intraday range consistency.
+        
+        Returns score 0-100:
+        - High score = Consistent intraday ranges (predictable)
+        - Low score = Erratic intraday ranges (unpredictable)
+        """
+        try:
+            if 'intraday_range_consistency_5d' not in df:
+                # Fallback: calculate from intraday_range_pct
+                range_std = df['intraday_range_pct'].rolling(5).std().iloc[-1]
+            else:
+                range_std = df['intraday_range_consistency_5d'].iloc[-1]
+            
+            # Lower std = higher consistency
+            # Penalize std above 2.0 (very erratic)
+            consistency_score = 100 - min(range_std / 2.0 * 100, 100)
+            
+            return max(consistency_score, 0)
+            
+        except Exception:
+            return 75  # Default to "consistent" on error
     
     def _analyze_dead_zones(self, pattern_results: Dict) -> Dict:
         """
