@@ -209,149 +209,143 @@ class CategoryScorer:
         """
         Liquidity Score (10% weight)
         
-        Multi-tier professional analysis of execution quality.
-        Focus: Tight fills + low transaction costs + curve preservation.
+        Volume depth & spread tightness for easy entry/exit.
         
         Inputs:
         - avg_volume_20d: Average daily volume
         - spread_bps: Bid-ask spread in basis points
-        - spread_volatility: Spread consistency (std dev in bps)
-        - order_book_depth: Average size at best bid/ask (shares)
-        - intraday_liquidity_score: Liquidity consistency throughout day (0-1)
-        - volume_at_touch: % of volume within 1 tick of mid (higher = better)
+        - spread_drift_std: Spread volatility
         
-        4-tier scoring:
-        - Volume Depth (35%): Sufficient shares for entry/exit
-        - Spread Tightness (30%): Minimize execution cost
-        - Order Book Stability (20%): Consistent bid-ask
-        - Intraday Distribution (15%): Liquidity throughout session
-        
-        Target: Volume >8M/day, spread <4 bps, stable book, even liquidity
+        Target: Volume > 5M/day, spread < 5 bps
         Scale: 0-100 (higher = better)
         """
         volume = stock_data.get('avg_volume_20d', 0) / 1_000_000  # Convert to millions
         spread_bps = stock_data.get('spread_bps', 100.0)
-        spread_volatility = stock_data.get('spread_volatility', 5.0)  # Std dev in bps
         
-        # === 1. Volume Depth (35% weight) ===
-        # Sufficient volume for easy entry/exit without moving market
-        if volume >= 15:
-            vol_score = 100.0  # Elite liquidity
-        elif volume >= 10:
-            vol_score = 90.0 + ((volume - 10) / 5) * 10.0  # Excellent
-        elif volume >= 8:
-            vol_score = 80.0 + ((volume - 8) / 2) * 10.0  # Very good
+        # Volume subscore (60%)
+        if volume >= 10:
+            vol_score = 100.0
         elif volume >= 5:
-            vol_score = 65.0 + ((volume - 5) / 3) * 15.0  # Good
-        elif volume >= 3:
-            vol_score = 45.0 + ((volume - 3) / 2) * 20.0  # Acceptable
-        elif volume >= 1:
-            vol_score = 20.0 + ((volume - 1) / 2) * 25.0  # Marginal
+            vol_score = 80.0 + ((volume - 5) / 5) * 20.0
+        elif volume >= 2:
+            vol_score = 50.0 + ((volume - 2) / 3) * 30.0
         else:
-            vol_score = (volume / 1) * 20.0  # Poor
+            vol_score = (volume / 2) * 50.0
         
-        # === 2. Spread Tightness (30% weight) ===
-        # Minimize execution cost (spread = hidden tax on every trade)
-        if spread_bps <= 2:
-            spread_score = 100.0  # Elite (sub-penny)
-        elif spread_bps <= 3:
-            spread_score = 92.0 + ((2 - (spread_bps - 2)) / 1) * 8.0  # Excellent
-        elif spread_bps <= 4:
-            spread_score = 82.0 + ((3 - (spread_bps - 3)) / 1) * 10.0  # Very good
+        # Spread subscore (40%)
+        if spread_bps <= 3:
+            spread_score = 100.0
         elif spread_bps <= 5:
-            spread_score = 70.0 + ((4 - (spread_bps - 4)) / 1) * 12.0  # Good
-        elif spread_bps <= 8:
-            spread_score = 50.0 + ((5 - (spread_bps - 5)) / 3) * 20.0  # Acceptable
-        elif spread_bps <= 12:
-            spread_score = 25.0 + ((8 - (spread_bps - 8)) / 4) * 25.0  # Marginal
+            spread_score = 100.0 - ((spread_bps - 3) / 2) * 20.0
+        elif spread_bps <= 10:
+            spread_score = 80.0 - ((spread_bps - 5) / 5) * 40.0
         else:
-            spread_score = max(0.0, 25.0 - ((spread_bps - 12) * 2.0))  # Poor
+            spread_score = max(0.0, 40.0 - ((spread_bps - 10) * 2.0))
         
-        # === 3. Order Book Stability (20% weight) ===
-        # Consistent spread = predictable execution costs
-        # Low spread volatility = stable order book
-        if spread_volatility <= 1.0:
-            stability_score = 100.0  # Very stable
-        elif spread_volatility <= 2.0:
-            stability_score = 85.0 + ((1.0 - (spread_volatility - 1.0)) / 1.0) * 15.0
-        elif spread_volatility <= 3.0:
-            stability_score = 65.0 + ((2.0 - (spread_volatility - 2.0)) / 1.0) * 20.0
-        elif spread_volatility <= 5.0:
-            stability_score = 40.0 + ((3.0 - (spread_volatility - 3.0)) / 2.0) * 25.0
-        else:
-            stability_score = max(0.0, 40.0 - ((spread_volatility - 5.0) * 5.0))
-        
-        # Boost for tight order book depth
-        order_book_depth = stock_data.get('order_book_depth', 5000)  # Shares at best bid/ask
-        if order_book_depth >= 10000:
-            depth_boost = 10.0
-        elif order_book_depth >= 5000:
-            depth_boost = 5.0
-        else:
-            depth_boost = 0.0
-        
-        stability_score = min(100.0, stability_score + depth_boost)
-        
-        # === 4. Intraday Liquidity Distribution (15% weight) ===
-        # Liquidity should be consistent throughout the day (not just at open/close)
-        intraday_score_raw = stock_data.get('intraday_liquidity_score', 0.75)  # 0-1
-        volume_at_touch = stock_data.get('volume_at_touch', 0.60)  # % of vol at inside market
-        
-        # Score from intraday consistency
-        if intraday_score_raw >= 0.85:
-            intraday_score = 100.0  # Very consistent liquidity
-        elif intraday_score_raw >= 0.75:
-            intraday_score = 85.0 + ((intraday_score_raw - 0.75) / 0.1) * 15.0
-        elif intraday_score_raw >= 0.65:
-            intraday_score = 65.0 + ((intraday_score_raw - 0.65) / 0.1) * 20.0
-        else:
-            intraday_score = (intraday_score_raw / 0.65) * 65.0
-        
-        # Boost for high volume at touch (tight market)
-        if volume_at_touch >= 0.75:
-            touch_boost = 10.0
-        elif volume_at_touch >= 0.65:
-            touch_boost = 5.0
-        else:
-            touch_boost = 0.0
-        
-        intraday_score = min(100.0, intraday_score + touch_boost)
-        
-        # === Composite Liquidity Score ===
-        score = (vol_score * 0.35) + (spread_score * 0.30) + (stability_score * 0.20) + (intraday_score * 0.15)
-        
+        score = (vol_score * 0.6) + (spread_score * 0.4)
         return min(100.0, max(0.0, score))
     
     def score_volatility(self, stock_data: Dict) -> float:
         """
         Volatility Score (10% weight)
         
-        ATR-based adaptive threshold matching.
-        Match stock volatility to strategy (not too quiet, not too choppy).
+        Multi-tier professional analysis of price movement characteristics.
+        Focus: Predictable moves + strategy fit + curve preservation.
         
         Inputs:
         - atr_pct: Average True Range as % of price
-        - volatility_20d: Rolling volatility
-        - intraday_range_pct: Avg high-low range
+        - volatility_20d: Rolling 20-day volatility
+        - volatility_stability: Week-to-week consistency (std dev)
+        - intraday_volatility_pattern: Hourly volatility distribution score (0-1)
+        - high_volatility_win_rate: Win rate during high-vol periods
+        - low_volatility_win_rate: Win rate during low-vol periods
         
-        Target: ATR 1.5%-3.5% (sweet spot)
+        4-tier scoring:
+        - ATR Sweet-Spot (35%): Match strategy requirements
+        - Volatility Consistency (30%): Predictable price behavior
+        - Intraday Pattern (20%): Volatility distribution throughout day
+        - Success Correlation (15%): Volatility level that produces winners
+        
+        Target: ATR 1.8%-3.2%, consistent, even intraday, high win rate
         Scale: 0-100 (higher = better)
         """
         atr_pct = stock_data.get('atr_pct', 0.0)
+        volatility_20d = stock_data.get('volatility_20d', 0.0)
+        volatility_stability = stock_data.get('volatility_stability', 0.5)  # Std dev (lower = better)
         
-        # Sweet spot scoring
-        if 1.5 <= atr_pct <= 3.5:
-            score = 100.0
-        elif 1.0 <= atr_pct < 1.5:
-            score = 70.0 + ((atr_pct - 1.0) / 0.5) * 30.0
-        elif 3.5 < atr_pct <= 5.0:
-            score = 100.0 - ((atr_pct - 3.5) / 1.5) * 20.0
-        elif atr_pct > 5.0:
-            # Too volatile
-            score = max(0.0, 80.0 - ((atr_pct - 5.0) * 10.0))
+        # === 1. ATR Sweet-Spot Matching (35% weight) ===
+        # Not too quiet (insufficient moves) or too wild (unpredictable)
+        if 1.8 <= atr_pct <= 3.2:
+            atr_score = 100.0  # Optimal for VWAP recovery strategy
+        elif 1.5 <= atr_pct < 1.8:
+            atr_score = 88.0 + ((atr_pct - 1.5) / 0.3) * 12.0  # Very good
+        elif 3.2 < atr_pct <= 3.8:
+            atr_score = 88.0 + ((3.8 - atr_pct) / 0.6) * 12.0  # Very good
+        elif 1.2 <= atr_pct < 1.5:
+            atr_score = 70.0 + ((atr_pct - 1.2) / 0.3) * 18.0  # Good but quiet
+        elif 3.8 < atr_pct <= 4.5:
+            atr_score = 70.0 + ((4.5 - atr_pct) / 0.7) * 18.0  # Good but volatile
+        elif 1.0 <= atr_pct < 1.2:
+            atr_score = 45.0 + ((atr_pct - 1.0) / 0.2) * 25.0  # Acceptable but too quiet
+        elif 4.5 < atr_pct <= 5.5:
+            atr_score = 45.0 + ((5.5 - atr_pct) / 1.0) * 25.0  # Acceptable but too wild
+        elif atr_pct < 1.0:
+            atr_score = (atr_pct / 1.0) * 45.0  # Too quiet
         else:
-            # Too quiet
-            score = (atr_pct / 1.0) * 70.0
+            atr_score = max(0.0, 45.0 - ((atr_pct - 5.5) * 8.0))  # Too wild
+        
+        # === 2. Volatility Consistency (30% weight) ===
+        # Stable volatility = predictable price behavior = reliable pattern detection
+        # Low std dev = consistent, high std dev = erratic
+        if volatility_stability <= 0.3:
+            consistency_score = 100.0  # Very stable
+        elif volatility_stability <= 0.5:
+            consistency_score = 85.0 + ((0.5 - volatility_stability) / 0.2) * 15.0
+        elif volatility_stability <= 0.7:
+            consistency_score = 65.0 + ((0.7 - volatility_stability) / 0.2) * 20.0
+        elif volatility_stability <= 1.0:
+            consistency_score = 40.0 + ((1.0 - volatility_stability) / 0.3) * 25.0
+        else:
+            consistency_score = max(0.0, 40.0 - ((volatility_stability - 1.0) * 20.0))
+        
+        # === 3. Intraday Volatility Pattern (20% weight) ===
+        # Volatility should be reasonably distributed throughout the day
+        # Not just wild at open/close with dead zones in between
+        intraday_pattern_score = stock_data.get('intraday_volatility_pattern', 0.70)  # 0-1
+        
+        if intraday_pattern_score >= 0.85:
+            intraday_score = 100.0  # Very even distribution
+        elif intraday_pattern_score >= 0.75:
+            intraday_score = 88.0 + ((intraday_pattern_score - 0.75) / 0.1) * 12.0
+        elif intraday_pattern_score >= 0.65:
+            intraday_score = 70.0 + ((intraday_pattern_score - 0.65) / 0.1) * 18.0
+        elif intraday_pattern_score >= 0.50:
+            intraday_score = 45.0 + ((intraday_pattern_score - 0.50) / 0.15) * 25.0
+        else:
+            intraday_score = (intraday_pattern_score / 0.50) * 45.0
+        
+        # === 4. Success Correlation (15% weight) ===
+        # Does this volatility level actually produce winners?
+        # Some stocks win more in high-vol, others in low-vol
+        high_vol_wr = stock_data.get('high_volatility_win_rate', 0.60)  # 0-1
+        low_vol_wr = stock_data.get('low_volatility_win_rate', 0.60)  # 0-1
+        
+        # Take better of the two scenarios
+        best_wr = max(high_vol_wr, low_vol_wr)
+        
+        if best_wr >= 0.70:
+            correlation_score = 100.0  # Wins consistently
+        elif best_wr >= 0.65:
+            correlation_score = 88.0 + ((best_wr - 0.65) / 0.05) * 12.0
+        elif best_wr >= 0.60:
+            correlation_score = 72.0 + ((best_wr - 0.60) / 0.05) * 16.0
+        elif best_wr >= 0.55:
+            correlation_score = 55.0 + ((best_wr - 0.55) / 0.05) * 17.0
+        else:
+            correlation_score = (best_wr / 0.55) * 55.0
+        
+        # === Composite Volatility Score ===
+        score = (atr_score * 0.35) + (consistency_score * 0.30) + (intraday_score * 0.20) + (correlation_score * 0.15)
         
         return min(100.0, max(0.0, score))
     
