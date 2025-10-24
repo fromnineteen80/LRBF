@@ -401,25 +401,102 @@ class CategoryScorer:
         """
         Slippage Score (5% weight)
         
-        Actual vs expected execution - slippage eats profit silently.
+        Multi-tier professional analysis of execution cost leakage.
+        Focus: Minimize cost drag + predictable execution + curve preservation.
         
         Inputs:
         - slippage_avg_bps: Average slippage in basis points
-        - fill_quality_score: Execution quality metric
+        - slippage_std_dev: Slippage consistency (std dev in bps)
+        - positive_slippage_rate: % of trades with favorable slippage
+        - market_impact_bps: Price movement caused by our order
+        - fill_quality_score: Overall execution quality (0-1)
         
-        Target: < 3 bps average
+        3-tier scoring:
+        - Slippage Magnitude (35%): Average cost drag per trade
+        - Slippage Consistency (30%): Predictability of execution costs
+        - Market Impact (35%): Order size vs liquidity balance
+        
+        Target: <2 bps avg, <1.5 bps std dev, minimal market impact
         Scale: 0-100 (higher = better)
         """
         slippage_bps = stock_data.get('slippage_avg_bps', 10.0)
+        slippage_std = stock_data.get('slippage_std_dev', 3.0)  # Std dev in bps
+        market_impact = stock_data.get('market_impact_bps', 5.0)
         
-        if slippage_bps <= 2:
-            score = 100.0
-        elif slippage_bps <= 3:
-            score = 100.0 - ((slippage_bps - 2) / 1) * 20.0
-        elif slippage_bps <= 5:
-            score = 80.0 - ((slippage_bps - 3) / 2) * 40.0
+        # === 1. Slippage Magnitude (35% weight) ===
+        # Average slippage = hidden tax on every trade
+        # Lower = better (preserve the curve)
+        if slippage_bps <= 1.5:
+            magnitude_score = 100.0  # Elite execution
+        elif slippage_bps <= 2.5:
+            magnitude_score = 90.0 + ((2.5 - slippage_bps) / 1.0) * 10.0  # Excellent
+        elif slippage_bps <= 3.5:
+            magnitude_score = 78.0 + ((3.5 - slippage_bps) / 1.0) * 12.0  # Very good
+        elif slippage_bps <= 5.0:
+            magnitude_score = 60.0 + ((5.0 - slippage_bps) / 1.5) * 18.0  # Good
+        elif slippage_bps <= 7.0:
+            magnitude_score = 40.0 + ((7.0 - slippage_bps) / 2.0) * 20.0  # Acceptable
+        elif slippage_bps <= 10.0:
+            magnitude_score = 20.0 + ((10.0 - slippage_bps) / 3.0) * 20.0  # Marginal
         else:
-            score = max(0.0, 40.0 - ((slippage_bps - 5) * 5.0))
+            magnitude_score = max(0.0, 20.0 - ((slippage_bps - 10.0) * 2.0))  # Poor
+        
+        # Boost for positive slippage (price improvement)
+        positive_rate = stock_data.get('positive_slippage_rate', 0.15)  # 0-1
+        if positive_rate >= 0.25:
+            positive_boost = 10.0  # Frequent price improvement
+        elif positive_rate >= 0.15:
+            positive_boost = 5.0
+        else:
+            positive_boost = 0.0
+        
+        magnitude_score = min(100.0, magnitude_score + positive_boost)
+        
+        # === 2. Slippage Consistency (30% weight) ===
+        # Predictable slippage = budgetable costs, no surprises
+        # Low std dev = consistent execution quality
+        if slippage_std <= 1.0:
+            consistency_score = 100.0  # Very consistent
+        elif slippage_std <= 1.5:
+            consistency_score = 88.0 + ((1.5 - slippage_std) / 0.5) * 12.0  # Consistent
+        elif slippage_std <= 2.5:
+            consistency_score = 70.0 + ((2.5 - slippage_std) / 1.0) * 18.0  # Good
+        elif slippage_std <= 4.0:
+            consistency_score = 50.0 + ((4.0 - slippage_std) / 1.5) * 20.0  # Acceptable
+        elif slippage_std <= 6.0:
+            consistency_score = 25.0 + ((6.0 - slippage_std) / 2.0) * 25.0  # Inconsistent
+        else:
+            consistency_score = max(0.0, 25.0 - ((slippage_std - 6.0) * 3.0))  # Very inconsistent
+        
+        # === 3. Market Impact (35% weight) ===
+        # Does our order size move the market?
+        # Low impact = liquidity matches our size, no adverse selection
+        if market_impact <= 1.5:
+            impact_score = 100.0  # Negligible impact
+        elif market_impact <= 2.5:
+            impact_score = 90.0 + ((2.5 - market_impact) / 1.0) * 10.0  # Very low
+        elif market_impact <= 4.0:
+            impact_score = 75.0 + ((4.0 - market_impact) / 1.5) * 15.0  # Low
+        elif market_impact <= 6.0:
+            impact_score = 55.0 + ((6.0 - market_impact) / 2.0) * 20.0  # Moderate
+        elif market_impact <= 9.0:
+            impact_score = 30.0 + ((9.0 - market_impact) / 3.0) * 25.0  # Noticeable
+        else:
+            impact_score = max(0.0, 30.0 - ((market_impact - 9.0) * 3.0))  # Significant
+        
+        # Adjustment from fill quality score
+        fill_quality = stock_data.get('fill_quality_score', 0.75)  # 0-1
+        if fill_quality >= 0.85:
+            quality_boost = 5.0
+        elif fill_quality >= 0.75:
+            quality_boost = 2.0
+        else:
+            quality_boost = 0.0
+        
+        impact_score = min(100.0, impact_score + quality_boost)
+        
+        # === Composite Slippage Score ===
+        score = (magnitude_score * 0.35) + (consistency_score * 0.30) + (impact_score * 0.35)
         
         return min(100.0, max(0.0, score))
     
