@@ -407,3 +407,121 @@ def detect_patterns_batch(
     """
     detector = PatternDetector()
     return detector.detect_all_patterns(df, ticker, analysis_date)
+
+
+# =============================================================================
+# MAIN INTERFACE FUNCTION FOR MORNING REPORT
+# =============================================================================
+
+def analyze_vwap_patterns(
+    df: pd.DataFrame,
+    decline_threshold: float = 1.0,
+    entry_threshold: float = 1.5,
+    target_1: float = 0.75,
+    target_2: float = 2.0,
+    stop_loss: float = 0.5,
+    analysis_period_days: int = 20
+) -> Dict:
+    """
+    Analyze VWAP recovery patterns and return comprehensive statistics.
+    
+    This is the main interface function used by morning_report.py.
+    
+    Args:
+        df: DataFrame with OHLCV data (1-minute bars)
+        decline_threshold: Minimum decline % to detect (Step 1)
+        entry_threshold: % climb to confirm entry
+        target_1: First profit target %
+        target_2: Second profit target %
+        stop_loss: Stop loss threshold %
+        analysis_period_days: Number of days in analysis window (default 20)
+    
+    Returns:
+        Dictionary with:
+        - all_patterns: List of all detected patterns
+        - confirmed_entries: List of patterns with entry confirmation
+        - wins: List of winning trades
+        - losses: List of losing trades
+        - expected_value: Expected value per trade
+        - avg_win_pct: Average win percentage
+        - avg_loss_pct: Average loss percentage
+        - total_patterns_found: Total patterns detected (Priority 2 ✅)
+        - confirmed_entries_count: Number of confirmed entries (Priority 2 ✅)
+        - patterns_per_day: Average patterns per day (Priority 2 ✅)
+        - expected_daily_entries: Expected entries per day (Priority 2 ✅)
+        - signal_frequency_20d: Signal frequency over 20 days (Priority 2 ✅)
+        - signal_success_rate_20d: Success rate over 20 days (Priority 2 ✅)
+    """
+    from datetime import datetime
+    
+    # Initialize detector with specified parameters
+    detector = PatternDetector(
+        decline_threshold_pct=decline_threshold,
+        entry_confirmation_pct=entry_threshold,
+        target_1_pct=target_1,
+        target_2_pct=target_2,
+        stop_loss_pct=stop_loss
+    )
+    
+    # Detect all patterns
+    analysis_date = datetime.now()
+    ticker = 'UNKNOWN'  # Will be set by caller if needed
+    
+    all_patterns = detector.detect_all_patterns(df, ticker, analysis_date)
+    
+    # Separate patterns by outcome
+    confirmed_entries = [p for p in all_patterns if p.get('entry_confirmed', False)]
+    wins = [p for p in confirmed_entries if p.get('outcome') == 'win']
+    losses = [p for p in confirmed_entries if p.get('outcome') == 'loss']
+    
+    # Calculate statistics
+    total_patterns = len(all_patterns)
+    total_confirmed = len(confirmed_entries)
+    total_wins = len(wins)
+    total_losses = len(losses)
+    
+    # Win/loss percentages
+    avg_win_pct = np.mean([p.get('profit_pct', 0) for p in wins]) if wins else 0
+    avg_loss_pct = abs(np.mean([p.get('profit_pct', 0) for p in losses])) if losses else stop_loss
+    
+    # Expected value calculation
+    win_rate = total_wins / total_confirmed if total_confirmed > 0 else 0
+    loss_rate = 1 - win_rate
+    expected_value = (win_rate * avg_win_pct) - (loss_rate * avg_loss_pct)
+    
+    # Priority 2 Metrics: Pattern frequency and entry rate
+    patterns_per_day = total_patterns / analysis_period_days if analysis_period_days > 0 else 0
+    confirmation_rate = total_confirmed / total_patterns if total_patterns > 0 else 0
+    expected_daily_entries = patterns_per_day * confirmation_rate
+    
+    # Signal frequency and success rate (20-day normalized)
+    signal_frequency_20d = patterns_per_day  # Same as patterns_per_day
+    signal_success_rate_20d = win_rate  # Same as win_rate
+    
+    # Return comprehensive analysis
+    return {
+        # Lists for detailed analysis
+        'all_patterns': all_patterns,
+        'confirmed_entries': confirmed_entries,
+        'wins': wins,
+        'losses': losses,
+        
+        # Summary statistics
+        'expected_value': expected_value,
+        'avg_win_pct': avg_win_pct,
+        'avg_loss_pct': avg_loss_pct,
+        
+        # Priority 2 Metrics (NEW)
+        'total_patterns_found': total_patterns,
+        'confirmed_entries_count': total_confirmed,
+        'patterns_per_day': patterns_per_day,
+        'expected_daily_entries': expected_daily_entries,
+        'signal_frequency_20d': signal_frequency_20d,
+        'signal_success_rate_20d': signal_success_rate_20d,
+        
+        # Additional metrics
+        'win_rate': win_rate,
+        'confirmation_rate': confirmation_rate,
+        'total_wins': total_wins,
+        'total_losses': total_losses
+    }
