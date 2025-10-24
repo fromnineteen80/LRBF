@@ -36,7 +36,6 @@ class EnhancedMorningReport:
     - Stock Selection & Quality Scoring (29 data points)
     - Forecasting (18 data points)
     - Risk Management (24 data points)
-    + Professional Quant Metrics (Phase 2)
     """
     
     def __init__(self, config: Dict = None, use_simulation: bool = False):
@@ -115,6 +114,7 @@ class EnhancedMorningReport:
             - forecast: Expected performance
             - dead_zone_analysis: Dead zone metrics
             - risk_metrics: Risk-adjusted scores
+            - quant_metrics: Professional quant desk metrics (Phase 2)
         """
         print(f"\n{'='*80}")
         print(f"GENERATING MORNING REPORT - {self.report_date}")
@@ -162,19 +162,19 @@ class EnhancedMorningReport:
             risk_metrics = self._calculate_risk_metrics(selection)
             print(f"   ✓ Risk metrics calculated\n")
             
-            
             # Step 9: Calculate professional quant metrics (Phase 2)
             print("9. Calculating professional quant metrics...")
             quant_metrics = self._calculate_quant_metrics(selection)
             print(f"   ✓ Quant metrics calculated\n")
-            # Step 11: Store in database
+            
+            # Step 10: Store in database
             print("10. Storing report in database...")
             report_id = self._store_report(selection, forecast, risk_metrics, dz_metrics, quant_metrics)
             print(f"   ✓ Report stored (ID: {report_id})\n")
             
-            # Step 10: Build final report
+            # Step 11: Build final report
             report = self._build_final_report(
-                selection, forecast, risk_metrics, dz_metrics, market_data
+                selection, forecast, risk_metrics, dz_metrics, quant_metrics, market_data
             )
             
             print(f"{'='*80}")
@@ -709,8 +709,7 @@ class EnhancedMorningReport:
     def _integrate_dead_zone_scores(
         self, 
         scored_stocks: pd.DataFrame,
-        dz_metrics: Dict,
-        quant_metrics: Dict
+        dz_metrics: Dict
     ) -> pd.DataFrame:
         """Update quality scores with dead zone analysis"""
         for ticker, metrics in dz_metrics.items():
@@ -777,8 +776,6 @@ class EnhancedMorningReport:
         )
         
         return metrics
-    
-
     
     def _calculate_quant_metrics(self, selection: Dict) -> Dict:
         """
@@ -913,7 +910,7 @@ class EnhancedMorningReport:
         )
         
         return metrics
-
+    
     def _store_report(
         self, 
         selection: Dict, 
@@ -949,7 +946,6 @@ class EnhancedMorningReport:
         """Build detailed stock analysis JSON for database"""
         analysis = {}
         per_stock_quant = quant_metrics.get('per_stock', {})
-        
         
         for _, stock in selection['primary'].iterrows():
             ticker = stock['ticker']
@@ -988,6 +984,7 @@ class EnhancedMorningReport:
         forecast: Dict,
         risk_metrics: Dict,
         dz_metrics: Dict,
+        quant_metrics: Dict,
         market_data: Dict[str, pd.DataFrame]
     ) -> Dict:
         """Build final report structure for API response"""
@@ -1035,8 +1032,7 @@ class EnhancedMorningReport:
     def _format_stock_list(
         self, 
         stocks_df: pd.DataFrame,
-        dz_metrics: Dict,
-        quant_metrics: Dict
+        dz_metrics: Dict
     ) -> List[Dict]:
         """Format stock list for API response"""
         formatted = []
