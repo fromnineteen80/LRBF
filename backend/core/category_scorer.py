@@ -1008,63 +1008,88 @@ class CategoryScorer:
     
 def score_execution_cycle(self, stock_data: Dict) -> float:
         """
-        Execution Cycle Feasibility Score (2% weight) - REPLACES Sector Balance
+        Execution Cycle Score (2% weight) - Portfolio Tier
         
-        Evaluates if there's enough time for full intraminute trade cycle.
-        
-        Full Cycle: VWAP detection → pattern confirmation → entry execution 
-                   → hold to target/stop → exit execution → cash settlement
+        Multi-tier professional analysis of full trade cycle completion.
+        Focus: Smooth execution cycles = predictable compounding.
         
         Inputs:
-        - avg_bars_to_entry: Minutes until pattern confirms
-        - avg_hold_time_minutes: Time from entry to exit
-        - avg_execution_latency_ms: Order fill speed (entry + exit)
-        - settlement_lag_minutes: Cash availability delay
+        - full_cycle_completion_rate: % of patterns that complete entry→exit (0-100)
+        - partial_fill_risk: % of orders that don't fill completely (0-100)
+        - cancel_rate: % of orders that don't execute at all (0-100)
+        - avg_cycle_time_minutes: Average time for full cycle
         
-        Total Cycle = detection + entry_latency + hold + exit_latency + settlement
+        3-tier scoring:
+        - Full Cycle Completion Rate (40%): % of patterns that complete entry→exit
+        - Partial Fill Risk (30%): Incomplete order fills
+        - Cancel Rate (30%): Orders that don't execute
         
-        Target: < 12 minutes (can do 15+ trades/day)
-        Scale: 0-100 (higher = better, faster cycles = more opportunities)
+        Target: >90% completion, <5% partial fills, <3% cancels
+        Scale: 0-100 (higher = better)
         """
-        # Component times
-        bars_to_entry = stock_data.get('avg_bars_to_entry', 3.0)  # minutes
-        hold_time = stock_data.get('avg_hold_time_minutes', 15.0)  # minutes
-        entry_latency = stock_data.get('avg_execution_latency_ms', 50.0) / 1000 / 60  # ms to minutes
-        exit_latency = entry_latency  # Assume similar
-        settlement_lag = stock_data.get('settlement_lag_minutes', 0.5)  # minutes
+        completion_rate = stock_data.get('full_cycle_completion_rate', 75.0)  # % (higher = better)
+        partial_fill_risk = stock_data.get('partial_fill_risk', 8.0)  # % (lower = better)
+        cancel_rate = stock_data.get('cancel_rate', 5.0)  # % (lower = better)
         
-        # Total cycle time
-        total_cycle_minutes = (
-            bars_to_entry +
-            entry_latency +
-            hold_time +
-            exit_latency +
-            settlement_lag
-        )
-        
-        # Calculate daily capacity (6.5 hour session = 390 minutes)
-        # Reserve 30 min for market open/close volatility = 360 min usable
-        max_daily_trades = 360 / total_cycle_minutes if total_cycle_minutes > 0 else 0
-        
-        # Score based on cycle speed (capital turnover efficiency)
-        if total_cycle_minutes <= 10:
-            # Excellent: 36+ trades possible
-            score = 100.0
-        elif total_cycle_minutes <= 12:
-            # Very good: 30+ trades possible
-            score = 100.0 - ((total_cycle_minutes - 10) / 2) * 10.0
-        elif total_cycle_minutes <= 15:
-            # Good: 24+ trades possible
-            score = 90.0 - ((total_cycle_minutes - 12) / 3) * 15.0
-        elif total_cycle_minutes <= 20:
-            # Acceptable: 18+ trades possible
-            score = 75.0 - ((total_cycle_minutes - 15) / 5) * 25.0
-        elif total_cycle_minutes <= 30:
-            # Marginal: 12+ trades possible
-            score = 50.0 - ((total_cycle_minutes - 20) / 10) * 30.0
+        # === 1. Full Cycle Completion Rate (40% weight) ===
+        # Higher completion = reliable execution = predictable results
+        if completion_rate >= 95:
+            completion_score = 100.0  # Excellent reliability
+        elif completion_rate >= 90:
+            completion_score = 92.0 + ((completion_rate - 90) / 5) * 8.0  # Very good
+        elif completion_rate >= 85:
+            completion_score = 82.0 + ((completion_rate - 85) / 5) * 10.0  # Good
+        elif completion_rate >= 78:
+            completion_score = 68.0 + ((completion_rate - 78) / 7) * 14.0  # Acceptable
+        elif completion_rate >= 70:
+            completion_score = 50.0 + ((completion_rate - 70) / 8) * 18.0  # Marginal
+        elif completion_rate >= 60:
+            completion_score = 28.0 + ((completion_rate - 60) / 10) * 22.0  # Poor
         else:
-            # Poor: < 12 trades possible (capital turnover too slow)
-            score = max(0.0, 20.0 - ((total_cycle_minutes - 30) * 1.0))
+            completion_score = max(0.0, 28.0 - ((60 - completion_rate) * 2.8))  # Very poor
+        
+        # === 2. Partial Fill Risk (30% weight) ===
+        # Lower partial fills = full position sizing = accurate P&L
+        if partial_fill_risk <= 2:
+            partial_score = 100.0  # Minimal risk
+        elif partial_fill_risk <= 4:
+            partial_score = 90.0 + ((4 - partial_fill_risk) / 2) * 10.0  # Low risk
+        elif partial_fill_risk <= 7:
+            partial_score = 76.0 + ((7 - partial_fill_risk) / 3) * 14.0  # Moderate risk
+        elif partial_fill_risk <= 11:
+            partial_score = 58.0 + ((11 - partial_fill_risk) / 4) * 18.0  # Elevated risk
+        elif partial_fill_risk <= 16:
+            partial_score = 36.0 + ((16 - partial_fill_risk) / 5) * 22.0  # High risk
+        else:
+            partial_score = max(0.0, 36.0 - ((partial_fill_risk - 16) * 2.25))  # Very high risk
+        
+        # === 3. Cancel Rate (30% weight) ===
+        # Lower cancel rate = orders actually execute = capital deployed
+        if cancel_rate <= 1.5:
+            cancel_score = 100.0  # Minimal cancels
+        elif cancel_rate <= 3.0:
+            cancel_score = 90.0 + ((3.0 - cancel_rate) / 1.5) * 10.0  # Low cancels
+        elif cancel_rate <= 5.0:
+            cancel_score = 76.0 + ((5.0 - cancel_rate) / 2.0) * 14.0  # Moderate cancels
+        elif cancel_rate <= 8.0:
+            cancel_score = 58.0 + ((8.0 - cancel_rate) / 3.0) * 18.0  # Elevated cancels
+        elif cancel_rate <= 12.0:
+            cancel_score = 36.0 + ((12.0 - cancel_rate) / 4.0) * 22.0  # High cancels
+        else:
+            cancel_score = max(0.0, 36.0 - ((cancel_rate - 12.0) * 3.0))  # Very high cancels
+        
+        # Bonus for fast cycle time (enables more daily trades)
+        avg_cycle_time = stock_data.get('avg_cycle_time_minutes', 18.0)
+        if avg_cycle_time <= 12:
+            speed_bonus = 8.0  # Fast turnover (12+ trades/day possible)
+        elif avg_cycle_time <= 15:
+            speed_bonus = 4.0  # Good turnover (10+ trades/day)
+        else:
+            speed_bonus = 0.0
+        
+        # === Composite Execution Cycle Score ===
+        score = (completion_score * 0.40) + (partial_score * 0.30) + (cancel_score * 0.30)
+        score = min(100.0, score + speed_bonus)
         
         return min(100.0, max(0.0, score))
     
