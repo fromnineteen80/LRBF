@@ -709,7 +709,8 @@ class EnhancedMorningReport:
     def _integrate_dead_zone_scores(
         self, 
         scored_stocks: pd.DataFrame,
-        dz_metrics: Dict
+        dz_metrics: Dict,
+        quant_metrics: Dict
     ) -> pd.DataFrame:
         """Update quality scores with dead zone analysis"""
         for ticker, metrics in dz_metrics.items():
@@ -918,7 +919,8 @@ class EnhancedMorningReport:
         selection: Dict, 
         forecast: Dict,
         risk_metrics: Dict,
-        dz_metrics: Dict
+        dz_metrics: Dict,
+        quant_metrics: Dict
     ) -> int:
         """Store complete report in database"""
         
@@ -941,7 +943,8 @@ class EnhancedMorningReport:
     def _build_stock_analysis_json(
         self, 
         selection: Dict,
-        dz_metrics: Dict
+        dz_metrics: Dict,
+        quant_metrics: Dict
     ) -> Dict:
         """Build detailed stock analysis JSON for database"""
         analysis = {}
@@ -1032,7 +1035,8 @@ class EnhancedMorningReport:
     def _format_stock_list(
         self, 
         stocks_df: pd.DataFrame,
-        dz_metrics: Dict
+        dz_metrics: Dict,
+        quant_metrics: Dict
     ) -> List[Dict]:
         """Format stock list for API response"""
         formatted = []
