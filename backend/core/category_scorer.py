@@ -548,27 +548,88 @@ class CategoryScorer:
     
     def score_false_positive_rate(self, stock_data: Dict) -> float:
         """
-        False Positive Rate (4% weight)
+        False Positive Rate Score (4% weight) - Risk Tier
         
-        Pattern reliability - fewer false signals = less whipsaw.
+        Multi-tier professional analysis of pattern reliability and signal quality.
+        Focus: Reduce losing trades from bad signals + protect curve + minimize whipsaw costs.
         
         Inputs:
-        - false_positive_rate: % of patterns that fail
-        - pattern_quality_score: Overall pattern reliability
+        - pattern_failure_rate: % of patterns that don't complete (false signals)
+        - whipsaw_cost_total: $ lost to false positive trades over 20 days
+        - recovery_after_false: Days to first win after false positive
+        - false_positive_frequency: How often false signals occur per day
         
-        Target: FPR < 30%
-        Scale: 0-100 (higher = better, lower FPR = better)
+        3-tier scoring:
+        - Pattern Failure Rate (40%): % of detected patterns that fail to complete
+        - Whipsaw Cost (35%): Dollar damage from false signals
+        - Recovery After False (25%): Speed to resume winning after false positive
+        
+        Target: <25% failure rate, <$100 whipsaw cost, recover within 1 day
+        Scale: 0-100 (higher = better)
         """
-        fpr = stock_data.get('false_positive_rate', 50.0)
+        failure_rate = stock_data.get('pattern_failure_rate', 40.0)  # % (lower = better)
+        whipsaw_cost = stock_data.get('whipsaw_cost_total', 150.0)   # $ (lower = better)
+        recovery_days = stock_data.get('recovery_after_false', 2.5)  # days (lower = better)
         
-        if fpr <= 20:
-            score = 100.0
-        elif fpr <= 30:
-            score = 100.0 - ((fpr - 20) / 10) * 20.0
-        elif fpr <= 45:
-            score = 80.0 - ((fpr - 30) / 15) * 40.0
+        # === 1. Pattern Failure Rate (40% weight) ===
+        # Lower failure rate = more reliable signals = fewer losing trades
+        if failure_rate <= 15:
+            failure_score = 100.0  # Elite reliability
+        elif failure_rate <= 25:
+            failure_score = 90.0 + ((25 - failure_rate) / 10) * 10.0  # Excellent
+        elif failure_rate <= 35:
+            failure_score = 75.0 + ((35 - failure_rate) / 10) * 15.0  # Good
+        elif failure_rate <= 45:
+            failure_score = 55.0 + ((45 - failure_rate) / 10) * 20.0  # Acceptable
+        elif failure_rate <= 60:
+            failure_score = 30.0 + ((60 - failure_rate) / 15) * 25.0  # Marginal
         else:
-            score = max(0.0, 40.0 - ((fpr - 45) * 2.0))
+            failure_score = max(0.0, 30.0 - ((failure_rate - 60) * 1.5))  # Poor
+        
+        # === 2. Whipsaw Cost (35% weight) ===
+        # Dollar cost of false signals = hidden drag on curve
+        # Lower cost = less capital erosion from bad signals
+        if whipsaw_cost <= 50:
+            cost_score = 100.0  # Minimal damage
+        elif whipsaw_cost <= 100:
+            cost_score = 90.0 + ((100 - whipsaw_cost) / 50) * 10.0  # Low damage
+        elif whipsaw_cost <= 150:
+            cost_score = 75.0 + ((150 - whipsaw_cost) / 50) * 15.0  # Moderate
+        elif whipsaw_cost <= 225:
+            cost_score = 55.0 + ((225 - whipsaw_cost) / 75) * 20.0  # Acceptable
+        elif whipsaw_cost <= 325:
+            cost_score = 30.0 + ((325 - whipsaw_cost) / 100) * 25.0  # High damage
+        else:
+            cost_score = max(0.0, 30.0 - ((whipsaw_cost - 325) * 0.15))  # Severe damage
+        
+        # === 3. Recovery After False (25% weight) ===
+        # How quickly wins resume after false positive
+        # Fast recovery = resilient performance, curve preserved
+        if recovery_days <= 0.5:
+            recovery_score = 100.0  # Immediate recovery
+        elif recovery_days <= 1.0:
+            recovery_score = 90.0 + ((1.0 - recovery_days) / 0.5) * 10.0  # Very fast
+        elif recovery_days <= 1.5:
+            recovery_score = 78.0 + ((1.5 - recovery_days) / 0.5) * 12.0  # Fast
+        elif recovery_days <= 2.5:
+            recovery_score = 60.0 + ((2.5 - recovery_days) / 1.0) * 18.0  # Moderate
+        elif recovery_days <= 4.0:
+            recovery_score = 38.0 + ((4.0 - recovery_days) / 1.5) * 22.0  # Slow
+        else:
+            recovery_score = max(0.0, 38.0 - ((recovery_days - 4.0) * 8.0))  # Very slow
+        
+        # Penalty for high false positive frequency
+        fp_frequency = stock_data.get('false_positive_frequency', 1.0)  # per day
+        if fp_frequency > 2.5:
+            frequency_penalty = 10.0  # Too many false signals
+        elif fp_frequency > 1.5:
+            frequency_penalty = 5.0
+        else:
+            frequency_penalty = 0.0
+        
+        # === Composite False Positive Score ===
+        score = (failure_score * 0.40) + (cost_score * 0.35) + (recovery_score * 0.25)
+        score = max(0.0, score - frequency_penalty)
         
         return min(100.0, max(0.0, score))
     
