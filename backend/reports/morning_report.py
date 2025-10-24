@@ -385,7 +385,8 @@ class EnhancedMorningReport:
                     entry_threshold=self.config['entry_threshold'],
                     target_1=self.config['target_1'],
                     target_2=self.config['target_2'],
-                    stop_loss=self.config['stop_loss']
+                    stop_loss=self.config['stop_loss'],
+                    analysis_period_days=self.config['analysis_period_days']
                 )
                 
                 results[ticker] = patterns
@@ -477,7 +478,13 @@ class EnhancedMorningReport:
                 # ✅ UPDATED: Use intraday_range_consistency_5d from Layer 1
                 'backtest_consistency': self._calculate_backtest_consistency(df),
                 
-                'composite_rank': 0  # Will be calculated after all scores
+                'composite_rank': 0,  # Will be calculated after all scores
+                
+                # Priority 2 Additional Metrics
+                'vwap_confluence_index': self._calculate_vwap_confluence(df),
+                'morning_bias': self._calculate_morning_bias(df),
+                'quality_score': 0,  # Will be set to normalized composite_rank
+                'reward_to_risk': abs(patterns.get('avg_win_pct', 1) / patterns.get('avg_loss_pct', 0.5))  # Alias
             }
             
             stocks_data.append(scores)
@@ -502,6 +509,9 @@ class EnhancedMorningReport:
         max_rank = df_scores['composite_rank'].max()
         if max_rank > 0:
             df_scores['composite_rank'] = (df_scores['composite_rank'] / max_rank) * 100
+        
+        # Set quality_score as normalized composite_rank
+        df_scores['quality_score'] = df_scores['composite_rank']
         
         return df_scores
     
@@ -585,6 +595,89 @@ class EnhancedMorningReport:
         except Exception:
             return 75  # Default to "consistent" on error
     
+    def _calculate_vwap_confluence(self, df: pd.DataFrame) -> float:
+        """
+        Calculate VWAP confluence index - agreement across multiple timeframes.
+        
+        Returns score 0-100:
+        - 100 = All VWAPs aligned (strong confluence)
+        - 50 = Mixed signals
+        - 0 = All VWAPs divergent
+        """
+        try:
+            if 'vwap_session' not in df or 'vwap_60' not in df or 'vwap_5min' not in df:
+                return 50
+            
+            current_price = df['close'].iloc[-1]
+            vwap_session = df['vwap_session'].iloc[-1]
+            vwap_60 = df['vwap_60'].iloc[-1]
+            vwap_5min = df['vwap_5min'].iloc[-1]
+            
+            # Check if price is above/below each VWAP
+            above_session = 1 if current_price > vwap_session else 0
+            above_60 = 1 if current_price > vwap_60 else 0
+            above_5min = 1 if current_price > vwap_5min else 0
+            
+            # Calculate alignment (all above or all below = strong)
+            alignment_sum = above_session + above_60 + above_5min
+            
+            if alignment_sum == 3 or alignment_sum == 0:
+                # Perfect alignment
+                confluence_score = 100
+            elif alignment_sum == 2 or alignment_sum == 1:
+                # Partial alignment
+                confluence_score = 50
+            else:
+                confluence_score = 50
+            
+            return confluence_score
+            
+        except Exception:
+            return 50
+    
+    def _calculate_morning_bias(self, df: pd.DataFrame) -> float:
+        """
+        Calculate morning directional bias.
+        
+        Returns score -100 to +100:
+        - +100 = Strong bullish bias
+        - 0 = Neutral
+        - -100 = Strong bearish bias
+        """
+        try:
+            if 'ema_20d' not in df or 'sma_20d' not in df:
+                return 0
+            
+            current_price = df['close'].iloc[-1]
+            ema = df['ema_20d'].iloc[-1]
+            sma = df['sma_20d'].iloc[-1]
+            recent_high = df['recent_high'].iloc[-1] if 'recent_high' in df else df['high'].rolling(20).max().iloc[-1]
+            recent_low = df['recent_low'].iloc[-1] if 'recent_low' in df else df['low'].rolling(20).min().iloc[-1]
+            
+            # Position in range
+            range_size = recent_high - recent_low
+            position_in_range = (current_price - recent_low) / range_size if range_size > 0 else 0.5
+            
+            # Trend direction
+            trend_score = 0
+            if ema > sma:
+                trend_score += 33.33
+            if current_price > ema:
+                trend_score += 33.33
+            if current_price > sma:
+                trend_score += 33.34
+            
+            # Combine: position in range (weight 0.4) + trend (weight 0.6)
+            bias = (position_in_range * 40) + (trend_score * 0.6)
+            
+            # Convert to -100 to +100 scale
+            bias = (bias - 50) * 2
+            
+            return max(-100, min(100, bias))
+            
+        except Exception:
+            return 0
+    
     def _analyze_dead_zones(self, pattern_results: Dict) -> Dict:
         """
         Perform dead zone analysis for all stocks.
@@ -634,6 +727,12 @@ class EnhancedMorningReport:
             n_aggressive=self.config['num_aggressive'],
             n_backup=self.config['num_backup']
         )
+        
+        # Add risk_category as alias for category (Priority 2 metric)
+        if 'category' in selection['selected'].columns:
+            selection['selected']['risk_category'] = selection['selected']['category']
+        if 'category' in selection['backup'].columns:
+            selection['backup']['risk_category'] = selection['backup']['category']
         
         return {
             'primary': selection['selected'],
