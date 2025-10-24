@@ -1099,27 +1099,100 @@ def score_execution_cycle(self, stock_data: Dict) -> float:
     
     def score_historical_reliability(self, stock_data: Dict) -> float:
         """
-        Historical Reliability (2% weight)
+        Historical Reliability Score (2% weight) - System Confidence Tier
         
-        Track record stability - has this stock been reliable over time?
+        Multi-tier professional analysis of long-term performance stability.
+        Focus: Stocks that work consistently across market conditions.
         
         Inputs:
-        - performance_consistency: Variance in daily results
-        - forecast_accuracy_20d: How close actual matched forecast
+        - long_term_consistency: Performance stability over 60 days (0-100)
+        - regime_adaptability: Performance across bull/bear/sideways (0-100)
+        - degradation_rate: Is performance declining over time? (% per month, negative = better)
+        - variance_stability: Consistency of daily returns (lower = better)
         
-        Target: Consistency score > 85%
+        3-tier scoring:
+        - Long-Term Consistency (40%): 60-day performance stability
+        - Regime Adaptability (35%): Performance across bull/bear/sideways
+        - Degradation Rate (25%): Is performance declining over time?
+        
+        Target: >85% consistency, >80% adaptability, <2% degradation/month
         Scale: 0-100 (higher = better)
         """
-        consistency = stock_data.get('performance_consistency', 50.0)
+        consistency = stock_data.get('long_term_consistency', 70.0)  # 0-100 (higher = better)
+        adaptability = stock_data.get('regime_adaptability', 65.0)  # 0-100 (higher = better)
+        degradation = stock_data.get('degradation_rate', 1.5)  # % per month (lower = better)
         
+        # === 1. Long-Term Consistency (40% weight) ===
+        # Stable performance = reliable compounding
         if consistency >= 90:
-            score = 100.0
+            consistency_score = 100.0  # Extremely consistent
         elif consistency >= 85:
-            score = 80.0 + ((consistency - 85) / 5) * 20.0
+            consistency_score = 92.0 + ((consistency - 85) / 5) * 8.0  # Very consistent
+        elif consistency >= 78:
+            consistency_score = 80.0 + ((consistency - 78) / 7) * 12.0  # Consistent
         elif consistency >= 70:
-            score = 50.0 + ((consistency - 70) / 15) * 30.0
+            consistency_score = 64.0 + ((consistency - 70) / 8) * 16.0  # Moderately consistent
+        elif consistency >= 60:
+            consistency_score = 44.0 + ((consistency - 60) / 10) * 20.0  # Somewhat consistent
+        elif consistency >= 48:
+            consistency_score = 24.0 + ((consistency - 48) / 12) * 20.0  # Inconsistent
         else:
-            score = (consistency / 70) * 50.0
+            consistency_score = max(0.0, 24.0 - ((48 - consistency) * 0.5))  # Very inconsistent
+        
+        # === 2. Regime Adaptability (35% weight) ===
+        # Works across all market conditions = robust strategy
+        if adaptability >= 88:
+            adapt_score = 100.0  # Excellent adaptability
+        elif adaptability >= 80:
+            adapt_score = 90.0 + ((adaptability - 80) / 8) * 10.0  # Very adaptable
+        elif adaptability >= 72:
+            adapt_score = 76.0 + ((adaptability - 72) / 8) * 14.0  # Adaptable
+        elif adaptability >= 62:
+            adapt_score = 58.0 + ((adaptability - 62) / 10) * 18.0  # Moderately adaptable
+        elif adaptability >= 50:
+            adapt_score = 36.0 + ((adaptability - 50) / 12) * 22.0  # Limited adaptability
+        else:
+            adapt_score = max(0.0, 36.0 - ((50 - adaptability) * 0.72))  # Regime-dependent
+        
+        # === 3. Degradation Rate (25% weight) ===
+        # Performance improving or stable = sustainable edge
+        # Negative degradation = performance improving (good!)
+        if degradation <= -1.0:
+            degrade_score = 100.0  # Performance improving
+        elif degradation <= 0.5:
+            degrade_score = 94.0 + ((0.5 - degradation) / 1.5) * 6.0  # Stable/slightly improving
+        elif degradation <= 1.5:
+            degrade_score = 82.0 + ((1.5 - degradation) / 1.0) * 12.0  # Very stable
+        elif degradation <= 2.5:
+            degrade_score = 68.0 + ((2.5 - degradation) / 1.0) * 14.0  # Stable
+        elif degradation <= 4.0:
+            degrade_score = 50.0 + ((4.0 - degradation) / 1.5) * 18.0  # Slight decline
+        elif degradation <= 6.0:
+            degrade_score = 28.0 + ((6.0 - degradation) / 2.0) * 22.0  # Declining
+        else:
+            degrade_score = max(0.0, 28.0 - ((degradation - 6.0) * 4.67))  # Rapidly declining
+        
+        # Boost for low variance (predictable daily performance)
+        variance_stability = stock_data.get('variance_stability', 0.65)  # 0-1 (higher = better)
+        if variance_stability >= 0.80:
+            variance_boost = 8.0  # Very predictable
+        elif variance_stability >= 0.70:
+            variance_boost = 4.0  # Predictable
+        else:
+            variance_boost = 0.0
+        
+        # Penalty for recent performance drop-off
+        recent_performance_trend = stock_data.get('recent_performance_trend', 0.0)  # -1 to 1
+        if recent_performance_trend < -0.15:
+            trend_penalty = 10.0  # Recent sharp decline (concerning)
+        elif recent_performance_trend < -0.05:
+            trend_penalty = 5.0  # Recent decline
+        else:
+            trend_penalty = 0.0
+        
+        # === Composite Historical Reliability Score ===
+        score = (consistency_score * 0.40) + (adapt_score * 0.35) + (degrade_score * 0.25)
+        score = score + variance_boost - trend_penalty
         
         return min(100.0, max(0.0, score))
     
