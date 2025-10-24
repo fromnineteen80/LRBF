@@ -111,38 +111,84 @@ class CategoryScorer:
     
     def score_pattern_frequency(self, stock_data: Dict) -> float:
         """
-        Pattern Frequency Score (15% weight)
+        Pattern Frequency Score (25% weight) - OCCURRENCES ARE KING
         
-        Measures tradeable opportunities per day.
-        Balance activity (need signals) vs quality (not too many = noise).
+        Multi-tier professional analysis of tradeable opportunity density.
+        Focus: Maximum daily opportunities + quality confirmation + even distribution.
         
         Inputs:
-        - vwap_occurred_20d: Total patterns found
-        - entries_20d: Confirmed entries
-        - expected_daily_patterns: Avg patterns per day
+        - vwap_occurred_20d: Total patterns detected
+        - entries_20d: Confirmed entries (patterns that met thresholds)
+        - confirmation_rate: % of patterns that became trades
+        - pattern_distribution_score: Evenness of patterns throughout day (0-1)
         
-        Target: 2-4 confirmed patterns/day
+        3-tier scoring:
+        - Daily Occurrence Rate (60%): MORE = BETTER (more compounding opportunities)
+        - Entry Confirmation Rate (20%): Pattern quality filter
+        - Distribution Consistency (20%): Patterns spread evenly vs clustered
+        
+        Target: 4-8+ entries/day (high occurrence), 50%+ confirmation, even distribution
         Scale: 0-100 (higher = better)
         """
         entries_20d = stock_data.get('entries_20d', 0)
-        expected_daily = stock_data.get('expected_daily_patterns', 0.0)
+        occurred_20d = stock_data.get('vwap_occurred_20d', 0)
+        confirmation_rate = stock_data.get('confirmation_rate', 0.0)  # 0-100
         
-        # Calculate daily entry rate
+        # Calculate daily rates
         daily_entries = entries_20d / 20.0 if entries_20d > 0 else 0.0
         
-        # Score based on sweet spot (2-4 entries/day)
-        if 2.0 <= daily_entries <= 4.0:
-            score = 100.0
-        elif 1.5 <= daily_entries < 2.0:
-            score = 70.0 + ((daily_entries - 1.5) / 0.5) * 30.0
-        elif 4.0 < daily_entries <= 6.0:
-            score = 100.0 - ((daily_entries - 4.0) / 2.0) * 20.0
-        elif daily_entries > 6.0:
-            # Too many signals = noise
-            score = max(0.0, 80.0 - ((daily_entries - 6.0) * 5.0))
+        # === 1. Daily Occurrence Rate (60% weight) ===
+        # MORE OCCURRENCES = MORE COMPOUNDING = KING
+        # No penalty for "too many" - confirmation rate filters quality
+        if daily_entries >= 8.0:
+            occurrence_score = 100.0  # Elite: 8+ entries/day
+        elif daily_entries >= 6.0:
+            occurrence_score = 92.0 + ((daily_entries - 6.0) / 2.0) * 8.0  # Excellent: 6-8/day
+        elif daily_entries >= 4.0:
+            occurrence_score = 80.0 + ((daily_entries - 4.0) / 2.0) * 12.0  # Very good: 4-6/day
+        elif daily_entries >= 3.0:
+            occurrence_score = 65.0 + ((daily_entries - 3.0) / 1.0) * 15.0  # Good: 3-4/day
+        elif daily_entries >= 2.0:
+            occurrence_score = 45.0 + ((daily_entries - 2.0) / 1.0) * 20.0  # Acceptable: 2-3/day
+        elif daily_entries >= 1.0:
+            occurrence_score = 20.0 + ((daily_entries - 1.0) / 1.0) * 25.0  # Marginal: 1-2/day
         else:
-            # Too few signals
-            score = (daily_entries / 1.5) * 70.0
+            occurrence_score = (daily_entries / 1.0) * 20.0  # Poor: <1/day
+        
+        # === 2. Entry Confirmation Rate (20% weight) ===
+        # Filters quality - high rate = real patterns, not noise
+        # This is why we don't penalize high occurrence - confirmation filters it
+        if confirmation_rate >= 65.0:
+            confirmation_score = 100.0  # Elite quality
+        elif confirmation_rate >= 55.0:
+            confirmation_score = 88.0 + ((confirmation_rate - 55.0) / 10.0) * 12.0  # Excellent
+        elif confirmation_rate >= 45.0:
+            confirmation_score = 72.0 + ((confirmation_rate - 45.0) / 10.0) * 16.0  # Good
+        elif confirmation_rate >= 35.0:
+            confirmation_score = 52.0 + ((confirmation_rate - 35.0) / 10.0) * 20.0  # Acceptable
+        elif confirmation_rate >= 25.0:
+            confirmation_score = 30.0 + ((confirmation_rate - 25.0) / 10.0) * 22.0  # Marginal
+        else:
+            confirmation_score = (confirmation_rate / 25.0) * 30.0  # Poor (too many false signals)
+        
+        # === 3. Distribution Consistency (20% weight) ===
+        # Even distribution = continuous compounding, less idle capital
+        distribution_score_raw = stock_data.get('pattern_distribution_score', 0.7)  # 0-1
+        
+        if distribution_score_raw >= 0.85:
+            distribution_score = 100.0  # Very even
+        elif distribution_score_raw >= 0.75:
+            distribution_score = 88.0 + ((distribution_score_raw - 0.75) / 0.1) * 12.0
+        elif distribution_score_raw >= 0.65:
+            distribution_score = 72.0 + ((distribution_score_raw - 0.65) / 0.1) * 16.0
+        elif distribution_score_raw >= 0.50:
+            distribution_score = 50.0 + ((distribution_score_raw - 0.50) / 0.15) * 22.0
+        else:
+            distribution_score = (distribution_score_raw / 0.50) * 50.0
+        
+        # === Composite Pattern Frequency Score ===
+        # 60% occurrence (MORE = BETTER), 20% confirmation (quality filter), 20% distribution
+        score = (occurrence_score * 0.60) + (confirmation_score * 0.20) + (distribution_score * 0.20)
         
         return min(100.0, max(0.0, score))
     
