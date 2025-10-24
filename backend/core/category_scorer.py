@@ -825,31 +825,91 @@ class CategoryScorer:
     
     def score_correlation(self, stock_data: Dict, selected_stocks: List[str] = None) -> float:
         """
-        Correlation Score (3% weight)
+        Correlation Score (3% weight) - Portfolio Tier
         
-        Diversification benefit - don't pick 8 tech stocks (all move together).
+        Multi-tier professional analysis of portfolio diversification benefit.
+        Focus: Avoid duplicate exposure + reduce systemic drawdowns.
         
         Inputs:
-        - correlation_matrix: Correlation with other candidates
-        - sector_exposure: Industry classification
+        - inter_stock_correlation: Avg correlation with other selected stocks (0-1)
+        - market_beta: Correlation with SPY (0-2, target <0.5)
+        - sector_concentration: % of portfolio in same sector (lower = better)
+        - selected_stocks: List of already-selected tickers (for correlation check)
         
-        Target: Max 0.7 correlation with other selections
+        3-tier scoring:
+        - Inter-Stock Correlation (40%): Avoid duplicate exposure
+        - Market Beta (30%): Independence from SPY moves
+        - Sector Concentration (30%): Diversity across sectors
+        
+        Target: <0.4 inter-stock correlation, <0.4 beta, <30% sector concentration
         Scale: 0-100 (higher = better)
         """
-        # If no other stocks selected yet, give perfect score
-        if not selected_stocks:
+        # If no other stocks selected yet, give perfect score (first stock)
+        if not selected_stocks or len(selected_stocks) == 0:
             return 100.0
         
-        avg_correlation = stock_data.get('avg_correlation', 0.5)
+        inter_corr = stock_data.get('inter_stock_correlation', 0.5)  # 0-1 (lower = better)
+        market_beta = stock_data.get('market_beta', 0.6)  # 0-2 (target <0.5)
+        sector_conc = stock_data.get('sector_concentration', 0.25)  # 0-1 (lower = better)
         
-        if avg_correlation <= 0.5:
-            score = 100.0
-        elif avg_correlation <= 0.7:
-            score = 100.0 - ((avg_correlation - 0.5) / 0.2) * 30.0
-        elif avg_correlation <= 0.85:
-            score = 70.0 - ((avg_correlation - 0.7) / 0.15) * 40.0
+        # === 1. Inter-Stock Correlation (40% weight) ===
+        # Lower correlation with selected stocks = true diversification
+        if inter_corr <= 0.30:
+            inter_score = 100.0  # Excellent diversification
+        elif inter_corr <= 0.40:
+            inter_score = 90.0 + ((0.40 - inter_corr) / 0.10) * 10.0  # Very good
+        elif inter_corr <= 0.55:
+            inter_score = 75.0 + ((0.55 - inter_corr) / 0.15) * 15.0  # Good
+        elif inter_corr <= 0.70:
+            inter_score = 55.0 + ((0.70 - inter_corr) / 0.15) * 20.0  # Moderate
+        elif inter_corr <= 0.85:
+            inter_score = 30.0 + ((0.85 - inter_corr) / 0.15) * 25.0  # High correlation
         else:
-            score = max(0.0, 30.0 - ((avg_correlation - 0.85) * 100.0))
+            inter_score = max(0.0, 30.0 - ((inter_corr - 0.85) * 200.0))  # Very high (bad)
+        
+        # === 2. Market Beta (30% weight) ===
+        # Low beta = strategy independence, not just riding market moves
+        if market_beta <= 0.30:
+            beta_score = 100.0  # Very independent
+        elif market_beta <= 0.45:
+            beta_score = 88.0 + ((0.45 - market_beta) / 0.15) * 12.0  # Independent
+        elif market_beta <= 0.65:
+            beta_score = 70.0 + ((0.65 - market_beta) / 0.20) * 18.0  # Somewhat independent
+        elif market_beta <= 0.85:
+            beta_score = 50.0 + ((0.85 - market_beta) / 0.20) * 20.0  # Moderate correlation
+        elif market_beta <= 1.10:
+            beta_score = 28.0 + ((1.10 - market_beta) / 0.25) * 22.0  # Market-like
+        else:
+            beta_score = max(0.0, 28.0 - ((market_beta - 1.10) * 25.0))  # High beta (amplified risk)
+        
+        # === 3. Sector Concentration (30% weight) ===
+        # Lower concentration = diversified sectors = reduced systemic risk
+        # (sector_concentration = % of portfolio in this stock's sector)
+        if sector_conc <= 0.20:
+            sector_score = 100.0  # Very diversified
+        elif sector_conc <= 0.30:
+            sector_score = 88.0 + ((0.30 - sector_conc) / 0.10) * 12.0  # Diversified
+        elif sector_conc <= 0.40:
+            sector_score = 72.0 + ((0.40 - sector_conc) / 0.10) * 16.0  # Moderate
+        elif sector_conc <= 0.55:
+            sector_score = 52.0 + ((0.55 - sector_conc) / 0.15) * 20.0  # Concentrated
+        elif sector_conc <= 0.70:
+            sector_score = 28.0 + ((0.70 - sector_conc) / 0.15) * 24.0  # Very concentrated
+        else:
+            sector_score = max(0.0, 28.0 - ((sector_conc - 0.70) * 93.0))  # Extreme concentration
+        
+        # Boost for factor exposure diversity (if available)
+        factor_diversity = stock_data.get('factor_diversity_score', 0.5)  # 0-1
+        if factor_diversity >= 0.75:
+            diversity_boost = 8.0  # Diverse factor exposures
+        elif factor_diversity >= 0.60:
+            diversity_boost = 4.0
+        else:
+            diversity_boost = 0.0
+        
+        # === Composite Correlation Score ===
+        score = (inter_score * 0.40) + (beta_score * 0.30) + (sector_score * 0.30)
+        score = min(100.0, score + diversity_boost)
         
         return min(100.0, max(0.0, score))
     
