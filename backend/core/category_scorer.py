@@ -915,26 +915,94 @@ class CategoryScorer:
     
     def score_halt_risk(self, stock_data: Dict) -> float:
         """
-        Halt Risk Score (2% weight)
+        Halt Risk Score (2% weight) - Portfolio Tier
         
-        Trading suspension risk - halts kill positions instantly.
+        Multi-tier professional analysis of trading suspension risk.
+        Focus: Avoid stocks that halt mid-trade (capital stuck).
         
         Inputs:
-        - halt_history: Number of halts in recent period
-        - regulatory_flags: Any compliance issues
-        - avg_gap_size: Overnight gap volatility
+        - historical_halt_frequency: Number of halts in last 60 days
+        - volatility_spike_risk: Sudden move magnitude that triggers halts (%)
+        - liquidity_drop_risk: How often bid-ask spreads widen dramatically
+        - regulatory_flags: Compliance/investigation issues (0/1)
         
-        Target: Zero halts in 20-day history
+        3-tier scoring:
+        - Historical Halt Frequency (35%): Past circuit breaker hits
+        - Volatility Spike Risk (35%): Sudden moves that trigger halts
+        - Liquidity Drop Risk (30%): Thin books that cause halts
+        
+        Target: Zero halts in 60 days, low spike risk, stable liquidity
         Scale: 0-100 (higher = better)
         """
-        halt_count = stock_data.get('halt_history', 0)
+        halt_count = stock_data.get('historical_halt_frequency', 0)  # count (lower = better)
+        spike_risk = stock_data.get('volatility_spike_risk', 3.5)  # % (lower = better)
+        liquidity_drop = stock_data.get('liquidity_drop_risk', 25.0)  # % of time (lower = better)
         
+        # === 1. Historical Halt Frequency (35% weight) ===
+        # Zero halts = reliable trading, no forced exits
         if halt_count == 0:
-            score = 100.0
+            halt_score = 100.0  # Perfect record
         elif halt_count == 1:
-            score = 50.0
+            halt_score = 68.0  # One-time event (acceptable if old)
+        elif halt_count == 2:
+            halt_score = 42.0  # Two halts (concerning)
+        elif halt_count == 3:
+            halt_score = 22.0  # Three halts (high risk)
         else:
-            score = max(0.0, 50.0 - ((halt_count - 1) * 20.0))
+            halt_score = max(0.0, 22.0 - ((halt_count - 3) * 7.0))  # Frequent halts (avoid)
+        
+        # Recency penalty (recent halts more concerning)
+        days_since_last_halt = stock_data.get('days_since_last_halt', 999)
+        if halt_count > 0:
+            if days_since_last_halt <= 10:
+                halt_score *= 0.3  # Recent halt (very concerning)
+            elif days_since_last_halt <= 30:
+                halt_score *= 0.6  # Somewhat recent
+            elif days_since_last_halt <= 60:
+                halt_score *= 0.85  # Older halt (less concerning)
+        
+        # === 2. Volatility Spike Risk (35% weight) ===
+        # Lower spike magnitude = less likely to trigger circuit breakers
+        # Spike risk = avg magnitude of sudden price moves (5-min bars)
+        if spike_risk <= 2.0:
+            spike_score = 100.0  # Very stable
+        elif spike_risk <= 3.0:
+            spike_score = 88.0 + ((3.0 - spike_risk) / 1.0) * 12.0  # Stable
+        elif spike_risk <= 4.5:
+            spike_score = 72.0 + ((4.5 - spike_risk) / 1.5) * 16.0  # Moderate
+        elif spike_risk <= 6.5:
+            spike_score = 52.0 + ((6.5 - spike_risk) / 2.0) * 20.0  # Elevated
+        elif spike_risk <= 9.0:
+            spike_score = 28.0 + ((9.0 - spike_risk) / 2.5) * 24.0  # High risk
+        else:
+            spike_score = max(0.0, 28.0 - ((spike_risk - 9.0) * 3.0))  # Very high risk
+        
+        # === 3. Liquidity Drop Risk (30% weight) ===
+        # How often does liquidity evaporate (wide spreads, thin book)?
+        # Lower % = more stable liquidity = less halt risk
+        if liquidity_drop <= 10:
+            liquidity_score = 100.0  # Very stable liquidity
+        elif liquidity_drop <= 18:
+            liquidity_score = 88.0 + ((18 - liquidity_drop) / 8) * 12.0  # Stable
+        elif liquidity_drop <= 28:
+            liquidity_score = 72.0 + ((28 - liquidity_drop) / 10) * 16.0  # Moderate
+        elif liquidity_drop <= 40:
+            liquidity_score = 52.0 + ((40 - liquidity_drop) / 12) * 20.0  # Concerning
+        elif liquidity_drop <= 55:
+            liquidity_score = 28.0 + ((55 - liquidity_drop) / 15) * 24.0  # Frequent drops
+        else:
+            liquidity_score = max(0.0, 28.0 - ((liquidity_drop - 55) * 0.62))  # Very unstable
+        
+        # Penalty for regulatory flags (investigations, compliance issues)
+        regulatory_flags = stock_data.get('regulatory_flags', 0)
+        if regulatory_flags > 0:
+            regulatory_penalty = 25.0  # Significant penalty (elevated halt risk)
+        else:
+            regulatory_penalty = 0.0
+        
+        # === Composite Halt Risk Score ===
+        score = (halt_score * 0.35) + (spike_score * 0.35) + (liquidity_score * 0.30)
+        score = max(0.0, score - regulatory_penalty)
         
         return min(100.0, max(0.0, score))
     
