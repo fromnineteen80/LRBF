@@ -68,16 +68,22 @@ class CategoryScorer:
         """
         Expected Value Score (15% weight)
         
-        EV = win_rate × avg_win - loss_rate × avg_loss
+        Multi-tier professional analysis of mathematical edge.
+        Focus: Curve preservation + consistent winning.
         
-        Inputs from stock_data:
-        - wins_20d: Number of winning trades
-        - losses_20d: Number of losing trades
-        - avg_win_pct: Average win size (%)
-        - avg_loss_pct: Average loss size (%)
-        - confirmation_rate: % of patterns that became entries
+        Inputs:
+        - wins_20d, losses_20d: Trade outcomes
+        - avg_win_pct, avg_loss_pct: Average trade sizes
+        - win_rate_stability: Week-to-week consistency (0-1)
+        - profit_factor: Gross profit / gross loss ratio
+        - max_consecutive_losses: Longest losing streak
         
-        Target: EV > 0.5% per trade
+        3-tier scoring:
+        - Raw EV Quality (40%): Mathematical edge strength
+        - Consistency (30%): Stability across time periods
+        - Risk-Adjusted (30%): EV relative to drawdown exposure
+        
+        Target: EV > 0.6%, Profit Factor > 2.0, Consistency > 0.75
         Scale: 0-100 (higher = better)
         """
         wins = stock_data.get('wins_20d', 0)
@@ -89,23 +95,85 @@ class CategoryScorer:
         
         win_rate = wins / total_trades
         loss_rate = losses / total_trades
-        
         avg_win = stock_data.get('avg_win_pct', 0.0)
         avg_loss = abs(stock_data.get('avg_loss_pct', 0.0))
         
-        # Calculate expected value
+        # === 1. Raw EV Quality (40% weight) ===
+        # Calculate expected value per trade
         ev = (win_rate * avg_win) - (loss_rate * avg_loss)
         
-        # Scale to 0-100
-        # Target: 0.5% = 80 points, 1.0% = 100 points
-        if ev >= 1.0:
-            score = 100.0
-        elif ev >= 0.5:
-            score = 80.0 + ((ev - 0.5) / 0.5) * 20.0
+        # Multi-threshold scoring for edge strength
+        if ev >= 0.8:
+            ev_score = 100.0  # Elite edge
+        elif ev >= 0.6:
+            ev_score = 90.0 + ((ev - 0.6) / 0.2) * 10.0  # Strong edge
+        elif ev >= 0.4:
+            ev_score = 75.0 + ((ev - 0.4) / 0.2) * 15.0  # Good edge
+        elif ev >= 0.2:
+            ev_score = 50.0 + ((ev - 0.2) / 0.2) * 25.0  # Acceptable edge
         elif ev > 0:
-            score = (ev / 0.5) * 80.0
+            ev_score = (ev / 0.2) * 50.0  # Weak edge
         else:
-            score = 0.0
+            ev_score = 0.0  # No edge
+        
+        # === 2. Consistency Score (30% weight) ===
+        # Measure stability of win rate across time periods
+        win_rate_stability = stock_data.get('win_rate_stability', 0.7)  # 0-1
+        profit_factor = stock_data.get('profit_factor', 1.0)  # Gross wins / gross losses
+        
+        # Consistency subscore from win rate stability
+        if win_rate_stability >= 0.85:
+            consistency_score = 100.0  # Very stable
+        elif win_rate_stability >= 0.75:
+            consistency_score = 85.0 + ((win_rate_stability - 0.75) / 0.1) * 15.0
+        elif win_rate_stability >= 0.60:
+            consistency_score = 60.0 + ((win_rate_stability - 0.60) / 0.15) * 25.0
+        else:
+            consistency_score = (win_rate_stability / 0.60) * 60.0
+        
+        # Boost for strong profit factor (>2.0 = excellent)
+        if profit_factor >= 2.5:
+            pf_boost = 10.0
+        elif profit_factor >= 2.0:
+            pf_boost = 5.0 + ((profit_factor - 2.0) / 0.5) * 5.0
+        else:
+            pf_boost = 0.0
+        
+        consistency_score = min(100.0, consistency_score + pf_boost)
+        
+        # === 3. Risk-Adjusted Score (30% weight) ===
+        # EV quality relative to drawdown risk
+        max_consecutive_losses = stock_data.get('max_consecutive_losses', 3)
+        avg_drawdown = stock_data.get('avg_drawdown_pct', 2.0)  # Average % drawdown
+        
+        # Penalize high consecutive loss streaks
+        if max_consecutive_losses <= 2:
+            streak_score = 100.0  # Excellent recovery
+        elif max_consecutive_losses <= 3:
+            streak_score = 85.0
+        elif max_consecutive_losses <= 4:
+            streak_score = 65.0
+        elif max_consecutive_losses <= 5:
+            streak_score = 45.0
+        else:
+            streak_score = max(0.0, 45.0 - ((max_consecutive_losses - 5) * 10.0))
+        
+        # Score based on EV-to-drawdown ratio
+        if avg_drawdown > 0:
+            ev_dd_ratio = ev / avg_drawdown
+            if ev_dd_ratio >= 0.5:
+                dd_score = 100.0  # Excellent risk-adjusted return
+            elif ev_dd_ratio >= 0.3:
+                dd_score = 80.0 + ((ev_dd_ratio - 0.3) / 0.2) * 20.0
+            else:
+                dd_score = (ev_dd_ratio / 0.3) * 80.0
+        else:
+            dd_score = 50.0  # No drawdown data
+        
+        risk_adjusted_score = (streak_score * 0.5) + (dd_score * 0.5)
+        
+        # === Composite Expected Value Score ===
+        score = (ev_score * 0.4) + (consistency_score * 0.3) + (risk_adjusted_score * 0.3)
         
         return min(100.0, max(0.0, score))
     
