@@ -16,26 +16,25 @@ import sys
 from collections import defaultdict
 import time
 
-# Add modules directory to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'modules'))
 
 # Import backend modules
 try:
     from config.config import TradingConfig as cfg
-    from modules import stock_selector
-    from modules import forecast_generator
-    from modules import morning_report
-    from modules import live_monitor
-    from modules import eod_reporter
+    from backend.reports import morning_report
+    from backend.reports import live_monitor
+    from backend.reports import eod_reporter
     from backend.models.database import Database
-    from modules import capitalise_prompts
-    from modules import ibkr_connector
+    from backend.data import ibkr_connector
     from backend.data.stock_universe import get_stock_universe
     from backend.utils.auth_helper import AuthHelper
     from backend.services.email_service import EmailService
     from backend.services.sms_service import SMSService
     from backend.utils.scheduler import scheduler
     BACKEND_AVAILABLE = True
+except ImportError as e:
+    print(f"⚠️  Backend modules not fully loaded: {e}")
+    BACKEND_AVAILABLE = False
+
 except ImportError as e:
     print(f"  Backend modules not fully loaded: {e}")
     BACKEND_AVAILABLE = False
@@ -1531,15 +1530,13 @@ def generate_morning_report():
         return jsonify({'error': 'Backend modules not available'}), 500
     
     try:
-        # Initialize morning report generator
-        morning = morning_report.MorningReport()
-        
-        # Generate report
-        report = morning.generate_report()
+        # Use the enhanced morning report generator
+        report = morning_report.generate_morning_report_api(use_simulation=False)
         
         return jsonify(report)
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        print(f"Error generating morning report: {e}")
+        return jsonify({'error': str(e), 'success': False}), 500
 
 @app.route('/api/morning/data')
 @login_required
@@ -1549,14 +1546,17 @@ def get_morning_data():
         return jsonify({'error': 'Backend modules not available'}), 500
     
     try:
+        # Try to get today's forecast from database
         forecast = db.get_todays_forecast()
         if forecast:
             return jsonify(forecast)
         else:
             # Generate new forecast
-            return generate_morning_report()
+            report = morning_report.generate_morning_report_api(use_simulation=False)
+            return jsonify(report)
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        print(f"Error getting morning data: {e}")
+        return jsonify({'error': str(e), 'success': False}), 500
 
 
 
@@ -1569,10 +1569,15 @@ def trigger_morning_report():
         return jsonify({'error': 'Backend modules not available'}), 500
     
     try:
-        result = scheduler.trigger_manual_generation()
-        return jsonify(result)
+        report = morning_report.generate_morning_report_api(use_simulation=False)
+        return jsonify({
+            'success': True,
+            'message': 'Morning report generated successfully',
+            'report': report
+        })
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        print(f"Error triggering morning report: {e}")
+        return jsonify({'error': str(e), 'success': False}), 500
 
 
 @app.route('/api/scheduler/status')
