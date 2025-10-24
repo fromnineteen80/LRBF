@@ -1,525 +1,409 @@
 """
-VWAP Recovery Pattern Detector
+VWAP Recovery Pattern Detector V2 - With Execution Cycle Tracking
 
-This module detects VWAP Recovery Patterns in price data - a 3-step geometry that
-predicts short-term mean reversions:
+Detects patterns AND tracks all timing components for execution cycle analysis.
 
-Step 1: DECLINE - Price drops from recent high
-Step 2: 50% RECOVERY - Price rebounds by 50% of decline
-Step 3: 50% RETRACEMENT - Price pulls back by 50% of recovery
-
-After pattern completes, we check for entry confirmation from config.
+Timing tracked per pattern:
+- Pattern detection time (bars to confirmation)
+- Entry execution latency (simulated order fill)
+- Hold time (entry to exit)
+- Exit execution latency (simulated liquidation)
+- Settlement lag (cash back in account)
+- Total cycle time (full round trip)
 
 Author: The Luggage Room Boys Fund
 Date: October 2025
 """
 
-import sys
-sys.path.append('/home/claude/railyard')
-
 import pandas as pd
 import numpy as np
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Tuple
 from datetime import datetime, timedelta
-from config import TradingConfig as cfg
+import uuid
 
 
-def detect_vwap_recovery_patterns(
-    price_data: pd.DataFrame,
-    decline_threshold_pct: float = None,
-    entry_confirmation_pct: float = None,
-    lookback_bars: int = 20,
-    lookahead_bars: int = 30
+class PatternDetector:
+    """
+    Enhanced pattern detector with execution cycle tracking.
+    """
+    
+    def __init__(
+        self,
+        decline_threshold_pct: float = 1.0,
+        entry_confirmation_pct: float = 1.5,
+        target_1_pct: float = 0.75,
+        target_2_pct: float = 2.0,
+        stop_loss_pct: float = 0.5
+    ):
+        """
+        Initialize pattern detector.
+        
+        Args:
+            decline_threshold_pct: Minimum decline to detect (Step 1)
+            entry_confirmation_pct: % climb to confirm entry
+            target_1_pct: First profit target
+            target_2_pct: Second profit target
+            stop_loss_pct: Stop loss threshold
+        """
+        self.decline_threshold = decline_threshold_pct
+        self.entry_confirmation = entry_confirmation_pct
+        self.target_1 = target_1_pct
+        self.target_2 = target_2_pct
+        self.stop_loss = stop_loss_pct
+    
+    def detect_all_patterns(
+        self,
+        df: pd.DataFrame,
+        ticker: str,
+        analysis_date: datetime
+    ) -> List[Dict]:
+        """
+        Detect all VWAP recovery patterns in historical data.
+        
+        Args:
+            df: DataFrame with OHLCV data (1-minute bars)
+            ticker: Stock symbol
+            analysis_date: Date of analysis
+        
+        Returns:
+            List of pattern dictionaries with full timing data
+        """
+        if df.empty or len(df) < 50:
+            return []
+        
+        patterns = []
+        data_len = len(df)
+        lookback_bars = 20
+        
+        # Ensure timestamp column
+        if 'timestamp' not in df.columns and isinstance(df.index, pd.DatetimeIndex):
+            df = df.reset_index()
+            df.rename(columns={'index': 'timestamp'}, inplace=True)
+        
+        # Scan for 3-step patterns
+        for i in range(lookback_bars, data_len - 30):  # Leave room for confirmation
+            
+            # STEP 1: DECLINE
+            recent_high = df['high'][i-lookback_bars:i+1].max()
+            current_low = df['low'].iloc[i]
+            
+            decline_amount = recent_high - current_low
+            decline_pct = (decline_amount / recent_high) * 100
+            
+            if decline_pct < self.decline_threshold:
+                continue
+            
+            decline_bar_idx = i
+            decline_timestamp = df['timestamp'].iloc[i]
+            
+            # STEP 2: 50% RECOVERY
+            recovery_target = current_low + (decline_amount * 0.5)
+            
+            recovery_found = False
+            for j in range(i+1, min(i+lookback_bars, data_len)):
+                if df['high'].iloc[j] >= recovery_target:
+                    recovery_high = df['high'].iloc[j]
+                    recovery_bar_idx = j
+                    recovery_timestamp = df['timestamp'].iloc[j]
+                    recovery_amount = recovery_high - current_low
+                    recovery_found = True
+                    break
+            
+            if not recovery_found:
+                continue
+            
+            # STEP 3: 50% RETRACEMENT
+            retracement_target = recovery_high - (recovery_amount * 0.5)
+            
+            retracement_found = False
+            for k in range(j+1, min(j+lookback_bars, data_len)):
+                if df['low'].iloc[k] <= retracement_target:
+                    last_low = df['low'].iloc[k]
+                    pattern_complete_idx = k
+                    pattern_complete_timestamp = df['timestamp'].iloc[k]
+                    retracement_found = True
+                    break
+            
+            if not retracement_found:
+                continue
+            
+            # PATTERN COMPLETE - Track timing from here
+            detection_time_bars = k - i  # Bars from decline to pattern complete
+            
+            # ENTRY CONFIRMATION
+            entry_result = self._check_entry_confirmation(
+                df[k:k+30],
+                last_low,
+                self.entry_confirmation
+            )
+            
+            if not entry_result['confirmed']:
+                # Pattern detected but no entry
+                pattern = {
+                    'pattern_id': f"{ticker}_{analysis_date.isoformat()}_{uuid.uuid4().hex[:8]}",
+                    'ticker': ticker,
+                    'date': analysis_date.isoformat(),
+                    'timestamp': pattern_complete_timestamp,
+                    'detection_time_bars': detection_time_bars,
+                    'entry_confirmed': False,
+                    'outcome': 'no_entry',
+                    'failure_reason': entry_result.get('reason', 'no_confirmation')
+                }
+                patterns.append(pattern)
+                continue
+            
+            # ENTRY CONFIRMED - Simulate trade execution
+            entry_bar_idx = pattern_complete_idx + entry_result['bars_to_entry']
+            entry_price = entry_result['entry_price']
+            entry_timestamp = entry_result['entry_time']
+            entry_latency_ms = np.random.normal(50, 15)  # Simulated latency
+            
+            # SIMULATE TRADE OUTCOME
+            trade_result = self._simulate_trade_outcome(
+                df[entry_bar_idx:],
+                entry_price,
+                self.target_1,
+                self.target_2,
+                self.stop_loss
+            )
+            
+            # Calculate total cycle time
+            total_cycle_minutes = (
+                detection_time_bars +  # Pattern detection
+                (entry_latency_ms / 1000 / 60) +  # Entry execution
+                trade_result['hold_time_minutes'] +  # Hold time
+                (trade_result['exit_latency_ms'] / 1000 / 60) +  # Exit execution
+                trade_result['settlement_lag_minutes']  # Settlement
+            )
+            
+            # Calculate dead zone if applicable
+            dead_zone_duration = 0
+            opportunity_cost = 0
+            if trade_result['outcome'] == 'win' and trade_result.get('dead_zone_bars', 0) > 0:
+                dead_zone_duration = trade_result['dead_zone_bars']
+                opportunity_cost = self._calculate_opportunity_cost(
+                    entry_price,
+                    dead_zone_duration
+                )
+            
+            # Build complete pattern record
+            pattern = {
+                # Identification
+                'pattern_id': f"{ticker}_{analysis_date.isoformat()}_{uuid.uuid4().hex[:8]}",
+                'ticker': ticker,
+                'date': analysis_date.isoformat(),
+                'timestamp': pattern_complete_timestamp,
+                
+                # Pattern geometry
+                'recent_high': recent_high,
+                'decline_low': current_low,
+                'decline_pct': decline_pct,
+                'recovery_high': recovery_high,
+                'last_low': last_low,
+                
+                # Timing - Category #14 (Execution Cycle)
+                'detection_time_bars': detection_time_bars,
+                'entry_latency_ms': entry_latency_ms,
+                'hold_time_minutes': trade_result['hold_time_minutes'],
+                'exit_latency_ms': trade_result['exit_latency_ms'],
+                'settlement_lag_minutes': trade_result['settlement_lag_minutes'],
+                'total_cycle_minutes': total_cycle_minutes,
+                
+                # Entry/Exit
+                'entry_confirmed': True,
+                'entry_price': entry_price,
+                'entry_time': entry_timestamp,
+                'exit_price': trade_result['exit_price'],
+                'exit_time': trade_result['exit_time'],
+                
+                # Outcome
+                'outcome': trade_result['outcome'],
+                'pnl': trade_result['pnl'],
+                'pnl_pct': trade_result['pnl_pct'],
+                
+                # Dead Zone (Category #3)
+                'dead_zone_duration': dead_zone_duration,
+                'opportunity_cost': opportunity_cost,
+                
+                # Additional metrics
+                'bars_to_entry': entry_result['bars_to_entry'],
+                'exit_reason': trade_result['exit_reason']
+            }
+            
+            patterns.append(pattern)
+        
+        return patterns
+    
+    def _check_entry_confirmation(
+        self,
+        future_df: pd.DataFrame,
+        last_low: float,
+        confirmation_pct: float
+    ) -> Dict:
+        """
+        Check if price climbs enough to confirm entry.
+        
+        Args:
+            future_df: Price data after pattern completion
+            last_low: Pattern completion price
+            confirmation_pct: % climb required
+        
+        Returns:
+            Dict with confirmation status
+        """
+        if future_df.empty:
+            return {'confirmed': False, 'reason': 'no_data'}
+        
+        confirmation_target = last_low * (1 + confirmation_pct / 100)
+        
+        for idx, row in future_df.iterrows():
+            if row['high'] >= confirmation_target:
+                return {
+                    'confirmed': True,
+                    'entry_price': confirmation_target,
+                    'entry_time': row['timestamp'],
+                    'bars_to_entry': idx - future_df.index[0]
+                }
+        
+        return {'confirmed': False, 'reason': 'no_confirmation'}
+    
+    def _simulate_trade_outcome(
+        self,
+        future_df: pd.DataFrame,
+        entry_price: float,
+        target_1_pct: float,
+        target_2_pct: float,
+        stop_loss_pct: float
+    ) -> Dict:
+        """
+        Simulate trade from entry to exit.
+        
+        Args:
+            future_df: Price data after entry
+            entry_price: Entry price
+            target_1_pct: First profit target %
+            target_2_pct: Second profit target %
+            stop_loss_pct: Stop loss %
+        
+        Returns:
+            Dict with trade outcome and timing
+        """
+        target_1_price = entry_price * (1 + target_1_pct / 100)
+        target_2_price = entry_price * (1 + target_2_pct / 100)
+        stop_price = entry_price * (1 - stop_loss_pct / 100)
+        
+        hit_target_1 = False
+        dead_zone_bars = 0
+        
+        for idx, row in future_df.iterrows():
+            bars_held = idx - future_df.index[0]
+            
+            # Check stop loss
+            if row['low'] <= stop_price:
+                return {
+                    'outcome': 'loss',
+                    'exit_price': stop_price,
+                    'exit_time': row['timestamp'],
+                    'pnl': stop_price - entry_price,
+                    'pnl_pct': -stop_loss_pct,
+                    'hold_time_minutes': bars_held,
+                    'exit_latency_ms': np.random.normal(55, 15),
+                    'settlement_lag_minutes': 0.5,
+                    'exit_reason': 'stop_loss',
+                    'dead_zone_bars': 0
+                }
+            
+            # Check target 1
+            if not hit_target_1 and row['high'] >= target_1_price:
+                hit_target_1 = True
+                target_1_bar = bars_held
+            
+            # If hit target 1, look for target 2 or return to target 1
+            if hit_target_1:
+                if row['high'] >= target_2_price:
+                    # Hit target 2 - exit
+                    return {
+                        'outcome': 'win',
+                        'exit_price': target_2_price,
+                        'exit_time': row['timestamp'],
+                        'pnl': target_2_price - entry_price,
+                        'pnl_pct': target_2_pct,
+                        'hold_time_minutes': bars_held,
+                        'exit_latency_ms': np.random.normal(50, 15),
+                        'settlement_lag_minutes': 0.5,
+                        'exit_reason': 'target_2',
+                        'dead_zone_bars': 0  # No dead zone on target 2
+                    }
+                
+                if row['low'] <= target_1_price:
+                    # Returned to target 1 - exit with dead zone
+                    dead_zone_bars = bars_held - target_1_bar
+                    return {
+                        'outcome': 'win',
+                        'exit_price': target_1_price,
+                        'exit_time': row['timestamp'],
+                        'pnl': target_1_price - entry_price,
+                        'pnl_pct': target_1_pct,
+                        'hold_time_minutes': bars_held,
+                        'exit_latency_ms': np.random.normal(50, 15),
+                        'settlement_lag_minutes': 0.5,
+                        'exit_reason': 'target_1_return',
+                        'dead_zone_bars': dead_zone_bars
+                    }
+        
+        # Timed out (shouldn't happen with intraday, but safety)
+        return {
+            'outcome': 'timeout',
+            'exit_price': future_df['close'].iloc[-1],
+            'exit_time': future_df['timestamp'].iloc[-1],
+            'pnl': future_df['close'].iloc[-1] - entry_price,
+            'pnl_pct': ((future_df['close'].iloc[-1] - entry_price) / entry_price) * 100,
+            'hold_time_minutes': len(future_df),
+            'exit_latency_ms': np.random.normal(50, 15),
+            'settlement_lag_minutes': 0.5,
+            'exit_reason': 'timeout',
+            'dead_zone_bars': 0
+        }
+    
+    def _calculate_opportunity_cost(
+        self,
+        entry_price: float,
+        dead_zone_minutes: int
+    ) -> float:
+        """
+        Calculate opportunity cost of capital idle in dead zone.
+        
+        Args:
+            entry_price: Trade entry price
+            dead_zone_minutes: Minutes capital was idle
+        
+        Returns:
+            Opportunity cost in dollars
+        """
+        # Assume 0.5% expected return per hour
+        hourly_expected_return = 0.005
+        position_size = 3000  # Typical position size
+        
+        opportunity_cost = position_size * hourly_expected_return * (dead_zone_minutes / 60)
+        return opportunity_cost
+
+
+# Convenience function for batch analysis
+def detect_patterns_batch(
+    df: pd.DataFrame,
+    ticker: str,
+    analysis_date: datetime
 ) -> List[Dict]:
     """
-    Scan 1-minute price data for VWAP Recovery Patterns.
+    Detect all patterns for a stock (convenience wrapper).
     
     Args:
-        price_data: DataFrame with columns [timestamp, open, high, low, close, volume]
-                   Index should be DatetimeIndex or include timestamp column
-        decline_threshold_pct: Minimum decline % to consider (default from config)
-        entry_confirmation_pct: % climb required to confirm entry (default from config)
-        lookback_bars: Bars to look back for recent high (default 20)
-        lookahead_bars: Max bars to wait for entry confirmation (default 30)
+        df: OHLCV DataFrame
+        ticker: Stock symbol
+        analysis_date: Analysis date
     
     Returns:
-        List of pattern dictionaries with detection details
-    
-    Example:
-        >>> patterns = detect_vwap_recovery_patterns(price_data)
-        >>> print(f"Found {len(patterns)} patterns")
-        >>> for p in patterns:
-        >>>     if p['entry_confirmed']:
-        >>>         print(f"Pattern at {p['pattern_complete_time']}, entry at {p['entry_price']}")
+        List of pattern dictionaries
     """
-    
-    # Use config defaults if not specified
-    if decline_threshold_pct is None:
-        decline_threshold_pct = cfg.DECLINE_THRESHOLD
-    if entry_confirmation_pct is None:
-        entry_confirmation_pct = cfg.ENTRY_THRESHOLD
-    
-    # Validate input data
-    if price_data.empty:
-        return []
-    
-    required_cols = ['close', 'high', 'low']
-    if not all(col in price_data.columns for col in required_cols):
-        raise ValueError(f"price_data must contain columns: {required_cols}")
-    
-    # Ensure we have a timestamp column or index
-    if 'timestamp' not in price_data.columns:
-        if isinstance(price_data.index, pd.DatetimeIndex):
-            price_data = price_data.reset_index()
-            price_data.columns = ['timestamp'] + list(price_data.columns[1:])
-        else:
-            raise ValueError("price_data must have timestamp column or DatetimeIndex")
-    
-    patterns = []
-    data_len = len(price_data)
-    
-    # Need at least lookback_bars to find patterns
-    if data_len < lookback_bars:
-        return []
-    
-    # Scan through price data looking for the 3-step pattern
-    for i in range(lookback_bars, data_len):
-        
-        # Step 1: Find DECLINE from recent high
-        # Look at the high values in the lookback window AND current bar
-        recent_high_lookback = price_data['high'][i-lookback_bars:i].max()
-        current_high = price_data['high'].iloc[i]
-        recent_high = max(recent_high_lookback, current_high)
-        
-        # Current low as potential decline point
-        current_low = price_data['low'].iloc[i]
-        
-        decline_amount = recent_high - current_low
-        decline_pct = (decline_amount / recent_high) * 100
-        
-        # Must meet minimum decline threshold
-        if decline_pct < decline_threshold_pct:
-            continue
-        
-        # Record the decline low
-        decline_low = current_low
-        decline_index = i
-        decline_time = price_data['timestamp'].iloc[i]
-        
-        # Step 2: Look ahead for 50% RECOVERY
-        recovery_target = decline_low + (decline_amount * 0.5)
-        
-        for j in range(i+1, min(i+lookback_bars+1, data_len)):
-            price_high_j = price_data['high'].iloc[j]
-            
-            # Check if we've hit the 50% recovery target
-            if price_high_j >= recovery_target:
-                recovery_high = price_high_j
-                recovery_amount = recovery_high - decline_low
-                recovery_index = j
-                recovery_time = price_data['timestamp'].iloc[j]
-                
-                # Step 3: Look ahead for 50% RETRACEMENT
-                retracement_target = recovery_high - (recovery_amount * 0.5)
-                
-                for k in range(j+1, min(j+lookback_bars+1, data_len)):
-                    price_low_k = price_data['low'].iloc[k]
-                    
-                    # Check if we've hit the 50% retracement
-                    if price_low_k <= retracement_target:
-                        last_low = price_low_k
-                        pattern_complete_index = k
-                        pattern_complete_time = price_data['timestamp'].iloc[k]
-                        
-                        # Pattern is complete! Now check for entry confirmation
-                        entry_result = check_entry_confirmation(
-                            price_data[k:],
-                            last_low=last_low,
-                            confirmation_pct=entry_confirmation_pct,
-                            max_bars=lookahead_bars
-                        )
-                        
-                        # Store the pattern
-                        pattern = {
-                            'pattern_complete_time': pattern_complete_time,
-                            'pattern_complete_index': k,
-                            'decline_start_index': decline_index - lookback_bars,
-                            'decline_low_index': decline_index,
-                            'recovery_high_index': recovery_index,
-                            'recent_high': recent_high,
-                            'decline_low': decline_low,
-                            'decline_amount': decline_amount,
-                            'decline_pct': decline_pct,
-                            'recovery_high': recovery_high,
-                            'recovery_amount': recovery_amount,
-                            'last_low': last_low,
-                            'entry_confirmed': entry_result['confirmed'],
-                            'entry_price': entry_result.get('entry_price'),
-                            'entry_time': entry_result.get('entry_time'),
-                            'entry_index': entry_result.get('entry_index'),
-                            'bars_to_entry': entry_result.get('bars_to_entry'),
-                            'failure_reason': entry_result.get('reason')
-                        }
-                        
-                        patterns.append(pattern)
-                        
-                        # Move past this pattern to avoid overlaps
-                        break
-                
-                # If we found a retracement, move to next potential pattern
-                break
-    
-    return patterns
-
-
-def check_entry_confirmation(
-    future_prices: pd.DataFrame,
-    last_low: float,
-    confirmation_pct: float = 1.5,  # OPTIMIZED: Changed from 2.0% to 1.5%
-    max_bars: int = 30
-) -> Dict:
-    """
-    After pattern completes at last_low, check if price climbs to confirm entry.
-    
-    Args:
-        future_prices: Price data after pattern completion
-        last_low: The last low price (pattern completion price)
-        confirmation_pct: % climb required to confirm (default 2.0%)
-        max_bars: Maximum bars to wait for confirmation (default 30)
-    
-    Returns:
-        Dict with confirmation status and details
-        
-    Example:
-        >>> result = check_entry_confirmation(future_data, last_low=99.25, confirmation_pct=2.0)
-        >>> if result['confirmed']:
-        >>>     print(f"Entry at {result['entry_price']}")
-    """
-    
-    if future_prices.empty:
-        return {
-            'confirmed': False,
-            'reason': 'no_future_data'
-        }
-    
-    # Calculate entry trigger price (+2% from last low)
-    entry_trigger = last_low * (1 + confirmation_pct / 100)
-    
-    # Calculate stop threshold (-0.5% from last low = pattern failure)
-    stop_threshold = last_low * 0.995
-    
-    # Look ahead for confirmation or failure
-    max_look = min(max_bars, len(future_prices))
-    
-    for i in range(max_look):
-        price = future_prices['close'].iloc[i]
-        
-        # Pattern failed - price dropped too much
-        if price < stop_threshold:
-            return {
-                'confirmed': False,
-                'reason': 'pattern_failed',
-                'failed_at': future_prices['timestamp'].iloc[i] if 'timestamp' in future_prices.columns else None,
-                'lowest_price': price
-            }
-        
-        # Entry confirmed - price climbed required %
-        if price >= entry_trigger:
-            return {
-                'confirmed': True,
-                'entry_price': price,
-                'entry_time': future_prices['timestamp'].iloc[i] if 'timestamp' in future_prices.columns else None,
-                'entry_index': i,
-                'bars_to_entry': i
-            }
-    
-    # Pattern didn't confirm or fail within time limit
-    max_price = future_prices['close'][:max_look].max()
-    return {
-        'confirmed': False,
-        'reason': 'timeout',
-        'max_price_reached': max_price,
-        'trigger_needed': entry_trigger
-    }
-
-
-def simulate_trade_outcome(
-    entry_price: float,
-    future_prices: pd.DataFrame,
-    target_1_pct: float = None,
-    target_2_pct: float = None,
-    stop_loss_pct: float = None
-) -> Dict:
-    """
-    Simulate trade outcome using X then X+ exit rules.
-    
-    Exit Rules (X then X+):
-    1. If price hits Target 1, WAIT
-    2. If price then hits Target 2, exit at Target 2
-    3. If price returns to Target 1 after hitting it, exit at Target 1
-    4. If price hits Stop Loss at any time, exit immediately
-    
-    Args:
-        entry_price: Price at which position was entered
-        future_prices: Price data after entry
-        target_1_pct: First target % (default from config)
-        target_2_pct: Second target % (default from config)
-        stop_loss_pct: Stop loss % (default from config)
-    
-    Returns:
-        Dict with trade outcome details
-        
-    Example:
-        >>> outcome = simulate_trade_outcome(entry_price=101.24, future_data)
-        >>> if outcome['outcome'] == 'win':
-        >>>     print(f"Profit: {outcome['profit_pct']}%")
-    """
-    
-    # Use config defaults if not specified
-    if target_1_pct is None:
-        target_1_pct = cfg.TARGET_1
-    if target_2_pct is None:
-        target_2_pct = cfg.TARGET_2
-    if stop_loss_pct is None:
-        stop_loss_pct = cfg.STOP_LOSS
-    
-    if future_prices.empty:
-        return {
-            'outcome': 'no_data',
-            'exit_reason': 'no_future_data'
-        }
-    
-    # Calculate price targets
-    target_075 = entry_price * (1 + target_1_pct / 100)
-    target_2 = entry_price * (1 + target_2_pct / 100)
-    stop_loss = entry_price * (1 + stop_loss_pct / 100)
-    
-    hit_075 = False  # Track if we've hit first target
-    
-    # Simulate each bar after entry
-    for i in range(len(future_prices)):
-        high = future_prices['high'].iloc[i]
-        low = future_prices['low'].iloc[i]
-        close = future_prices['close'].iloc[i]
-        
-        # Check stop loss FIRST (highest priority)
-        if low <= stop_loss:
-            return {
-                'outcome': 'loss',
-                'exit_price': stop_loss,
-                'profit_pct': stop_loss_pct,
-                'profit_dollars': None,  # Will be calculated with position size
-                'exit_reason': 'stop_loss',
-                'bars_held': i,
-                'exit_time': future_prices['timestamp'].iloc[i] if 'timestamp' in future_prices.columns else None
-            }
-        
-        # Check if we hit first target
-        if high >= target_075 and not hit_075:
-            hit_075 = True
-        
-        # Check if we hit second target
-        if high >= target_2:
-            return {
-                'outcome': 'win',
-                'exit_price': target_2,
-                'profit_pct': target_2_pct,
-                'profit_dollars': None,
-                'exit_reason': 'target_2',
-                'bars_held': i,
-                'exit_time': future_prices['timestamp'].iloc[i] if 'timestamp' in future_prices.columns else None
-            }
-        
-        # If we hit first target and price returns to it, exit
-        if hit_075 and close <= target_075:
-            return {
-                'outcome': 'win',
-                'exit_price': target_075,
-                'profit_pct': target_1_pct,
-                'profit_dollars': None,
-                'exit_reason': 'target_1_return',
-                'bars_held': i,
-                'exit_time': future_prices['timestamp'].iloc[i] if 'timestamp' in future_prices.columns else None
-            }
-    
-    # End of data - calculate final P&L based on last close
-    last_price = future_prices['close'].iloc[-1]
-    profit_pct = ((last_price - entry_price) / entry_price) * 100
-    
-    if profit_pct >= target_1_pct:
-        outcome = 'win'
-        exit_reason = 'eod_win'
-    else:
-        outcome = 'loss'
-        exit_reason = 'eod_loss'
-    
-    return {
-        'outcome': outcome,
-        'exit_price': last_price,
-        'profit_pct': profit_pct,
-        'profit_dollars': None,
-        'exit_reason': exit_reason,
-        'bars_held': len(future_prices),
-        'exit_time': future_prices['timestamp'].iloc[-1] if 'timestamp' in future_prices.columns else None
-    }
-
-
-def analyze_patterns_with_outcomes(
-    price_data: pd.DataFrame,
-    **kwargs
-) -> pd.DataFrame:
-    """
-    Detect patterns and simulate all trades, returning comprehensive DataFrame.
-    
-    This is a convenience function that:
-    1. Detects all VWAP Recovery Patterns
-    2. For confirmed entries, simulates the trade outcome
-    3. Returns everything in a pandas DataFrame for analysis
-    
-    Args:
-        price_data: Price DataFrame
-        **kwargs: Additional arguments passed to detect_vwap_recovery_patterns
-    
-    Returns:
-        DataFrame with columns for pattern details and trade outcomes
-        
-    Example:
-        >>> results = analyze_patterns_with_outcomes(aapl_data)
-        >>> print(f"Win rate: {results['outcome'].value_counts(normalize=True)}")
-        >>> print(f"Avg profit: {results[results['outcome']=='win']['profit_pct'].mean()}")
-    """
-    
-    # Detect all patterns
-    patterns = detect_vwap_recovery_patterns(price_data, **kwargs)
-    
-    if not patterns:
-        return pd.DataFrame()
-    
-    # For each confirmed entry, simulate the trade
-    results = []
-    
-    for pattern in patterns:
-        result = pattern.copy()
-        
-        if pattern['entry_confirmed']:
-            # Get price data after entry
-            entry_index = pattern['pattern_complete_index'] + pattern['bars_to_entry']
-            future_data = price_data.iloc[entry_index+1:]
-            
-            if not future_data.empty:
-                # Simulate the trade
-                trade_outcome = simulate_trade_outcome(
-                    entry_price=pattern['entry_price'],
-                    future_prices=future_data
-                )
-                
-                # Merge trade outcome into result
-                result.update(trade_outcome)
-        
-        results.append(result)
-    
-    return pd.DataFrame(results)
-
-
-# Utility functions for analysis
-
-def calculate_win_rate(outcomes_df: pd.DataFrame) -> float:
-    """Calculate win rate from outcomes DataFrame."""
-    if outcomes_df.empty or 'outcome' not in outcomes_df.columns:
-        return 0.0
-    
-    confirmed_entries = outcomes_df[outcomes_df['entry_confirmed'] == True]
-    if confirmed_entries.empty:
-        return 0.0
-    
-    wins = (confirmed_entries['outcome'] == 'win').sum()
-    total = len(confirmed_entries)
-    
-    return wins / total if total > 0 else 0.0
-
-
-def calculate_avg_profit_loss(outcomes_df: pd.DataFrame) -> Dict[str, float]:
-    """Calculate average profit and loss from outcomes DataFrame."""
-    if outcomes_df.empty or 'profit_pct' not in outcomes_df.columns:
-        return {'avg_win': 0.0, 'avg_loss': 0.0}
-    
-    confirmed = outcomes_df[outcomes_df['entry_confirmed'] == True]
-    
-    if confirmed.empty:
-        return {'avg_win': 0.0, 'avg_loss': 0.0}
-    
-    wins = confirmed[confirmed['outcome'] == 'win']['profit_pct']
-    losses = confirmed[confirmed['outcome'] == 'loss']['profit_pct']
-    
-    return {
-        'avg_win': wins.mean() if not wins.empty else 0.0,
-        'avg_loss': losses.mean() if not losses.empty else 0.0
-    }
-
-
-def get_pattern_summary(outcomes_df: pd.DataFrame) -> Dict:
-    """
-    Generate summary statistics from pattern analysis.
-    
-    Returns:
-        Dict with key metrics for stock evaluation
-    """
-    if outcomes_df.empty:
-        return {
-            'total_patterns': 0,
-            'confirmed_entries': 0,
-            'confirmation_rate': 0.0,
-            'win_rate': 0.0,
-            'wins': 0,
-            'losses': 0,
-            'avg_win_pct': 0.0,
-            'avg_loss_pct': 0.0
-        }
-    
-    total_patterns = len(outcomes_df)
-    confirmed_entries = outcomes_df['entry_confirmed'].sum()
-    confirmation_rate = confirmed_entries / total_patterns if total_patterns > 0 else 0.0
-    
-    confirmed = outcomes_df[outcomes_df['entry_confirmed'] == True]
-    
-    # Check if we have outcome column (only present if trades were simulated)
-    if 'outcome' not in confirmed.columns or confirmed.empty:
-        return {
-            'total_patterns': total_patterns,
-            'confirmed_entries': int(confirmed_entries),
-            'confirmation_rate': confirmation_rate,
-            'win_rate': 0.0,
-            'wins': 0,
-            'losses': 0,
-            'avg_win_pct': 0.0,
-            'avg_loss_pct': 0.0
-        }
-    
-    wins = (confirmed['outcome'] == 'win').sum()
-    losses = (confirmed['outcome'] == 'loss').sum()
-    
-    win_rate = wins / confirmed_entries if confirmed_entries > 0 else 0.0
-    
-    profit_loss = calculate_avg_profit_loss(outcomes_df)
-    
-    return {
-        'total_patterns': total_patterns,
-        'confirmed_entries': int(confirmed_entries),
-        'confirmation_rate': confirmation_rate,
-        'win_rate': win_rate,
-        'wins': int(wins),
-        'losses': int(losses),
-        'avg_win_pct': profit_loss['avg_win'],
-        'avg_loss_pct': profit_loss['avg_loss']
-    }
-
-
-if __name__ == "__main__":
-    print("VWAP Recovery Pattern Detector Module")
-    print("=" * 50)
-    print("This module provides pattern detection and trade simulation.")
-    print("\nKey functions:")
-    print("  - detect_vwap_recovery_patterns(): Find patterns in price data")
-    print("  - simulate_trade_outcome(): Simulate X then X+ exit rules")
-    print("  - analyze_patterns_with_outcomes(): Complete analysis pipeline")
-    print("\nSee function docstrings for usage examples.")
+    detector = PatternDetector()
+    return detector.detect_all_patterns(df, ticker, analysis_date)
