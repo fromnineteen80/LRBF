@@ -111,99 +111,38 @@ class CategoryScorer:
     
     def score_pattern_frequency(self, stock_data: Dict) -> float:
         """
-        Pattern Frequency Score (25% weight) - OCCURRENCES ARE KING
+        Pattern Frequency Score (15% weight)
         
-        Multi-tier professional analysis of tradeable opportunity density.
-        Focus: Consistent opportunities + high-quality entries + curve preservation.
+        Measures tradeable opportunities per day.
+        Balance activity (need signals) vs quality (not too many = noise).
         
         Inputs:
-        - vwap_occurred_20d: Total patterns detected
-        - entries_20d: Confirmed entries (patterns that met thresholds)
+        - vwap_occurred_20d: Total patterns found
+        - entries_20d: Confirmed entries
         - expected_daily_patterns: Avg patterns per day
-        - confirmation_rate: % of patterns that became trades
-        - pattern_distribution_score: Evenness of patterns throughout day (0-1)
-        - hourly_pattern_consistency: Std dev of patterns per hour (lower = better)
         
-        3-tier scoring:
-        - Daily Occurrence Rate (35%): Sufficient tradeable patterns
-        - Entry Confirmation Rate (35%): Pattern quality (how many confirm)
-        - Distribution Consistency (30%): Patterns spread evenly vs clustered
-        
-        Target: 3-5 entries/day, 60%+ confirmation, even distribution
+        Target: 2-4 confirmed patterns/day
         Scale: 0-100 (higher = better)
         """
         entries_20d = stock_data.get('entries_20d', 0)
-        occurred_20d = stock_data.get('vwap_occurred_20d', 0)
-        confirmation_rate = stock_data.get('confirmation_rate', 0.0)  # 0-100
+        expected_daily = stock_data.get('expected_daily_patterns', 0.0)
         
-        # Calculate daily rates
+        # Calculate daily entry rate
         daily_entries = entries_20d / 20.0 if entries_20d > 0 else 0.0
-        daily_patterns = occurred_20d / 20.0 if occurred_20d > 0 else 0.0
         
-        # === 1. Daily Occurrence Rate (35% weight) ===
-        # More patterns = more opportunities to compound
-        if daily_entries >= 4.0:
-            occurrence_score = 100.0  # Elite frequency
-        elif daily_entries >= 3.0:
-            occurrence_score = 90.0 + ((daily_entries - 3.0) / 1.0) * 10.0  # Excellent
-        elif daily_entries >= 2.0:
-            occurrence_score = 75.0 + ((daily_entries - 2.0) / 1.0) * 15.0  # Good
-        elif daily_entries >= 1.5:
-            occurrence_score = 55.0 + ((daily_entries - 1.5) / 0.5) * 20.0  # Acceptable
-        elif daily_entries >= 1.0:
-            occurrence_score = 30.0 + ((daily_entries - 1.0) / 0.5) * 25.0  # Marginal
+        # Score based on sweet spot (2-4 entries/day)
+        if 2.0 <= daily_entries <= 4.0:
+            score = 100.0
+        elif 1.5 <= daily_entries < 2.0:
+            score = 70.0 + ((daily_entries - 1.5) / 0.5) * 30.0
+        elif 4.0 < daily_entries <= 6.0:
+            score = 100.0 - ((daily_entries - 4.0) / 2.0) * 20.0
+        elif daily_entries > 6.0:
+            # Too many signals = noise
+            score = max(0.0, 80.0 - ((daily_entries - 6.0) * 5.0))
         else:
-            occurrence_score = (daily_entries / 1.0) * 30.0  # Poor
-        
-        # Penalty for excessive signals (>6/day = likely noise)
-        if daily_entries > 6.0:
-            noise_penalty = min(30.0, (daily_entries - 6.0) * 5.0)
-            occurrence_score = max(0.0, occurrence_score - noise_penalty)
-        
-        # === 2. Entry Confirmation Rate (35% weight) ===
-        # What % of detected patterns actually meet entry thresholds?
-        # High rate = quality patterns, not false signals
-        if confirmation_rate >= 70.0:
-            confirmation_score = 100.0  # Elite quality
-        elif confirmation_rate >= 60.0:
-            confirmation_score = 90.0 + ((confirmation_rate - 60.0) / 10.0) * 10.0  # Excellent
-        elif confirmation_rate >= 50.0:
-            confirmation_score = 75.0 + ((confirmation_rate - 50.0) / 10.0) * 15.0  # Good
-        elif confirmation_rate >= 40.0:
-            confirmation_score = 55.0 + ((confirmation_rate - 40.0) / 10.0) * 20.0  # Acceptable
-        elif confirmation_rate >= 25.0:
-            confirmation_score = 30.0 + ((confirmation_rate - 25.0) / 15.0) * 25.0  # Marginal
-        else:
-            confirmation_score = (confirmation_rate / 25.0) * 30.0  # Poor (too many false signals)
-        
-        # === 3. Distribution Consistency (30% weight) ===
-        # Are patterns evenly distributed throughout the day or clustered?
-        # Even distribution = more compounding opportunities, less idle capital
-        distribution_score_raw = stock_data.get('pattern_distribution_score', 0.7)  # 0-1
-        hourly_consistency = stock_data.get('hourly_pattern_consistency', 1.5)  # Std dev
-        
-        # Score from distribution evenness
-        if distribution_score_raw >= 0.85:
-            dist_score = 100.0  # Very even distribution
-        elif distribution_score_raw >= 0.75:
-            dist_score = 85.0 + ((distribution_score_raw - 0.75) / 0.1) * 15.0
-        elif distribution_score_raw >= 0.60:
-            dist_score = 65.0 + ((distribution_score_raw - 0.60) / 0.15) * 20.0
-        else:
-            dist_score = (distribution_score_raw / 0.60) * 65.0
-        
-        # Adjust for hourly consistency (lower std dev = better)
-        if hourly_consistency <= 0.8:
-            consistency_boost = 10.0  # Very consistent
-        elif hourly_consistency <= 1.2:
-            consistency_boost = 5.0
-        else:
-            consistency_boost = 0.0
-        
-        distribution_score = min(100.0, dist_score + consistency_boost)
-        
-        # === Composite Pattern Frequency Score ===
-        score = (occurrence_score * 0.35) + (confirmation_score * 0.35) + (distribution_score * 0.30)
+            # Too few signals
+            score = (daily_entries / 1.5) * 70.0
         
         return min(100.0, max(0.0, score))
     
@@ -270,40 +209,117 @@ class CategoryScorer:
         """
         Liquidity Score (10% weight)
         
-        Volume depth & spread tightness for easy entry/exit.
+        Multi-tier professional analysis of execution quality.
+        Focus: Tight fills + low transaction costs + curve preservation.
         
         Inputs:
         - avg_volume_20d: Average daily volume
         - spread_bps: Bid-ask spread in basis points
-        - spread_drift_std: Spread volatility
+        - spread_volatility: Spread consistency (std dev in bps)
+        - order_book_depth: Average size at best bid/ask (shares)
+        - intraday_liquidity_score: Liquidity consistency throughout day (0-1)
+        - volume_at_touch: % of volume within 1 tick of mid (higher = better)
         
-        Target: Volume > 5M/day, spread < 5 bps
+        4-tier scoring:
+        - Volume Depth (35%): Sufficient shares for entry/exit
+        - Spread Tightness (30%): Minimize execution cost
+        - Order Book Stability (20%): Consistent bid-ask
+        - Intraday Distribution (15%): Liquidity throughout session
+        
+        Target: Volume >8M/day, spread <4 bps, stable book, even liquidity
         Scale: 0-100 (higher = better)
         """
         volume = stock_data.get('avg_volume_20d', 0) / 1_000_000  # Convert to millions
         spread_bps = stock_data.get('spread_bps', 100.0)
+        spread_volatility = stock_data.get('spread_volatility', 5.0)  # Std dev in bps
         
-        # Volume subscore (60%)
-        if volume >= 10:
-            vol_score = 100.0
+        # === 1. Volume Depth (35% weight) ===
+        # Sufficient volume for easy entry/exit without moving market
+        if volume >= 15:
+            vol_score = 100.0  # Elite liquidity
+        elif volume >= 10:
+            vol_score = 90.0 + ((volume - 10) / 5) * 10.0  # Excellent
+        elif volume >= 8:
+            vol_score = 80.0 + ((volume - 8) / 2) * 10.0  # Very good
         elif volume >= 5:
-            vol_score = 80.0 + ((volume - 5) / 5) * 20.0
-        elif volume >= 2:
-            vol_score = 50.0 + ((volume - 2) / 3) * 30.0
+            vol_score = 65.0 + ((volume - 5) / 3) * 15.0  # Good
+        elif volume >= 3:
+            vol_score = 45.0 + ((volume - 3) / 2) * 20.0  # Acceptable
+        elif volume >= 1:
+            vol_score = 20.0 + ((volume - 1) / 2) * 25.0  # Marginal
         else:
-            vol_score = (volume / 2) * 50.0
+            vol_score = (volume / 1) * 20.0  # Poor
         
-        # Spread subscore (40%)
-        if spread_bps <= 3:
-            spread_score = 100.0
+        # === 2. Spread Tightness (30% weight) ===
+        # Minimize execution cost (spread = hidden tax on every trade)
+        if spread_bps <= 2:
+            spread_score = 100.0  # Elite (sub-penny)
+        elif spread_bps <= 3:
+            spread_score = 92.0 + ((2 - (spread_bps - 2)) / 1) * 8.0  # Excellent
+        elif spread_bps <= 4:
+            spread_score = 82.0 + ((3 - (spread_bps - 3)) / 1) * 10.0  # Very good
         elif spread_bps <= 5:
-            spread_score = 100.0 - ((spread_bps - 3) / 2) * 20.0
-        elif spread_bps <= 10:
-            spread_score = 80.0 - ((spread_bps - 5) / 5) * 40.0
+            spread_score = 70.0 + ((4 - (spread_bps - 4)) / 1) * 12.0  # Good
+        elif spread_bps <= 8:
+            spread_score = 50.0 + ((5 - (spread_bps - 5)) / 3) * 20.0  # Acceptable
+        elif spread_bps <= 12:
+            spread_score = 25.0 + ((8 - (spread_bps - 8)) / 4) * 25.0  # Marginal
         else:
-            spread_score = max(0.0, 40.0 - ((spread_bps - 10) * 2.0))
+            spread_score = max(0.0, 25.0 - ((spread_bps - 12) * 2.0))  # Poor
         
-        score = (vol_score * 0.6) + (spread_score * 0.4)
+        # === 3. Order Book Stability (20% weight) ===
+        # Consistent spread = predictable execution costs
+        # Low spread volatility = stable order book
+        if spread_volatility <= 1.0:
+            stability_score = 100.0  # Very stable
+        elif spread_volatility <= 2.0:
+            stability_score = 85.0 + ((1.0 - (spread_volatility - 1.0)) / 1.0) * 15.0
+        elif spread_volatility <= 3.0:
+            stability_score = 65.0 + ((2.0 - (spread_volatility - 2.0)) / 1.0) * 20.0
+        elif spread_volatility <= 5.0:
+            stability_score = 40.0 + ((3.0 - (spread_volatility - 3.0)) / 2.0) * 25.0
+        else:
+            stability_score = max(0.0, 40.0 - ((spread_volatility - 5.0) * 5.0))
+        
+        # Boost for tight order book depth
+        order_book_depth = stock_data.get('order_book_depth', 5000)  # Shares at best bid/ask
+        if order_book_depth >= 10000:
+            depth_boost = 10.0
+        elif order_book_depth >= 5000:
+            depth_boost = 5.0
+        else:
+            depth_boost = 0.0
+        
+        stability_score = min(100.0, stability_score + depth_boost)
+        
+        # === 4. Intraday Liquidity Distribution (15% weight) ===
+        # Liquidity should be consistent throughout the day (not just at open/close)
+        intraday_score_raw = stock_data.get('intraday_liquidity_score', 0.75)  # 0-1
+        volume_at_touch = stock_data.get('volume_at_touch', 0.60)  # % of vol at inside market
+        
+        # Score from intraday consistency
+        if intraday_score_raw >= 0.85:
+            intraday_score = 100.0  # Very consistent liquidity
+        elif intraday_score_raw >= 0.75:
+            intraday_score = 85.0 + ((intraday_score_raw - 0.75) / 0.1) * 15.0
+        elif intraday_score_raw >= 0.65:
+            intraday_score = 65.0 + ((intraday_score_raw - 0.65) / 0.1) * 20.0
+        else:
+            intraday_score = (intraday_score_raw / 0.65) * 65.0
+        
+        # Boost for high volume at touch (tight market)
+        if volume_at_touch >= 0.75:
+            touch_boost = 10.0
+        elif volume_at_touch >= 0.65:
+            touch_boost = 5.0
+        else:
+            touch_boost = 0.0
+        
+        intraday_score = min(100.0, intraday_score + touch_boost)
+        
+        # === Composite Liquidity Score ===
+        score = (vol_score * 0.35) + (spread_score * 0.30) + (stability_score * 0.20) + (intraday_score * 0.15)
+        
         return min(100.0, max(0.0, score))
     
     def score_volatility(self, stock_data: Dict) -> float:
