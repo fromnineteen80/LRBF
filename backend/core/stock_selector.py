@@ -207,10 +207,19 @@ def select_balanced_portfolio(
     medium = df_quality[df_quality['category'] == 'Medium'].copy()
     aggressive = df_quality[df_quality['category'] == 'Aggressive'].copy()
     
-    # Sort each by quality score
-    conservative = conservative.nlargest(n_conservative * 2, 'quality_score')  # Get extras in case needed
-    medium = medium.nlargest(n_medium * 2, 'quality_score')
-    aggressive = aggressive.nlargest(n_aggressive * 2, 'quality_score')
+    # Sort each by quality score with tie-breaking
+    conservative = conservative.sort_values(
+        ['quality_score', 'confirmation_rate', 'expected_value', 'ticker'],
+        ascending=[False, False, False, True]
+    ).head(n_conservative * 2)  # Get extras in case needed
+    medium = medium.sort_values(
+        ['quality_score', 'confirmation_rate', 'expected_value', 'ticker'],
+        ascending=[False, False, False, True]
+    ).head(n_medium * 2)
+    aggressive = aggressive.sort_values(
+        ['quality_score', 'confirmation_rate', 'expected_value', 'ticker'],
+        ascending=[False, False, False, True]
+    ).head(n_aggressive * 2)
     
     # Select top N from each category
     selected_conservative = conservative.head(n_conservative)
@@ -227,7 +236,10 @@ def select_balanced_portfolio(
         remaining = df_quality[~df_quality['ticker'].isin(already_selected['ticker'])]
         
         shortfall = target_total - total_selected
-        additional = remaining.nlargest(shortfall, 'quality_score')
+        additional = remaining.sort_values(
+            ['quality_score', 'confirmation_rate', 'expected_value', 'ticker'],
+            ascending=[False, False, False, True]
+        ).head(shortfall)
         
         # Combine
         final_selection = pd.concat([selected_conservative, selected_medium, selected_aggressive, additional])
@@ -235,15 +247,24 @@ def select_balanced_portfolio(
         final_selection = pd.concat([selected_conservative, selected_medium, selected_aggressive])
     
     # Sort by quality score
-    final_selection = final_selection.sort_values('quality_score', ascending=False).reset_index(drop=True)
+    final_selection = final_selection.sort_values(
+        ['quality_score', 'confirmation_rate', 'expected_value', 'ticker'],
+        ascending=[False, False, False, True]
+    ).reset_index(drop=True)
     
     # Select 4 backup stocks (next best after primary selection)
     backup_stocks = pd.DataFrame()
     remaining_stocks = df_quality[~df_quality['ticker'].isin(final_selection['ticker'])]
     if len(remaining_stocks) >= 4:
-        backup_stocks = remaining_stocks.nlargest(4, 'quality_score').reset_index(drop=True)
+        backup_stocks = remaining_stocks.sort_values(
+            ['quality_score', 'confirmation_rate', 'expected_value', 'ticker'],
+            ascending=[False, False, False, True]
+        ).head(4).reset_index(drop=True)
     elif len(remaining_stocks) > 0:
-        backup_stocks = remaining_stocks.sort_values('quality_score', ascending=False).reset_index(drop=True)
+        backup_stocks = remaining_stocks.sort_values(
+            ['quality_score', 'confirmation_rate', 'expected_value', 'ticker'],
+            ascending=[False, False, False, True]
+        ).reset_index(drop=True)
     
     return {
         'selected': final_selection,
