@@ -523,3 +523,47 @@ if __name__ == "__main__":
     
     print("\n" + "=" * 60)
     print("✅ All metrics calculator tests passed!")
+
+
+# ============================================================================
+# Standalone Function for Morning Report Integration
+# ============================================================================
+
+def calculate_risk_metrics(selected_stocks: pd.DataFrame, config: Dict) -> Dict:
+    """
+    Calculate risk-adjusted performance metrics for selected stocks.
+    
+    Args:
+        selected_stocks: DataFrame of selected stocks with performance history
+        config: Trading configuration dictionary
+    
+    Returns:
+        Dictionary of risk metrics
+    """
+    # Calculate projected metrics based on historical performance
+    expected_returns = []
+    for _, stock in selected_stocks.iterrows():
+        expected_value = stock.get('expected_value', 0)
+        pattern_frequency = stock.get('pattern_frequency', 0)
+        daily_expected = expected_value * pattern_frequency
+        expected_returns.append(daily_expected)
+    
+    expected_returns = np.array(expected_returns)
+    
+    # Calculate aggregate metrics
+    total_expected_return = np.sum(expected_returns)
+    avg_expected_return = np.mean(expected_returns)
+    std_expected_return = np.std(expected_returns) if len(expected_returns) > 1 else 0
+    
+    # Simplified risk metrics for morning forecast
+    # (Real metrics calculated EOD from actual fills)
+    sharpe_estimate = avg_expected_return / std_expected_return if std_expected_return > 0 else 0
+    
+    return {
+        'expected_daily_return': float(total_expected_return),
+        'expected_roi_pct': float(total_expected_return * 100),
+        'sharpe_estimate': float(sharpe_estimate),
+        'portfolio_volatility': float(std_expected_return),
+        'max_expected_drawdown': float(config.get('daily_loss_limit', -1.5)),
+        'stocks_count': len(selected_stocks)
+    }
