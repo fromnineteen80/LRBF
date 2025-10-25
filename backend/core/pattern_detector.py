@@ -1,15 +1,12 @@
 """
-VWAP Recovery Pattern Detector V2 - With Execution Cycle Tracking
+VWAP Recovery Pattern Detector V3 - True Intraminute (Tick Data)
+Detects patterns using IBKR tick data for sub-second precision
 
-Detects patterns AND tracks all timing components for execution cycle analysis.
-
-Timing tracked per pattern:
-- Pattern detection time (bars to confirmation)
-- Entry execution latency (simulated order fill)
-- Hold time (entry to exit)
-- Exit execution latency (simulated liquidation)
-- Settlement lag (cash back in account)
-- Total cycle time (full round trip)
+Enhanced capabilities:
+- Pure tick data analysis (bid/ask/last/volume per tick)
+- Pattern detection at tick level
+- Sub-second entry confirmation timing
+- Execution cycle tracking at millisecond precision
 
 Author: The Luggage Room Boys Fund
 Date: October 2025
@@ -25,7 +22,7 @@ from backend.core.filter_engine import FilterEngine
 
 class PatternDetector:
     """
-    Enhanced pattern detector with execution cycle tracking.
+    Enhanced pattern detector with true intraminute (tick-level) analysis.
     """
     
     def __init__(
@@ -35,10 +32,11 @@ class PatternDetector:
         target_1_pct: float = 0.75,
         target_2_pct: float = 2.0,
         stop_loss_pct: float = 0.5,
-        filter_engine: FilterEngine = None
+        filter_engine: FilterEngine = None,
+        aggregation_window_seconds: int = 5
     ):
         """
-        Initialize pattern detector.
+        Initialize pattern detector for tick-level analysis.
         
         Args:
             decline_threshold_pct: Minimum decline to detect (Step 1)
@@ -46,6 +44,8 @@ class PatternDetector:
             target_1_pct: First profit target
             target_2_pct: Second profit target
             stop_loss_pct: Stop loss threshold
+            filter_engine: Optional filter engine for enhanced strategy
+            aggregation_window_seconds: Window for aggregating ticks into micro-bars (default 5s)
         """
         self.decline_threshold = decline_threshold_pct
         self.entry_confirmation = entry_confirmation_pct
@@ -53,42 +53,58 @@ class PatternDetector:
         self.target_2 = target_2_pct
         self.stop_loss = stop_loss_pct
         self.filter_engine = filter_engine
+        self.aggregation_window = aggregation_window_seconds
+        
+        # Pattern detection windows (in seconds)
+        self.lookback_window_seconds = 180  # 3 minutes lookback for recent high
+        self.pattern_completion_window_seconds = 120  # 2 minutes max for pattern
+        self.entry_confirmation_window_seconds = 180  # 3 minutes max for entry
     
     def detect_all_patterns(
         self,
-        df: pd.DataFrame,
+        tick_df: pd.DataFrame,
         ticker: str,
         analysis_date: datetime
     ) -> List[Dict]:
         """
-        Detect all VWAP recovery patterns in historical data.
+        Detect all VWAP recovery patterns in tick data.
         
         Args:
-            df: DataFrame with OHLCV data (1-minute bars)
+            tick_df: DataFrame with tick data (timestamp, bid, ask, last, volume)
             ticker: Stock symbol
             analysis_date: Date of analysis
         
         Returns:
-            List of pattern dictionaries with full timing data
+            List of pattern dictionaries with sub-second timing precision
         """
-        if df.empty or len(df) < 50:
+        if tick_df.empty or len(tick_df) < 100:
+            return []
+        
+        # First, aggregate ticks into micro-bars for pattern scanning
+        # This creates rolling windows we can analyze
+        micro_bars = self._aggregate_ticks_to_bars(
+            tick_df, 
+            window_seconds=self.aggregation_window
+        )
+        
+        if micro_bars.empty or len(micro_bars) < 50:
             return []
         
         patterns = []
-        data_len = len(df)
-        lookback_bars = 20
+        data_len = len(micro_bars)
         
-        # Ensure timestamp column
-        if 'timestamp' not in df.columns and isinstance(df.index, pd.DatetimeIndex):
-            df = df.reset_index()
-            df.rename(columns={'index': 'timestamp'}, inplace=True)
+        # Calculate lookback in bars
+        bars_per_lookback = int(self.lookback_window_seconds / self.aggregation_window)
+        bars_per_pattern_window = int(self.pattern_completion_window_seconds / self.aggregation_window)
+        bars_per_entry_window = int(self.entry_confirmation_window_seconds / self.aggregation_window)
         
         # Scan for 3-step patterns
-        for i in range(lookback_bars, data_len - 30):  # Leave room for confirmation
+        for i in range(bars_per_lookback, data_len - bars_per_entry_window):
             
-            # STEP 1: DECLINE
-            recent_high = df['high'][i-lookback_bars:i+1].max()
-            current_low = df['low'].iloc[i]
+            # STEP 1: DECLINE (scan recent window for high)
+            lookback_slice = micro_bars.iloc[i-bars_per_lookback:i+1]
+            recent_high = lookback_slice['high'].max()
+            current_low = micro_bars['low'].iloc[i]
             
             decline_amount = recent_high - current_low
             decline_pct = (decline_amount / recent_high) * 100
@@ -97,17 +113,19 @@ class PatternDetector:
                 continue
             
             decline_bar_idx = i
-            decline_timestamp = df['timestamp'].iloc[i]
+            decline_timestamp = micro_bars['timestamp'].iloc[i]
             
             # STEP 2: 50% RECOVERY
             recovery_target = current_low + (decline_amount * 0.5)
             
             recovery_found = False
-            for j in range(i+1, min(i+lookback_bars, data_len)):
-                if df['high'].iloc[j] >= recovery_target:
-                    recovery_high = df['high'].iloc[j]
+            recovery_window = micro_bars.iloc[i+1:min(i+bars_per_pattern_window, data_len)]
+            
+            for j, row in recovery_window.iterrows():
+                if row['high'] >= recovery_target:
+                    recovery_high = row['high']
                     recovery_bar_idx = j
-                    recovery_timestamp = df['timestamp'].iloc[j]
+                    recovery_timestamp = row['timestamp']
                     recovery_amount = recovery_high - current_low
                     recovery_found = True
                     break
@@ -119,25 +137,32 @@ class PatternDetector:
             retracement_target = recovery_high - (recovery_amount * 0.5)
             
             retracement_found = False
-            for k in range(j+1, min(j+lookback_bars, data_len)):
-                if df['low'].iloc[k] <= retracement_target:
-                    last_low = df['low'].iloc[k]
+            retracement_window = micro_bars.iloc[recovery_bar_idx+1:min(recovery_bar_idx+bars_per_pattern_window, data_len)]
+            
+            for k, row in retracement_window.iterrows():
+                if row['low'] <= retracement_target:
+                    last_low = row['low']
                     pattern_complete_idx = k
-                    pattern_complete_timestamp = df['timestamp'].iloc[k]
+                    pattern_complete_timestamp = row['timestamp']
                     retracement_found = True
                     break
             
             if not retracement_found:
                 continue
             
-            # PATTERN COMPLETE - Track timing from here
-            detection_time_bars = k - i  # Bars from decline to pattern complete
+            # PATTERN COMPLETE - Calculate detection time with millisecond precision
+            detection_time_ms = (pattern_complete_timestamp - decline_timestamp).total_seconds() * 1000
             
-            # ENTRY CONFIRMATION
-            entry_result = self._check_entry_confirmation(
-                df[k:k+30],
+            # ENTRY CONFIRMATION (check tick data for precise entry)
+            entry_window_start = pattern_complete_timestamp
+            entry_window_end = pattern_complete_timestamp + timedelta(seconds=self.entry_confirmation_window_seconds)
+            
+            entry_result = self._check_entry_confirmation_tick_level(
+                tick_df,
                 last_low,
-                self.entry_confirmation
+                self.entry_confirmation,
+                entry_window_start,
+                entry_window_end
             )
             
             if not entry_result['confirmed']:
@@ -147,7 +172,7 @@ class PatternDetector:
                     'ticker': ticker,
                     'date': analysis_date.isoformat(),
                     'timestamp': pattern_complete_timestamp,
-                    'detection_time_bars': detection_time_bars,
+                    'detection_time_ms': detection_time_ms,
                     'entry_confirmed': False,
                     'outcome': 'no_entry',
                     'failure_reason': entry_result.get('reason', 'no_confirmation')
@@ -155,7 +180,7 @@ class PatternDetector:
                 patterns.append(pattern)
                 continue
             
-            # === FILTER CHECK ===
+            # === FILTER CHECK (Enhanced Strategy Only) ===
             if self.filter_engine:
                 pattern_data_for_filter = {
                     'entry_price': entry_result['entry_price'],
@@ -167,18 +192,18 @@ class PatternDetector:
                 filter_passed, filter_reason, filter_results = self.filter_engine.should_trade_pattern(
                     ticker=ticker,
                     pattern_data=pattern_data_for_filter,
-                    market_data=df,
+                    market_data=micro_bars,
                     current_time=entry_result['entry_timestamp']
                 )
                 
                 if not filter_passed:
-                    # Pattern detected and confirmed, but blocked by filters
+                    # Pattern confirmed but blocked by filters
                     pattern = {
                         'pattern_id': f"{ticker}_{analysis_date.isoformat()}_{uuid.uuid4().hex[:8]}",
                         'ticker': ticker,
                         'date': analysis_date.isoformat(),
                         'timestamp': pattern_complete_timestamp,
-                        'detection_time_bars': detection_time_bars,
+                        'detection_time_ms': detection_time_ms,
                         'entry_confirmed': True,
                         'entry_price': entry_result['entry_price'],
                         'filter_checked': True,
@@ -191,41 +216,42 @@ class PatternDetector:
                     patterns.append(pattern)
                     continue
             
-            # ENTRY CONFIRMED - Simulate trade execution
-            entry_bar_idx = pattern_complete_idx + entry_result['bars_to_entry']
+            # ENTRY CONFIRMED - Simulate trade execution with tick-level precision
             entry_price = entry_result['entry_price']
-            entry_timestamp = entry_result['entry_time']
-            entry_latency_ms = np.random.normal(50, 15)  # Simulated latency
+            entry_timestamp = entry_result['entry_timestamp']
+            entry_latency_ms = np.random.normal(50, 15)  # Simulated IBKR latency
             
-            # SIMULATE TRADE OUTCOME
-            trade_result = self._simulate_trade_outcome(
-                df[entry_bar_idx:],
+            # SIMULATE TRADE OUTCOME (using tick data for maximum precision)
+            trade_result = self._simulate_trade_outcome_tick_level(
+                tick_df,
                 entry_price,
+                entry_timestamp,
                 self.target_1,
                 self.target_2,
                 self.stop_loss
             )
             
-            # Calculate total cycle time
-            total_cycle_minutes = (
-                detection_time_bars +  # Pattern detection
-                (entry_latency_ms / 1000 / 60) +  # Entry execution
-                trade_result['hold_time_minutes'] +  # Hold time
-                (trade_result['exit_latency_ms'] / 1000 / 60) +  # Exit execution
-                trade_result['settlement_lag_minutes']  # Settlement
+            # Calculate total cycle time (milliseconds)
+            total_cycle_ms = (
+                detection_time_ms +  # Pattern detection
+                entry_latency_ms +  # Entry execution
+                (entry_result['confirmation_time_ms']) +  # Time to confirm entry
+                trade_result['hold_time_ms'] +  # Hold time
+                trade_result['exit_latency_ms'] +  # Exit execution
+                (trade_result['settlement_lag_minutes'] * 60 * 1000)  # Settlement
             )
             
             # Calculate dead zone if applicable
-            dead_zone_duration = 0
+            dead_zone_duration_ms = 0
             opportunity_cost = 0
-            if trade_result['outcome'] == 'win' and trade_result.get('dead_zone_bars', 0) > 0:
-                dead_zone_duration = trade_result['dead_zone_bars']
+            if trade_result['outcome'] == 'win' and trade_result.get('dead_zone_ms', 0) > 0:
+                dead_zone_duration_ms = trade_result['dead_zone_ms']
                 opportunity_cost = self._calculate_opportunity_cost(
                     entry_price,
-                    dead_zone_duration
+                    dead_zone_duration_ms / 1000 / 60  # Convert to minutes
                 )
             
-            # Build complete pattern record
+            # Build complete pattern record with millisecond precision
             pattern = {
                 # Identification
                 'pattern_id': f"{ticker}_{analysis_date.isoformat()}_{uuid.uuid4().hex[:8]}",
@@ -240,13 +266,16 @@ class PatternDetector:
                 'recovery_high': recovery_high,
                 'last_low': last_low,
                 
-                # Timing - Category #14 (Execution Cycle)
-                'detection_time_bars': detection_time_bars,
+                # Timing - Category #14 (Execution Cycle) - MILLISECOND PRECISION
+                'detection_time_ms': detection_time_ms,
+                'entry_confirmation_time_ms': entry_result['confirmation_time_ms'],
                 'entry_latency_ms': entry_latency_ms,
-                'hold_time_minutes': trade_result['hold_time_minutes'],
+                'hold_time_ms': trade_result['hold_time_ms'],
                 'exit_latency_ms': trade_result['exit_latency_ms'],
                 'settlement_lag_minutes': trade_result['settlement_lag_minutes'],
-                'total_cycle_minutes': total_cycle_minutes,
+                'total_cycle_ms': total_cycle_ms,
+                'total_cycle_seconds': total_cycle_ms / 1000,
+                'total_cycle_minutes': total_cycle_ms / 1000 / 60,
                 
                 # Entry/Exit
                 'entry_confirmed': True,
@@ -261,252 +290,294 @@ class PatternDetector:
                 'pnl_pct': trade_result['pnl_pct'],
                 
                 # Dead Zone (Category #3)
-                'dead_zone_duration': dead_zone_duration,
+                'dead_zone_duration_ms': dead_zone_duration_ms,
                 'opportunity_cost': opportunity_cost,
                 
                 # Additional metrics
-                'bars_to_entry': entry_result['bars_to_entry'],
-                'exit_reason': trade_result['exit_reason']
+                'exit_reason': trade_result['exit_reason'],
+                
+                # Intraminute metadata
+                'data_source': 'ibkr_tick_data',
+                'aggregation_window_seconds': self.aggregation_window
             }
             
             patterns.append(pattern)
         
         return patterns
     
-    def _check_entry_confirmation(
+    def _aggregate_ticks_to_bars(
         self,
-        future_df: pd.DataFrame,
-        last_low: float,
-        confirmation_pct: float
-    ) -> Dict:
+        tick_df: pd.DataFrame,
+        window_seconds: int = 5
+    ) -> pd.DataFrame:
         """
-        Check if price climbs enough to confirm entry.
+        Aggregate tick data into micro-bars for pattern scanning.
         
         Args:
-            future_df: Price data after pattern completion
-            last_low: Pattern completion price
-            confirmation_pct: % climb required
+            tick_df: DataFrame with tick data
+            window_seconds: Aggregation window in seconds
         
         Returns:
-            Dict with confirmation status
+            DataFrame with OHLCV micro-bars
         """
-        if future_df.empty:
-            return {'confirmed': False, 'reason': 'no_data'}
+        if tick_df.empty or 'timestamp' not in tick_df.columns:
+            return pd.DataFrame()
         
+        df = tick_df.copy()
+        df.set_index('timestamp', inplace=True)
+        
+        # Create OHLCV bars from ticks
+        bars = pd.DataFrame()
+        bars['open'] = df['last'].resample(f'{window_seconds}S').first()
+        bars['high'] = df['last'].resample(f'{window_seconds}S').max()
+        bars['low'] = df['last'].resample(f'{window_seconds}S').min()
+        bars['close'] = df['last'].resample(f'{window_seconds}S').last()
+        bars['volume'] = df['volume'].resample(f'{window_seconds}S').sum()
+        
+        # Calculate VWAP for each bar
+        df['pv'] = df['last'] * df['volume']
+        bars['vwap'] = (
+            df['pv'].resample(f'{window_seconds}S').sum() /
+            df['volume'].resample(f'{window_seconds}S').sum()
+        )
+        
+        bars.reset_index(inplace=True)
+        bars.dropna(inplace=True)
+        
+        return bars
+    
+    def _check_entry_confirmation_tick_level(
+        self,
+        tick_df: pd.DataFrame,
+        last_low: float,
+        confirmation_pct: float,
+        window_start: datetime,
+        window_end: datetime
+    ) -> Dict:
+        """
+        Check if price climbs enough to confirm entry using tick data.
+        
+        Args:
+            tick_df: Tick data
+            last_low: Pattern completion price
+            confirmation_pct: % climb required
+            window_start: Start of confirmation window
+            window_end: End of confirmation window
+        
+        Returns:
+            Dict with confirmation status and millisecond timing
+        """
         confirmation_target = last_low * (1 + confirmation_pct / 100)
         
-        for idx, row in future_df.iterrows():
-            if row['high'] >= confirmation_target:
+        # Filter ticks to confirmation window
+        window_ticks = tick_df[
+            (tick_df['timestamp'] >= window_start) &
+            (tick_df['timestamp'] <= window_end)
+        ]
+        
+        if window_ticks.empty:
+            return {'confirmed': False, 'reason': 'no_data'}
+        
+        # Find first tick that hits confirmation target
+        for idx, row in window_ticks.iterrows():
+            if row['last'] >= confirmation_target:
+                confirmation_time_ms = (row['timestamp'] - window_start).total_seconds() * 1000
+                
                 return {
                     'confirmed': True,
                     'entry_price': confirmation_target,
+                    'entry_timestamp': row['timestamp'],
                     'entry_time': row['timestamp'],
-                    'bars_to_entry': idx - future_df.index[0]
+                    'confirmation_time_ms': confirmation_time_ms
                 }
         
         return {'confirmed': False, 'reason': 'no_confirmation'}
     
-    def _simulate_trade_outcome(
+    def _simulate_trade_outcome_tick_level(
         self,
-        future_df: pd.DataFrame,
+        tick_df: pd.DataFrame,
         entry_price: float,
+        entry_timestamp: datetime,
         target_1_pct: float,
         target_2_pct: float,
         stop_loss_pct: float
     ) -> Dict:
         """
-        Simulate trade from entry to exit.
+        Simulate trade from entry to exit using tick data.
         
         Args:
-            future_df: Price data after entry
+            tick_df: Tick data
             entry_price: Entry price
+            entry_timestamp: Entry timestamp
             target_1_pct: First profit target %
             target_2_pct: Second profit target %
             stop_loss_pct: Stop loss %
         
         Returns:
-            Dict with trade outcome and timing
+            Dict with trade outcome and millisecond timing
         """
         target_1_price = entry_price * (1 + target_1_pct / 100)
         target_2_price = entry_price * (1 + target_2_pct / 100)
         stop_price = entry_price * (1 - stop_loss_pct / 100)
         
-        hit_target_1 = False
-        dead_zone_bars = 0
+        # Filter ticks after entry
+        future_ticks = tick_df[tick_df['timestamp'] > entry_timestamp]
         
-        for idx, row in future_df.iterrows():
-            bars_held = idx - future_df.index[0]
-            
+        if future_ticks.empty:
+            return {
+                'outcome': 'timeout',
+                'exit_price': entry_price,
+                'exit_time': entry_timestamp,
+                'pnl': 0,
+                'pnl_pct': 0,
+                'hold_time_ms': 0,
+                'exit_latency_ms': 0,
+                'settlement_lag_minutes': 0.5,
+                'exit_reason': 'no_data'
+            }
+        
+        hit_target_1 = False
+        target_1_timestamp = None
+        
+        for idx, row in future_ticks.iterrows():
             # Check stop loss
-            if row['low'] <= stop_price:
+            if row['last'] <= stop_price:
+                hold_time_ms = (row['timestamp'] - entry_timestamp).total_seconds() * 1000
+                
                 return {
                     'outcome': 'loss',
                     'exit_price': stop_price,
                     'exit_time': row['timestamp'],
                     'pnl': stop_price - entry_price,
                     'pnl_pct': -stop_loss_pct,
-                    'hold_time_minutes': bars_held,
+                    'hold_time_ms': hold_time_ms,
                     'exit_latency_ms': np.random.normal(55, 15),
                     'settlement_lag_minutes': 0.5,
                     'exit_reason': 'stop_loss',
-                    'dead_zone_bars': 0
+                    'dead_zone_ms': 0
                 }
             
             # Check target 1
-            if not hit_target_1 and row['high'] >= target_1_price:
+            if not hit_target_1 and row['last'] >= target_1_price:
                 hit_target_1 = True
-                target_1_bar = bars_held
+                target_1_timestamp = row['timestamp']
             
             # If hit target 1, look for target 2 or return to target 1
             if hit_target_1:
-                if row['high'] >= target_2_price:
+                if row['last'] >= target_2_price:
                     # Hit target 2 - exit
+                    hold_time_ms = (row['timestamp'] - entry_timestamp).total_seconds() * 1000
+                    
                     return {
                         'outcome': 'win',
                         'exit_price': target_2_price,
                         'exit_time': row['timestamp'],
                         'pnl': target_2_price - entry_price,
                         'pnl_pct': target_2_pct,
-                        'hold_time_minutes': bars_held,
+                        'hold_time_ms': hold_time_ms,
                         'exit_latency_ms': np.random.normal(50, 15),
                         'settlement_lag_minutes': 0.5,
                         'exit_reason': 'target_2',
-                        'dead_zone_bars': 0  # No dead zone on target 2
+                        'dead_zone_ms': 0
                     }
                 
-                if row['low'] <= target_1_price:
+                if row['last'] <= target_1_price:
                     # Returned to target 1 - exit with dead zone
-                    dead_zone_bars = bars_held - target_1_bar
+                    hold_time_ms = (row['timestamp'] - entry_timestamp).total_seconds() * 1000
+                    dead_zone_ms = (row['timestamp'] - target_1_timestamp).total_seconds() * 1000
+                    
                     return {
                         'outcome': 'win',
                         'exit_price': target_1_price,
                         'exit_time': row['timestamp'],
                         'pnl': target_1_price - entry_price,
                         'pnl_pct': target_1_pct,
-                        'hold_time_minutes': bars_held,
+                        'hold_time_ms': hold_time_ms,
                         'exit_latency_ms': np.random.normal(50, 15),
                         'settlement_lag_minutes': 0.5,
                         'exit_reason': 'target_1_return',
-                        'dead_zone_bars': dead_zone_bars
+                        'dead_zone_ms': dead_zone_ms
                     }
         
-        # Timed out (shouldn't happen with intraday, but safety)
+        # Timed out
+        last_tick = future_ticks.iloc[-1]
+        hold_time_ms = (last_tick['timestamp'] - entry_timestamp).total_seconds() * 1000
+        
         return {
             'outcome': 'timeout',
-            'exit_price': future_df['close'].iloc[-1],
-            'exit_time': future_df['timestamp'].iloc[-1],
-            'pnl': future_df['close'].iloc[-1] - entry_price,
-            'pnl_pct': ((future_df['close'].iloc[-1] - entry_price) / entry_price) * 100,
-            'hold_time_minutes': len(future_df),
+            'exit_price': last_tick['last'],
+            'exit_time': last_tick['timestamp'],
+            'pnl': last_tick['last'] - entry_price,
+            'pnl_pct': ((last_tick['last'] - entry_price) / entry_price) * 100,
+            'hold_time_ms': hold_time_ms,
             'exit_latency_ms': np.random.normal(50, 15),
             'settlement_lag_minutes': 0.5,
             'exit_reason': 'timeout',
-            'dead_zone_bars': 0
+            'dead_zone_ms': 0
         }
     
     def _calculate_opportunity_cost(
         self,
         entry_price: float,
-        dead_zone_minutes: int
+        dead_zone_minutes: float
     ) -> float:
         """
         Calculate opportunity cost of capital idle in dead zone.
-        
-        Args:
-            entry_price: Trade entry price
-            dead_zone_minutes: Minutes capital was idle
-        
-        Returns:
-            Opportunity cost in dollars
         """
-        # Assume 0.5% expected return per hour
         hourly_expected_return = 0.005
-        position_size = 3000  # Typical position size
-        
+        position_size = 3000
         opportunity_cost = position_size * hourly_expected_return * (dead_zone_minutes / 60)
         return opportunity_cost
 
 
-# Convenience function for batch analysis
-def detect_patterns_batch(
-    df: pd.DataFrame,
-    ticker: str,
-    analysis_date: datetime
-) -> List[Dict]:
-    """
-    Detect all patterns for a stock (convenience wrapper).
-    
-    Args:
-        df: OHLCV DataFrame
-        ticker: Stock symbol
-        analysis_date: Analysis date
-    
-    Returns:
-        List of pattern dictionaries
-    """
-    detector = PatternDetector()
-    return detector.detect_all_patterns(df, ticker, analysis_date)
-
-
 # =============================================================================
-# MAIN INTERFACE FUNCTION FOR MORNING REPORT
+# MAIN INTERFACE FUNCTION FOR MORNING REPORT (TICK DATA VERSION)
 # =============================================================================
 
 def analyze_vwap_patterns(
-    df: pd.DataFrame,
+    tick_df: pd.DataFrame,
     decline_threshold: float = 1.0,
     entry_threshold: float = 1.5,
     target_1: float = 0.75,
     target_2: float = 2.0,
     stop_loss: float = 0.5,
-    analysis_period_days: int = 20
+    analysis_period_days: int = 20,
+    aggregation_window_seconds: int = 5
 ) -> Dict:
     """
-    Analyze VWAP recovery patterns and return comprehensive statistics.
+    Analyze VWAP recovery patterns using IBKR tick data.
     
     This is the main interface function used by morning_report.py.
+    NOW SUPPORTS TRUE INTRAMINUTE (TICK-LEVEL) DATA FOR MILLISECOND PRECISION.
     
     Args:
-        df: DataFrame with OHLCV data (1-minute bars)
-        decline_threshold: Minimum decline % to detect (Step 1)
+        tick_df: DataFrame with tick data (timestamp, bid, ask, last, volume)
+        decline_threshold: Minimum decline % to detect
         entry_threshold: % climb to confirm entry
         target_1: First profit target %
         target_2: Second profit target %
         stop_loss: Stop loss threshold %
-        analysis_period_days: Number of days in analysis window (default 20)
+        analysis_period_days: Number of days in analysis window
+        aggregation_window_seconds: Window for aggregating ticks (default 5s)
     
     Returns:
-        Dictionary with:
-        - all_patterns: List of all detected patterns
-        - confirmed_entries: List of patterns with entry confirmation
-        - wins: List of winning trades
-        - losses: List of losing trades
-        - expected_value: Expected value per trade
-        - avg_win_pct: Average win percentage
-        - avg_loss_pct: Average loss percentage
-        - total_patterns_found: Total patterns detected (Priority 2 ✅)
-        - confirmed_entries_count: Number of confirmed entries (Priority 2 ✅)
-        - patterns_per_day: Average patterns per day (Priority 2 ✅)
-        - expected_daily_entries: Expected entries per day (Priority 2 ✅)
-        - signal_frequency_20d: Signal frequency over 20 days (Priority 2 ✅)
-        - signal_success_rate_20d: Success rate over 20 days (Priority 2 ✅)
+        Dictionary with comprehensive pattern analysis and Priority 2 metrics
     """
-    from datetime import datetime
-    
-    # Initialize detector with specified parameters
+    # Initialize detector with tick-level capabilities
     detector = PatternDetector(
         decline_threshold_pct=decline_threshold,
         entry_confirmation_pct=entry_threshold,
         target_1_pct=target_1,
         target_2_pct=target_2,
-        stop_loss_pct=stop_loss
+        stop_loss_pct=stop_loss,
+        aggregation_window_seconds=aggregation_window_seconds
     )
     
     # Detect all patterns
     analysis_date = datetime.now()
-    ticker = 'UNKNOWN'  # Will be set by caller if needed
+    ticker = 'UNKNOWN'
     
-    all_patterns = detector.detect_all_patterns(df, ticker, analysis_date)
+    all_patterns = detector.detect_all_patterns(tick_df, ticker, analysis_date)
     
     # Separate patterns by outcome
     confirmed_entries = [p for p in all_patterns if p.get('entry_confirmed', False)]
@@ -520,8 +591,8 @@ def analyze_vwap_patterns(
     total_losses = len(losses)
     
     # Win/loss percentages
-    avg_win_pct = np.mean([p.get('profit_pct', 0) for p in wins]) if wins else 0
-    avg_loss_pct = abs(np.mean([p.get('profit_pct', 0) for p in losses])) if losses else stop_loss
+    avg_win_pct = np.mean([p.get('pnl_pct', 0) for p in wins]) if wins else 0
+    avg_loss_pct = abs(np.mean([p.get('pnl_pct', 0) for p in losses])) if losses else stop_loss
     
     # Expected value calculation
     win_rate = total_wins / total_confirmed if total_confirmed > 0 else 0
@@ -534,8 +605,8 @@ def analyze_vwap_patterns(
     expected_daily_entries = patterns_per_day * confirmation_rate
     
     # Signal frequency and success rate (20-day normalized)
-    signal_frequency_20d = patterns_per_day  # Same as patterns_per_day
-    signal_success_rate_20d = win_rate  # Same as win_rate
+    signal_frequency_20d = patterns_per_day
+    signal_success_rate_20d = win_rate
     
     # Return comprehensive analysis
     return {
@@ -550,7 +621,7 @@ def analyze_vwap_patterns(
         'avg_win_pct': avg_win_pct,
         'avg_loss_pct': avg_loss_pct,
         
-        # Priority 2 Metrics (NEW)
+        # Priority 2 Metrics
         'total_patterns_found': total_patterns,
         'confirmed_entries_count': total_confirmed,
         'patterns_per_day': patterns_per_day,
@@ -562,5 +633,9 @@ def analyze_vwap_patterns(
         'win_rate': win_rate,
         'confirmation_rate': confirmation_rate,
         'total_wins': total_wins,
-        'total_losses': total_losses
+        'total_losses': total_losses,
+        
+        # Intraminute metadata
+        'data_source': 'ibkr_tick_data',
+        'aggregation_window_seconds': aggregation_window_seconds
     }
