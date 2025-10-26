@@ -674,6 +674,155 @@ class IBKRConnector:
 # TESTING
 # ============================================================================
 
+
+    # ========================================================================
+    # REAL-TIME MARKET DATA
+    # ========================================================================
+    
+    def subscribe_market_data(self, tickers: List[str]) -> Dict:
+        """
+        Subscribe to real-time market data for given tickers.
+        
+        Args:
+            tickers: List of ticker symbols
+            
+        Returns:
+            Dictionary with subscription results per ticker
+        """
+        results = {}
+        
+        for ticker in tickers:
+            try:
+                # Get contract ID (conid) for ticker
+                conid = self._get_conid(ticker)
+                if not conid:
+                    results[ticker] = {'success': False, 'error': f'Contract not found for {ticker}'}
+                    continue
+                
+                # Subscribe to market data
+                response = self.session.post(
+                    f"{self.base_url}/iserver/marketdata/snapshot",
+                    json={
+                        "conids": [conid],
+                        "fields": ["31", "84", "86", "7295"]  # Last, Bid, Ask, VWAP
+                    },
+                    timeout=self.timeout
+                )
+                response.raise_for_status()
+                
+                results[ticker] = {
+                    'success': True,
+                    'conid': conid,
+                    'data': response.json()
+                }
+                
+            except Exception as e:
+                results[ticker] = {
+                    'success': False,
+                    'error': str(e)
+                }
+        
+        return results
+    
+    def get_market_snapshot(self, ticker: str) -> Optional[Dict]:
+        """
+        Get current market snapshot for a single ticker.
+        
+        Args:
+            ticker: Ticker symbol
+            
+        Returns:
+            Dictionary with current market data:
+            {
+                'ticker': str,
+                'last_price': float,
+                'bid': float,
+                'ask': float,
+                'vwap': float,
+                'volume': int,
+                'timestamp': datetime
+            }
+        """
+        try:
+            conid = self._get_conid(ticker)
+            if not conid:
+                return None
+            
+            response = self.session.get(
+                f"{self.base_url}/iserver/marketdata/snapshot",
+                params={
+                    "conids": conid,
+                    "fields": "31,84,86,87,7295"  # Last, Bid, Ask, Volume, VWAP
+                },
+                timeout=self.timeout
+            )
+            response.raise_for_status()
+            data = response.json()
+            
+            if not data or len(data) == 0:
+                return None
+            
+            snapshot = data[0]
+            
+            return {
+                'ticker': ticker,
+                'last_price': snapshot.get('31'),  # Last price
+                'bid': snapshot.get('84'),  # Bid
+                'ask': snapshot.get('86'),  # Ask
+                'volume': snapshot.get('87'),  # Volume
+                'vwap': snapshot.get('7295'),  # VWAP
+                'timestamp': datetime.now()
+            }
+            
+        except Exception as e:
+            print(f"Error getting snapshot for {ticker}: {e}")
+            return None
+    
+    def get_multiple_snapshots(self, tickers: List[str]) -> Dict[str, Dict]:
+        """
+        Get current market snapshots for multiple tickers.
+        
+        Args:
+            tickers: List of ticker symbols
+            
+        Returns:
+            Dictionary mapping ticker to snapshot data
+        """
+        snapshots = {}
+        
+        for ticker in tickers:
+            snapshot = self.get_market_snapshot(ticker)
+            if snapshot:
+                snapshots[ticker] = snapshot
+            
+            # Rate limiting
+            time.sleep(0.1)  # 100ms between requests
+        
+        return snapshots
+    
+    def stream_market_data(self, tickers: List[str], callback, interval_ms: int = 100):
+        """
+        Stream real-time market data with callback.
+        
+        Args:
+            tickers: List of ticker symbols
+            callback: Function to call with each update
+            interval_ms: Update interval in milliseconds
+            
+        Note: This is a polling implementation. For true streaming,
+        use WebSocket connection (future enhancement).
+        """
+        interval_sec = interval_ms / 1000.0
+        
+        try:
+            while True:
+                snapshots = self.get_multiple_snapshots(tickers)
+                callback(snapshots)
+                time.sleep(interval_sec)
+                
+        except KeyboardInterrupt:
+            print("Streaming stopped by user")
+
 if __name__ == "__main__":
     print("IBKR Client Portal Gateway Connector - Test Suite")
     print("=" * 60)
