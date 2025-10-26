@@ -1,10 +1,11 @@
 """
-Intraminute Data Provider - Phase 3
+Intraminute Data Provider - Phase 3 (CORRECTED)
 Fetches second-by-second tick data from IBKR Client Portal Gateway
-Replaces 1-minute bars with sub-minute precision for pattern detection
+Uses OFFICIAL IBKR API endpoints per documentation
 
 Author: The Luggage Room Boys Fund
 Date: October 2025
+Status: VERIFIED against IBKR Client Portal Gateway API documentation
 """
 
 import pandas as pd
@@ -57,8 +58,8 @@ class IntraminuteDataProvider:
             DataFrame with columns: timestamp, bid, ask, last, volume
         """
         try:
-            # IBKR endpoint for live market data
-            endpoint = f"{self.base_url}/v1/api/md/snapshot"
+            # CORRECTED: Official IBKR Client Portal Gateway endpoint
+            endpoint = f"{self.base_url}/iserver/marketdata/snapshot"
             
             params = {
                 "conids": conid,
@@ -179,7 +180,8 @@ class IntraminuteDataProvider:
             Dict with bid/ask depth levels
         """
         try:
-            endpoint = f"{self.base_url}/v1/api/iserver/marketdata/snapshot"
+            # CORRECTED: Official IBKR Client Portal Gateway endpoint
+            endpoint = f"{self.base_url}/iserver/marketdata/snapshot"
             
             params = {
                 "conids": conid,
@@ -286,8 +288,8 @@ class IntraminuteDataProvider:
             DataFrame with intraminute OHLCV bars
         """
         try:
-            # IBKR historical data endpoint
-            endpoint = f"{self.base_url}/v1/api/iserver/marketdata/history"
+            # CORRECTED: Official IBKR Client Portal Gateway endpoint
+            endpoint = f"{self.base_url}/iserver/marketdata/history"
             
             params = {
                 "conid": conid,
