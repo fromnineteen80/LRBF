@@ -11,6 +11,7 @@ from typing import Dict, List, Tuple
 from datetime import datetime, date
 import pandas as pd
 import numpy as np
+import json
 
 # Import all backend modules
 from backend.models.database import TradingDatabase
@@ -917,7 +918,9 @@ class EnhancedMorningReport:
         forecast: Dict,
         risk_metrics: Dict,
         dz_metrics: Dict,
-        quant_metrics: Dict
+        quant_metrics: Dict,
+        default_forecast: Dict = None,
+        enhanced_forecast: Dict = None
     ) -> int:
         """Store complete report in database"""
         
@@ -931,7 +934,10 @@ class EnhancedMorningReport:
             'expected_trades_high': forecast['ranges']['trades']['high'],
             'expected_pl_low': forecast['ranges']['profit']['low'],
             'expected_pl_high': forecast['ranges']['profit']['high'],
-            'stock_analysis': self._build_stock_analysis_json(selection, dz_metrics, quant_metrics)
+            'stock_analysis': self._build_stock_analysis_json(selection, dz_metrics, quant_metrics),
+            'default_forecast_json': json.dumps(default_forecast) if default_forecast else None,
+            'enhanced_forecast_json': json.dumps(enhanced_forecast) if enhanced_forecast else None,
+            'active_preset': 'default'  # Can be changed to 'enhanced' later
         }
         
         report_id = self.db.insert_morning_forecast(forecast_data)
