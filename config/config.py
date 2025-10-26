@@ -232,3 +232,42 @@ def print_config():
 
 if __name__ == '__main__':
     print_config()
+
+
+class IBKRConfig:
+    """IBKR-specific configuration."""
+    
+    # === Connection ===
+    GATEWAY_URL = "https://localhost:8000"  # IBKR Client Portal Gateway
+    ACCOUNT_ID = None  # Set via .env (IBKR_ACCOUNT_ID)
+    PAPER_TRADING = True  # Paper trading mode
+    TIMEOUT = 30  # Request timeout (seconds)
+    
+    # === Real-Time Data ===
+    REALTIME_UPDATE_INTERVAL_MS = 100  # 100ms updates (intraminute)
+    WEBSOCKET_ENABLED = False  # Toggle WebSocket streaming (future)
+    MARKET_DATA_FIELDS = ['31', '84', '86']  # Last, Bid, Ask
+    
+    # === Historical Data ===
+    HISTORICAL_BARS_PERIOD = "20d"  # 20 days lookback
+    HISTORICAL_BARS_BAR_SIZE = "1min"  # 1-minute bars
+    HISTORICAL_BARS_WHAT_TO_SHOW = "TRADES"  # Price data type
+    
+    # === Rate Limits ===
+    API_RATE_LIMIT_DELAY = 0.5  # Seconds between API calls
+    MAX_CONCURRENT_SYMBOLS = 20  # Max symbols for market data
+    
+    @classmethod
+    def load_from_env(cls):
+        """Load IBKR configuration from environment variables."""
+        import os
+        from dotenv import load_dotenv
+        
+        load_dotenv()
+        
+        cls.ACCOUNT_ID = os.getenv('IBKR_ACCOUNT_ID')
+        cls.GATEWAY_URL = os.getenv('IBKR_GATEWAY_URL', cls.GATEWAY_URL)
+        cls.PAPER_TRADING = os.getenv('IBKR_PAPER_TRADING', 'True').lower() == 'true'
+        
+        if not cls.ACCOUNT_ID:
+            raise ValueError("IBKR_ACCOUNT_ID not found in .env file")
