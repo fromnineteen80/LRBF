@@ -7,6 +7,10 @@ python-dotenv==1.0.0
 bcrypt>=4.1.0
 pandas-market-calendars>=4.3.0
 
+# IBKR API dependencies
+urllib3>=2.0.0
+websocket-client>=1.6.0
+
 # Email & SMS services (optional - configure when ready for production)
 # sendgrid>=6.11.0
 # twilio>=8.10.0
