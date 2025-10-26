@@ -20,8 +20,10 @@ from backend.core.stock_selector import select_balanced_portfolio
 from backend.core.forecast_generator import generate_daily_forecast
 from backend.core.metrics_calculator import calculate_risk_metrics
 from backend.core.quant_metrics import QuantMetricsCalculator, get_spy_returns
+from backend.core.filter_engine import FilterEngine
 from backend.data.stock_universe import get_stock_universe
 from backend.data.data_provider import fetch_market_data
+from config.config import TradingConfig
 
 
 class EnhancedMorningReport:
@@ -148,34 +150,43 @@ class EnhancedMorningReport:
             scored_stocks = self._integrate_dead_zone_scores(scored_stocks, dz_metrics)
             print(f"   ✓ Dead zone analysis complete\n")
             
-            # Step 6: Select stocks (primary + backup)
-            print("6. Selecting stock portfolio...")
-            selection = self._select_portfolio(scored_stocks)
-            print(f"   ✓ Selected {len(selection['primary'])} primary + {len(selection['backup'])} backup stocks\n")
+            # Step 6: Generate ALL forecasts (default + all presets)
+            print("6. Generating forecasts for ALL scenarios...")
+            all_forecasts = self._generate_all_scenario_forecasts(
+                scored_stocks, 
+                market_data, 
+                pattern_results
+            )
+            print(f"   ✓ Generated {len(all_forecasts)} scenario forecasts\n")
             
-            # Step 7: Generate forecast
-            print("7. Generating performance forecast...")
-            forecast = self._generate_forecast(selection, market_data)
-            print(f"   ✓ Forecast complete\n")
+            # Use default for primary display
+            default_scenario = all_forecasts['default']
+            selection = default_scenario['selection']
+            forecast = default_scenario['forecast']
             
-            # Step 8: Calculate risk metrics
-            print("8. Calculating risk metrics...")
+            # Step 7: Calculate risk metrics (using default selection)
+            print("7. Calculating risk metrics...")
             risk_metrics = self._calculate_risk_metrics(selection)
             print(f"   ✓ Risk metrics calculated\n")
             
-            # Step 9: Calculate professional quant metrics (Phase 2)
-            print("9. Calculating professional quant metrics...")
+            # Step 8: Calculate professional quant metrics (Phase 2)
+            print("8. Calculating professional quant metrics...")
             quant_metrics = self._calculate_quant_metrics(selection)
             print(f"   ✓ Quant metrics calculated\n")
             
-            # Step 10: Store in database
-            print("10. Storing report in database...")
-            report_id = self._store_report(selection, forecast, risk_metrics, dz_metrics, quant_metrics)
+            # Step 9: Store in database (with ALL forecasts)
+            print("9. Storing report in database...")
+            report_id = self._store_report(
+                selection, forecast, risk_metrics, dz_metrics, quant_metrics,
+                default_forecast=all_forecasts['default']['forecast'],
+                enhanced_forecasts=all_forecasts
+            )
             print(f"   ✓ Report stored (ID: {report_id})\n")
             
-            # Step 11: Build final report
+            # Step 10: Build final report
             report = self._build_final_report(
-                selection, forecast, risk_metrics, dz_metrics, quant_metrics, market_data
+                selection, forecast, risk_metrics, dz_metrics, quant_metrics, market_data,
+                all_forecasts=all_forecasts
             )
             
             print(f"{'='*80}")
@@ -912,6 +923,131 @@ class EnhancedMorningReport:
         
         return metrics
     
+    def _generate_all_scenario_forecasts(
+        self,
+        scored_stocks: pd.DataFrame,
+        market_data: Dict[str, pd.DataFrame],
+        pattern_results: Dict
+    ) -> Dict:
+        """
+        Generate forecasts for all scenarios (default + all presets).
+        
+        Args:
+            scored_stocks: Quality-scored stocks
+            market_data: Market data for all stocks
+            pattern_results: Pattern analysis results
+            
+        Returns:
+            Dict with all scenario forecasts:
+            {
+                'default': {selection, forecast},
+                'conservative': {selection, forecast},
+                'aggressive': {selection, forecast},
+                'choppy_market': {selection, forecast},
+                'trending_market': {selection, forecast},
+                'ab_test': {selection, forecast}
+            }
+        """
+        all_forecasts = {}
+        presets = ['default', 'conservative', 'aggressive', 'choppy_market', 'trending_market', 'ab_test']
+        
+        for preset_name in presets:
+            print(f"   → Generating {preset_name} forecast...")
+            
+            # Load preset configuration
+            if preset_name == 'default':
+                # Default: no filters
+                filtered_stocks = scored_stocks.copy()
+            else:
+                # Apply preset filters
+                filtered_stocks = self._apply_preset_filters(
+                    scored_stocks,
+                    pattern_results,
+                    market_data,
+                    preset_name
+                )
+            
+            # Select portfolio for this scenario
+            selection = self._select_portfolio(filtered_stocks)
+            
+            # Generate forecast for this scenario
+            forecast = self._generate_forecast(selection, market_data)
+            
+            # Store results
+            all_forecasts[preset_name] = {
+                'selection': selection,
+                'forecast': forecast,
+                'stocks_analyzed': len(filtered_stocks),
+                'preset': preset_name
+            }
+        
+        return all_forecasts
+    
+    def _apply_preset_filters(
+        self,
+        scored_stocks: pd.DataFrame,
+        pattern_results: Dict,
+        market_data: Dict[str, pd.DataFrame],
+        preset_name: str
+    ) -> pd.DataFrame:
+        """
+        Apply preset filters to stock selection.
+        
+        Args:
+            scored_stocks: Quality-scored stocks
+            pattern_results: Pattern analysis results  
+            market_data: Market data for all stocks
+            preset_name: Name of preset to apply
+            
+        Returns:
+            Filtered DataFrame of stocks
+        """
+        # Load preset configuration
+        preset_config = TradingConfig.PRESETS.get(preset_name, {})
+        
+        # Create temporary config with preset applied
+        temp_config = self.config.copy()
+        temp_config.update(preset_config)
+        
+        # Initialize filter engine with preset config
+        filter_engine = FilterEngine(temp_config)
+        
+        # Filter stocks
+        filtered_stocks = []
+        for _, stock in scored_stocks.iterrows():
+            ticker = stock['ticker']
+            
+            # Get pattern data
+            patterns = pattern_results.get(ticker, {}).get('patterns', [])
+            if not patterns:
+                continue
+            
+            # Get market data
+            ticker_data = market_data.get(ticker)
+            if ticker_data is None or ticker_data.empty:
+                continue
+            
+            # Apply filters to each pattern
+            passed_count = 0
+            for pattern in patterns:
+                if filter_engine.apply_filters(
+                    ticker=ticker,
+                    pattern=pattern,
+                    market_data=ticker_data,
+                    current_price=ticker_data['close'].iloc[-1] if not ticker_data.empty else 0
+                ):
+                    passed_count += 1
+            
+            # If any patterns passed filters, include stock
+            if passed_count > 0:
+                filtered_stocks.append(stock)
+        
+        if not filtered_stocks:
+            # If no stocks pass filters, return top 20 by composite score
+            return scored_stocks.head(20)
+        
+        return pd.DataFrame(filtered_stocks)
+    
     def _store_report(
         self, 
         selection: Dict, 
@@ -920,9 +1056,20 @@ class EnhancedMorningReport:
         dz_metrics: Dict,
         quant_metrics: Dict,
         default_forecast: Dict = None,
-        enhanced_forecast: Dict = None
+        enhanced_forecasts: Dict = None
     ) -> int:
-        """Store complete report in database"""
+        """Store complete report in database with all scenario forecasts"""
+        
+        # Prepare enhanced forecasts JSON (excluding default since it's stored separately)
+        enhanced_json = {}
+        if enhanced_forecasts:
+            for preset_name, scenario_data in enhanced_forecasts.items():
+                if preset_name != 'default':
+                    enhanced_json[preset_name] = {
+                        'forecast': scenario_data['forecast'],
+                        'selected_stocks': scenario_data['selection']['primary']['ticker'].tolist(),
+                        'stocks_analyzed': scenario_data['stocks_analyzed']
+                    }
         
         # Prepare data for database
         forecast_data = {
@@ -936,8 +1083,8 @@ class EnhancedMorningReport:
             'expected_pl_high': forecast['ranges']['profit']['high'],
             'stock_analysis': self._build_stock_analysis_json(selection, dz_metrics, quant_metrics),
             'default_forecast_json': json.dumps(default_forecast) if default_forecast else None,
-            'enhanced_forecast_json': json.dumps(enhanced_forecast) if enhanced_forecast else None,
-            'active_preset': 'default'  # Can be changed to 'enhanced' later
+            'enhanced_forecast_json': json.dumps(enhanced_json) if enhanced_json else None,
+            'active_preset': 'default'  # Can be changed via API
         }
         
         report_id = self.db.insert_morning_forecast(forecast_data)
@@ -991,20 +1138,21 @@ class EnhancedMorningReport:
         risk_metrics: Dict,
         dz_metrics: Dict,
         quant_metrics: Dict,
-        market_data: Dict[str, pd.DataFrame]
+        market_data: Dict[str, pd.DataFrame],
+        all_forecasts: Dict = None
     ) -> Dict:
         """Build final report structure for API response"""
         
-        return {
+        report = {
             'success': True,
             'date': self.report_date.isoformat(),
             'generated_at': datetime.now().isoformat(),
             
-            # Stock selection
+            # Stock selection (default)
             'selected_stocks': self._format_stock_list(selection['primary'], dz_metrics),
             'backup_stocks': self._format_stock_list(selection['backup'], dz_metrics),
             
-            # Forecast
+            # Forecast (default)
             'forecast': {
                 'expected_trades_low': forecast['ranges']['trades']['low'],
                 'expected_trades_high': forecast['ranges']['trades']['high'],
@@ -1034,6 +1182,18 @@ class EnhancedMorningReport:
                 'config': self.config
             }
         }
+        
+        # Add all scenario forecasts if available
+        if all_forecasts:
+            report['all_scenarios'] = {}
+            for preset_name, scenario_data in all_forecasts.items():
+                report['all_scenarios'][preset_name] = {
+                    'selected_stocks': scenario_data['selection']['primary']['ticker'].tolist(),
+                    'forecast': scenario_data['forecast'],
+                    'stocks_analyzed': scenario_data['stocks_analyzed']
+                }
+        
+        return report
     
     def _format_stock_list(
         self, 
