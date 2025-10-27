@@ -314,7 +314,6 @@ class EnhancedMorningReport:
         - vwap_60, vwap_5min (multi-timeframe VWAP)
         - recent_high, recent_low (support/resistance)
         """
-        import yfinance as yf
         
         # ========================================
         # EXISTING METRICS (Keep as-is)
@@ -406,20 +405,10 @@ class EnhancedMorningReport:
         # 13. Intraday Range Consistency (5-day)
         df['intraday_range_consistency_5d'] = df['intraday_range_pct'].rolling(5).std()
         
-        # 14. Beta vs SPY (requires SPY data)
-        try:
-            spy = yf.Ticker('SPY')
-            spy_hist = spy.history(period='20d', interval='1m')
-            if not spy_hist.empty and len(spy_hist) == len(df):
-                spy_returns = spy_hist['Close'].pct_change()
-                # Calculate rolling beta (covariance / variance)
-                cov_matrix = df['returns'].rolling(300).cov(spy_returns)  # 300 bars ≈ 5 hours
-                spy_var = spy_returns.rolling(300).var()
-                df['beta_vs_spy'] = cov_matrix / spy_var.replace(0, np.nan)
-            else:
-                df['beta_vs_spy'] = 1.0  # Default to market beta
-        except Exception:
-            df['beta_vs_spy'] = 1.0  # Fallback if SPY fetch fails
+        # 14. Beta vs SPY (skip for now - IBKR data can provide if needed)
+        # For now, default to market-neutral beta
+        df['beta_vs_spy'] = 1.0
+        
         
         # 15-16. Multi-Timeframe VWAP (60-minute, 5-minute)
         # 60-minute VWAP
