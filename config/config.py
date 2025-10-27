@@ -85,6 +85,24 @@ class TradingConfig:
     
     # === Preset Configurations ===
     PRESETS = {
+        'default': {
+            # Strategy 1 baseline - NO FILTERS
+            # Pure 3-step geometric pattern
+            'ALL_ENHANCEMENTS_ON': False,
+            'QUALITY_FILTERS_ON': False,
+            'TIMING_FILTERS_ON': False,
+            'CONFLUENCE_FILTERS_ON': False
+        },
+        'vwap_breakout': {
+            # Strategy 2 - VWAP crossover required
+            # Different pattern detection entirely
+            'STRATEGY_TYPE': 'vwap_breakout',
+            'VWAP_CROSSOVER_REQUIRED': True,
+            'VWAP_PROXIMITY_MAX_PCT': 1.0,  # Must be within 1% of VWAP
+            'VOLUME_CONFIRMATION_ENABLED': True,
+            'VOLUME_CONFIRMATION_MULTIPLIER': 1.5,
+            'STABILIZATION_REQUIRED': True  # Must stabilize near VWAP first
+        },
         'conservative': {
             'ALL_ENHANCEMENTS_ON': True,
             'QUALITY_FILTERS_ON': True,
