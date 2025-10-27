@@ -211,18 +211,22 @@ def has_fda_decision(ticker: str, date: datetime) -> bool:
     """
     Check if FDA decision expected today for biotech/pharma stock.
     
+    ⚠️  NOT AVAILABLE FROM IBKR - ALWAYS RETURNS FALSE
+    
+    IBKR does not provide FDA decision calendars or regulatory approval timelines.
+    This would require external APIs like:
+    - FDA.gov calendar
+    - BioPharma Catalyst
+    - ClinicalTrials.gov
+    
     Args:
         ticker: Stock symbol
         date: Date to check
     
     Returns:
-        True if FDA decision expected today
-    
-    TODO: Integrate with:
-    - FDA calendar
-    - BioPharma Catalyst calendar
+        False (always - no data source available)
     """
-    logger.warning("has_fda_decision() is stubbed - no real API integration")
+    # NOT IMPLEMENTED - IBKR does not provide FDA decision data
     return False
 
 
