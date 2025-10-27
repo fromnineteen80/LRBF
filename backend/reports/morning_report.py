@@ -21,7 +21,7 @@ from backend.core.dual_forecast_generator import DualForecastGenerator
 from backend.core.metrics_calculator import calculate_risk_metrics
 from backend.core.quant_metrics import QuantMetricsCalculator, get_spy_returns
 from backend.core.filter_engine import FilterEngine
-from backend.data.stock_universe import get_stock_universe
+# from backend.data.stock_universe import get_stock_universe  # DEPRECATED - using IBKR scanner
 from backend.data.ibkr_data_provider import fetch_market_data
 from config.config import TradingConfig
 
@@ -208,8 +208,28 @@ class EnhancedMorningReport:
             self.db.close()
     
     def _get_stock_universe(self) -> List[str]:
-        """Get curated stock universe"""
-        return get_stock_universe()
+        """Get top 500 stocks from IBKR scanner (dynamic, not static)"""
+        from backend.data.ibkr_data_provider import get_data_provider
+        
+        try:
+            # Get IBKR data provider
+            provider = get_data_provider()
+            
+            # Scan for top 500 stocks by volume
+            stocks = provider.scan_top_stocks(
+                limit=500,
+                min_volume=5_000_000,
+                min_price=5.0
+            )
+            
+            print(f"   ✓ Scanned {len(stocks)} liquid stocks from IBKR")
+            return stocks
+            
+        except Exception as e:
+            print(f"   ⚠️  IBKR scanner failed: {e}")
+            print(f"   ⚠️  Falling back to static universe")
+            from backend.data.stock_universe import get_stock_universe
+            return get_stock_universe()
     
     def _fetch_market_data(self, tickers: List[str]) -> Dict[str, pd.DataFrame]:
         """
