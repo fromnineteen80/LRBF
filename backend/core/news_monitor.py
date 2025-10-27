@@ -260,6 +260,60 @@ class NewsMonitor:
         self.interventions = []
 
 
+
+    def screen_for_news_events(self, tickers: List[str], date: datetime = None) -> Dict:
+        """
+        Batch screening for news/events across all stocks in universe.
+        
+        Called by morning report at 5:45 AM to filter stocks BEFORE analysis.
+        
+        Args:
+            tickers: List of stock symbols to screen
+            date: Target date (default: today)
+        
+        Returns:
+            {
+                'excluded_tickers': ['AAPL', 'TSLA', ...],
+                'cautioned_tickers': ['MSFT', 'GOOGL', ...],
+                'ticker_events': {
+                    'AAPL': {
+                        'tradeable': False,
+                        'risk_level': 'EXTREME',
+                        'reason': 'Earnings announcement TODAY'
+                    },
+                    'MSFT': {
+                        'tradeable': True,
+                        'risk_level': 'ELEVATED',
+                        'reason': 'Analyst upgrade (last 24h)'
+                    },
+                    ...
+                }
+            }
+        """
+        if date is None:
+            date = datetime.now()
+        
+        excluded_tickers = []
+        cautioned_tickers = []
+        ticker_events = {}
+        
+        for ticker in tickers:
+            # Call standalone screening function
+            result = screen_for_news_events(ticker, date)
+            ticker_events[ticker] = result
+            
+            # Categorize based on risk level
+            if not result['tradeable'] or result['risk_level'] == 'EXTREME':
+                excluded_tickers.append(ticker)
+            elif result['risk_level'] == 'ELEVATED':
+                cautioned_tickers.append(ticker)
+        
+        return {
+            'excluded_tickers': excluded_tickers,
+            'cautioned_tickers': cautioned_tickers,
+            'ticker_events': ticker_events
+        }
+
 def generate_morning_screening_report(excluded_stocks: List[Dict]) -> str:
     """
     Generate human-readable summary of pre-market screening.
