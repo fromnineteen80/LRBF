@@ -1,10 +1,27 @@
 """
 News & Event Monitoring System
 
+PHILOSOPHY:
+- Fresh threats = Manual exclusion (TODAY or last 24 hours)
+- Old threats = Already in the data (5-20 days ago)
+- Result = Maximum opportunities with minimum risk
+
 3-Layer Defense:
-1. Pre-market screening (morning report) - Exclude high-risk events
+1. Pre-market screening (morning report) - Exclude stocks with events TODAY or last 24h
 2. Real-time monitoring (during trading) - Exit on breaking news
 3. Post-trade analysis (EOD report) - Track intervention effectiveness
+
+WHY WE DON'T CHECK HISTORICAL EVENTS (5-20 days ago):
+- If AAPL had earnings 10 days ago, that bad day is already in the 20-day metrics
+- Win rate naturally drops from 82% to 78% (earnings day pulled it down)
+- Stock ranks lower automatically (#8 instead of #5)
+- No manual exclusion needed - the data speaks for itself
+- Otherwise we'd exclude 200+ stocks unnecessarily
+
+WHAT WE DO CHECK:
+- Events TODAY (earnings, FDA, mergers) → Exclude completely
+- Events last 24 hours (analyst changes, breaking news) → Trade with caution
+- Real-time during trading (halts, volume spikes, price gaps) → Emergency exit
 """
 
 from typing import Dict, List
@@ -29,8 +46,15 @@ def screen_for_news_events(ticker: str, date: datetime) -> Dict:
     """
     Pre-market screening for news/events that invalidate patterns.
     
+    CRITICAL: Only screens for events happening TODAY or in last 24 hours.
+    Does NOT screen for events 5-20 days ago - those are captured in historical metrics.
+    
+    Logic:
+    - Events TODAY (earnings, FDA) → Exclude completely
+    - Events in last 24 hours (analyst changes, breaking news) → Trade with caution
+    - Events 2+ days ago → Ignore, historical analysis captures them naturally
+    
     Called by morning report BEFORE analyzing stocks.
-    Filters out stocks with extreme risk events.
     
     Args:
         ticker: Stock symbol
@@ -53,23 +77,24 @@ def screen_for_news_events(ticker: str, date: datetime) -> Dict:
     
     # ═══════════════════════════════════════════════════════════════
     # TIER 1: EXTREME RISK (Auto-exclude from trading)
+    # Only checks for events happening TODAY - not 5-20 days ago
     # ═══════════════════════════════════════════════════════════════
     
-    # Earnings announcement today
+    # Earnings announcement TODAY (not 5 days ago, not next week - TODAY only)
     if has_earnings_today(ticker, date):
         return {
             'tradeable': False,
             'risk_level': 'EXTREME',
-            'reason': 'Earnings announcement today',
+            'reason': 'Earnings announcement TODAY',
             'adjustments': None
         }
     
-    # FDA decision expected today
+    # FDA decision expected TODAY (not next month - TODAY only)
     if has_fda_decision(ticker, date):
         return {
             'tradeable': False,
             'risk_level': 'EXTREME',
-            'reason': 'FDA decision expected today',
+            'reason': 'FDA decision expected TODAY',
             'adjustments': None
         }
     
@@ -77,19 +102,26 @@ def screen_for_news_events(ticker: str, date: datetime) -> Dict:
     # TIER 2: ELEVATED RISK (Tradeable but with adjustments)
     # ═══════════════════════════════════════════════════════════════
     
-    # Major economic events today
+    # Major economic events TODAY (FOMC, CPI, NFP, etc.)
     econ_events = get_economic_calendar(date)
     if econ_events:
         risk_level = 'ELEVATED'
-        issues.append(f"Economic events: {', '.join(econ_events)}")
+        issues.append(f"Economic events TODAY: {', '.join(econ_events)}")
         adjustments['dead_zone_multiplier'] = 0.5   # Shorter timeouts
         adjustments['position_size_multiplier'] = 0.5  # Smaller positions
     
-    # Recent analyst changes (last 24 hours)
+    # Analyst changes in LAST 24 HOURS (upgrades, downgrades, target changes)
     analyst_changes = get_analyst_changes(ticker, hours=24)
     if analyst_changes:
         risk_level = 'ELEVATED'
-        issues.append(f"Analyst action: {analyst_changes['summary']}")
+        issues.append(f"Analyst action (last 24h): {analyst_changes['summary']}")
+        adjustments['dead_zone_multiplier'] = 0.7   # Slightly shorter timeouts
+    
+    # Breaking news in LAST 24 HOURS (major headlines, sentiment shifts)
+    breaking_news = get_breaking_news(ticker, hours=24)
+    if breaking_news:
+        risk_level = 'ELEVATED'
+        issues.append(f"Breaking news (last 24h): {breaking_news['summary']}")
         adjustments['dead_zone_multiplier'] = 0.7   # Slightly shorter timeouts
     
     # ═══════════════════════════════════════════════════════════════

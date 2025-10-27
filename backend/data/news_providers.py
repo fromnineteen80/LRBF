@@ -89,13 +89,14 @@ def get_economic_calendar(date: datetime) -> List[str]:
     return []
 
 
-def get_breaking_news(ticker: str, minutes: int = 5) -> Optional[Dict]:
+def get_breaking_news(ticker: str, minutes: int = None, hours: int = None) -> Optional[Dict]:
     """
-    Get breaking news for a specific stock within last X minutes.
+    Get breaking news for a specific stock within last X minutes or hours.
     
     Args:
         ticker: Stock symbol
-        minutes: Lookback period (default 5 minutes)
+        minutes: Lookback period in minutes (default 5 minutes if neither specified)
+        hours: Lookback period in hours (converted to minutes internally)
     
     Returns:
         {
@@ -103,7 +104,8 @@ def get_breaking_news(ticker: str, minutes: int = 5) -> Optional[Dict]:
             'source': 'Reuters',
             'timestamp': datetime,
             'severity': 'CRITICAL' | 'HIGH' | 'MEDIUM',
-            'sentiment': 'POSITIVE' | 'NEGATIVE' | 'NEUTRAL'
+            'sentiment': 'POSITIVE' | 'NEGATIVE' | 'NEUTRAL',
+            'summary': 'Brief summary for logging'
         }
         or None if no breaking news
     
@@ -113,7 +115,15 @@ def get_breaking_news(ticker: str, minutes: int = 5) -> Optional[Dict]:
     - Alpha Vantage News Sentiment
     - Twitter/X API (for rapid news detection)
     """
-    logger.warning("get_breaking_news() is stubbed - no real API integration")
+    # Convert hours to minutes if provided
+    if hours is not None:
+        lookback_minutes = hours * 60
+    elif minutes is not None:
+        lookback_minutes = minutes
+    else:
+        lookback_minutes = 5  # Default 5 minutes
+    
+    logger.warning(f"get_breaking_news() is stubbed - checking last {lookback_minutes} minutes")
     
     # STUB: Return None
     return None
