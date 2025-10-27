@@ -15,6 +15,7 @@ Date: October 2025
 import pandas as pd
 import numpy as np
 from typing import List, Dict, Optional, Tuple
+from backend.core.time_profile_analyzer import get_time_window
 from datetime import datetime, timedelta
 import uuid
 from backend.core.filter_engine import FilterEngine
@@ -176,6 +177,7 @@ class PatternDetector:
                     'entry_confirmed': False,
                     'outcome': 'no_entry',
                     'failure_reason': entry_result.get('reason', 'no_confirmation')
+                    'time_window': get_time_window(pattern_complete_timestamp),
                 }
                 patterns.append(pattern)
                 continue
@@ -213,6 +215,7 @@ class PatternDetector:
                         'outcome': 'filtered_out',
                         'failure_reason': f"Blocked by filter: {filter_reason}"
                     }
+                        'time_window': get_time_window(pattern_complete_timestamp),
                     patterns.append(pattern)
                     continue
             
@@ -299,6 +302,9 @@ class PatternDetector:
                 # Intraminute metadata
                 'data_source': 'ibkr_tick_data',
                 'aggregation_window_seconds': self.aggregation_window
+                
+                # Time-of-day classification (NEW - for adaptive dead zones)
+                'time_window': get_time_window(pattern_complete_timestamp),
             }
             
             patterns.append(pattern)
