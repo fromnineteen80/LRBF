@@ -604,6 +604,59 @@ SECURITY & SECRETS
 **Files:** .env.example (public with placeholders), .env (in .gitignore)
 
 ═══════════════════════════════════════════════════════════════
+═══════════════════════════════════════════════════════════════
+KNOWN ISSUES & TESTING STATUS
+═══════════════════════════════════════════════════════════════
+
+## Completed ✅
+- IBKR connector implemented (ib_insync)
+- Morning report structure complete
+- Database schema defined with seven-forecast support
+- Railyard.py execution engine built
+- EOD reporter implemented
+- User management architecture designed
+- Seven-forecast generator created (config/filter_presets.py, backend/core/seven_forecast_generator.py)
+- Integration test script created (test_morning_report_integration.py)
+- yfinance dependencies removed from morning report
+
+## In Progress 🔄
+1. **Database Schema Migration**
+   - Status: Migration script created (migrate_seven_forecasts.py)
+   - Action: Run `python migrate_seven_forecasts.py` on existing databases
+   - Impact: Seven forecasts won't store until migration runs
+   - Note: New databases automatically include all columns
+
+2. **Tick Streaming Integration**
+   - Status: Code exists in IBKR connector but not fully integrated with Railyard.py
+   - Action: Add WebSocket streaming loop to monitoring
+   - Impact: Currently uses snapshots (still works, just slower)
+   - Target: <100ms update latency
+
+## Testing Needed ⚠️
+- [ ] End-to-end: Morning report → Database → Railyard.py → EOD
+- [ ] Database migration verification (run migrate_seven_forecasts.py)
+- [ ] Seven-forecast generation accuracy in production
+- [ ] Real-time tick streaming latency (<100ms target)
+- [ ] Paper trading with IBKR Gateway
+- [ ] Daily loss limit enforcement
+- [ ] Position management edge cases
+- [ ] All 7 forecast presets with real market data
+
+## Dependencies 📦
+- ✅ ib_insync 0.9.86+ installed
+- ✅ IBKR Gateway configured (port 4002 for paper, 4001 for live)
+- ✅ Account ID in .env file
+- ✅ Seven-forecast database schema defined
+- ⚠️ Database migration needs to be run for existing databases
+- ⚠️ IBKR Gateway must be running for live data/trading
+
+## Known Limitations
+- **Morning Report Generation Time**: First run may take 5-10 minutes due to 500 stock scan
+- **Simulation Mode**: Uses synthetic data, not real market patterns
+- **Paper Trading**: IBKR paper account has different liquidity than live
+- **Filter Tuning**: Preset thresholds may need adjustment based on market conditions
+
+═══════════════════════════════════════════════════════════════
 DEVELOPMENT PHASES
 ═══════════════════════════════════════════════════════════════
 
