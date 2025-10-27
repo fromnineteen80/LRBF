@@ -434,25 +434,20 @@ class TradingDatabase:
     # ========================================================================
     
     def insert_morning_forecast(self, forecast_data: Dict) -> int:
-        """Insert morning forecast snapshot with backup stocks support."""
+        """Insert morning forecast with all 7 scenarios."""
         cursor = self.conn.cursor()
         
+        # Convert lists to JSON
         stocks_json = json.dumps(forecast_data['selected_stocks'])
+        backup_stocks_json = json.dumps(forecast_data.get('backup_stocks', []))
+        stock_analysis_json = json.dumps(forecast_data.get('stock_analysis', {}))
         
-        backup_stocks_json = None
-        if 'backup_stocks' in forecast_data and forecast_data['backup_stocks']:
-            backup_stocks_json = json.dumps(forecast_data['backup_stocks'])
+        # Extract all 7 forecasts (store as JSON strings)
+        all_forecasts = forecast_data.get('all_forecasts', {})
         
-        stock_analysis_json = None
-        if 'stock_analysis' in forecast_data and forecast_data['stock_analysis']:
-            stock_analysis_json = json.dumps(forecast_data['stock_analysis'])
-        
-        # Optional adaptive features (time profiles, news screening)
+        # Optional adaptive features
         time_profiles_json = forecast_data.get('time_profiles_json')
         news_screening_json = forecast_data.get('news_screening_json')
-        default_forecast_json = forecast_data.get('default_forecast_json')
-        enhanced_forecast_json = forecast_data.get('enhanced_forecast_json')
-        active_preset = forecast_data.get('active_preset', 'default')
         
         cursor.execute("""
             INSERT INTO morning_forecasts (
@@ -460,20 +455,42 @@ class TradingDatabase:
                 expected_trades_low, expected_trades_high,
                 expected_pl_low, expected_pl_high, stock_analysis_json,
                 time_profiles_json, news_screening_json,
-                default_forecast_json, enhanced_forecast_json, active_preset
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                default_forecast_json,
+                conservative_forecast_json,
+                aggressive_forecast_json,
+                choppy_forecast_json,
+                trending_forecast_json,
+                abtest_forecast_json,
+                vwap_breakout_forecast_json,
+                active_preset,
+                active_strategy
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
-            forecast_data['date'], forecast_data['generated_at'],
-            stocks_json, backup_stocks_json,
-            forecast_data['expected_trades_low'], forecast_data['expected_trades_high'],
-            forecast_data['expected_pl_low'], forecast_data['expected_pl_high'],
+            forecast_data['date'],
+            forecast_data['generated_at'],
+            stocks_json,
+            backup_stocks_json,
+            forecast_data['expected_trades_low'],
+            forecast_data['expected_trades_high'],
+            forecast_data['expected_pl_low'],
+            forecast_data['expected_pl_high'],
             stock_analysis_json,
-            time_profiles_json, news_screening_json,
-            default_forecast_json, enhanced_forecast_json, active_preset
+            time_profiles_json,
+            news_screening_json,
+            json.dumps(all_forecasts.get('default', {})),
+            json.dumps(all_forecasts.get('conservative', {})),
+            json.dumps(all_forecasts.get('aggressive', {})),
+            json.dumps(all_forecasts.get('choppy', {})),
+            json.dumps(all_forecasts.get('trending', {})),
+            json.dumps(all_forecasts.get('abtest', {})),
+            json.dumps(all_forecasts.get('vwap_breakout', {})),
+            forecast_data.get('active_preset', 'default'),
+            forecast_data.get('active_strategy', '3step')
         ))
         
         self.conn.commit()
         return cursor.lastrowid
+
 
     def get_morning_forecast(self, target_date: date) -> Optional[Dict]:
         """
