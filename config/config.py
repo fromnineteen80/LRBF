@@ -12,12 +12,29 @@ class TradingConfig:
     NUM_STOCKS = 8           # Number of stocks to trade (8 or 16)
     
     # === Entry & Exit Rules ===
-    DECLINE_THRESHOLD = 1.0      # % decline to start pattern (Step 1)
-    ENTRY_THRESHOLD = 1.5        # % climb to confirm entry (test 1.5 or 2.0)
-    TARGET_1 = 0.75             # % profit target 1
-    TARGET_2 = 2.0              # % profit target 2
-    STOP_LOSS = -0.5            # % stop loss
+    # Pattern Detection
+    DECLINE_THRESHOLD = 1.0      # % decline from recent high (Step 1)
+    RECOVERY_THRESHOLD = 0.5     # Fraction of decline to recover (Step 2)
+    RETRACEMENT_THRESHOLD = 0.5  # Fraction of recovery to retrace (Step 3)
+    ENTRY_THRESHOLD = 0.5        # % climb from pattern low to trigger entry (Step 4)
     
+    # Exit Targets
+    TARGET_1 = 0.75              # First profit target (+0.75%)
+    TARGET_2 = 1.75              # Final profit target (+1.75%)
+    
+    # Decision Points (not exits)
+    CROSS_THRESHOLD = 1.00       # Intermediate floor if crossed (+1.00%)
+    MOMENTUM_CONFIRMATION = 1.25 # Momentum confirmation to continue to T2 (+1.25%)
+    
+    # Risk Controls
+    STOP_LOSS = -0.5             # Stop loss if immediate crash
+    
+    # Tiered Dead Zone Timeouts (seconds)
+    DEAD_ZONE_TIMEOUT_BELOW_T1 = 180   # 3 minutes - no profit locked
+    DEAD_ZONE_TIMEOUT_AT_T1 = 240      # 4 minutes - T1 locked (+0.75%)
+    DEAD_ZONE_TIMEOUT_AT_CROSS = 240   # 4 minutes - CROSS locked (+1.00%)
+    DEAD_ZONE_TIMEOUT_MOMENTUM = 360   # 6 minutes - momentum confirmed
+    DEAD_ZONE_RANGE = 0.6              # % range to detect stall (±0.6%)
     # === Risk Limits ===
     DAILY_LOSS_LIMIT = -1.5     # % max daily loss before shutdown
     
