@@ -213,24 +213,119 @@ MORNING REPORT ARCHITECTURE
 
 **Full Pipeline (Backend → Frontend):**
 1. Pull TOP 500 stocks by volume from IBKR + 20-day historical data
-2. **Detect BOTH patterns across all 500 stocks:**
+2. **Screen for fresh news threats (TODAY/24 hours only) - FILTER excluded stocks**
+3. **Detect BOTH patterns across remaining stocks:**
    - 3-Step Geometric Reversal
    - VWAP Breakout
-3. Score each stock across 16 dimensions for each pattern
-4. Classify into risk categories (Conservative/Medium/Aggressive)
-5. **Generate 7 forecasts:**
+4. **Classify time-of-day profiles per stock** (morning_surge, midday_steady, afternoon_fade, all_day)
+5. Score each stock across 16 dimensions for each pattern
+6. Classify into risk categories (Conservative/Medium/Aggressive)
+7. **Generate 7 forecasts:**
    - Strategy 1: 6 filter presets (Default, Conservative, Aggressive, Choppy, Trending, AB Test)
    - Strategy 2: 1 VWAP Breakout forecast
-6. Rank stocks by composite score FOR EACH forecast
-7. Present top 1-24 stocks per forecast to user
-8. User selects: (1) Strategy, (2) Preset, (3) Portfolio size (8/12/16/20)
-9. System generates execution lineup for Railyard.py
+8. Rank stocks by composite score FOR EACH forecast
+9. Present top 1-24 stocks per forecast to user
+10. User selects: (1) Strategy, (2) Preset, (3) Portfolio size (8/12/16/20)
+11. System generates execution lineup for Railyard.py with **adaptive timeouts per stock**
 
 **Critical: Different patterns = different opportunities**
 - 3-Step finds geometric reversals (VWAP ignored)
 - VWAP Breakout finds crossovers (VWAP required)
 - Each may identify DIFFERENT top stocks
 - All 7 pre-computed - user toggles instantly
+
+═══════════════════════════════════════════════════════════════
+ADAPTIVE FEATURES: TIME PROFILES & NEWS SCREENING
+═══════════════════════════════════════════════════════════════
+
+## Time-of-Day Pattern Classification
+
+**Purpose:** Identify when each stock produces the most reliable patterns
+
+**Classifications:**
+1. **morning_surge** - Most patterns 9:31-11:00 AM (50%+ morning patterns)
+2. **midday_steady** - Most patterns 11:00 AM-2:00 PM (50%+ midday patterns)
+3. **afternoon_fade** - Most patterns 2:00 PM-4:00 PM (50%+ afternoon patterns)
+4. **all_day** - Patterns distributed evenly across all windows
+
+**Data Captured Per Stock:**
+- Morning patterns: Count and percentage (9:31-11:00 AM)
+- Midday patterns: Count and percentage (11:00 AM-2:00 PM)
+- Afternoon patterns: Count and percentage (2:00 PM-4:00 PM)
+- Best trading window: Recommendation based on historical density
+- Classification: Categorical label for quick reference
+
+**Integration Points:**
+- **Morning Report:** `analyze_time_profiles()` classifies all selected stocks
+- **Railyard.py:** Uses `calculate_adaptive_timeout()` to adjust dead zone limits per stock
+- **Database:** Stored in `morning_forecasts.time_profiles_json`
+
+**Adaptive Timeout Logic:**
+```
+morning_surge stocks:    8 min timeout in morning,  10 min afternoon
+midday_steady stocks:    10 min timeout all day
+afternoon_fade stocks:   10 min timeout in morning, 8 min afternoon
+all_day stocks:          9 min timeout all day
+```
+
+**Why This Matters:**
+- AAPL may pattern at 9:45 AM reliably but struggle at 3:00 PM
+- TSLA may be erratic in morning but stable after lunch
+- System adapts timeouts to each stock's natural rhythm
+- Reduces false dead zones, improves opportunity capture
+
+═══════════════════════════════════════════════════════════════
+
+## News Screening Integration
+
+**Philosophy:** Fresh threats TODAY = exclude. Old threats (5+ days) = already in data.
+
+**Screening Timing:** Pre-market (5:45 AM) screens last 24 hours only
+
+**Tier 1 Threats (Always Exclude):**
+- Earnings announcements (TODAY or next 24 hours)
+- FDA decisions (approval/rejection announcements TODAY)
+- Legal events (lawsuits filed, verdicts, settlements TODAY)
+- Bankruptcy/restructuring announcements (TODAY)
+
+**Tier 2 Threats (Exclude if breaking):**
+- Executive departures (CEO/CFO resignations TODAY)
+- Regulatory actions (SEC investigations announced TODAY)
+- Major partnerships/M&A (announced TODAY)
+- Product recalls (initiated TODAY)
+
+**Integration Points:**
+- **Morning Report:** `screen_for_news_events()` filters universe BEFORE pattern analysis
+- **Excluded Stocks:** Removed from market_data, never analyzed
+- **Database:** Screening results stored in `morning_forecasts.news_screening_json`
+
+**Why Only TODAY/24 Hours:**
+- AAPL earnings 5 days ago → Already in 20-day historical data
+  - Win rate naturally lower (78% vs 82%)
+  - Composite rank naturally lower (#8 vs #5)
+  - Data speaks for itself - no manual exclusion needed
+- AAPL earnings THIS MORNING → Fresh threat, volatility unpredictable
+  - Exclude entirely from trading today
+  - Prevents catastrophic losses from news-driven gaps
+
+**Data Stored:**
+```json
+{
+  "excluded_tickers": ["AAPL", "TSLA"],
+  "ticker_events": {
+    "AAPL": {
+      "reason": "Earnings announcement today 7:00 AM",
+      "severity": "high",
+      "event_type": "earnings"
+    }
+  },
+  "scan_timestamp": "2025-10-27T05:45:00Z"
+}
+```
+
+**Result:** Maximum opportunities with minimum risk - old volatility captured in metrics, fresh threats avoided entirely.
+
+═══════════════════════════════════════════════════════════════
 
 ## Stock Selection Options
 
@@ -429,6 +524,72 @@ IBKR via ib_insync is single source of truth.
 - Details TBD during FX onboarding
 
 ═══════════════════════════════════════════════════════════════
+DATABASE SCHEMA (Adaptive Features)
+═══════════════════════════════════════════════════════════════
+
+## Morning Forecasts Table
+
+**New Columns Added:**
+- `time_profiles_json` (TEXT) - Time-of-day classification per stock
+- `news_screening_json` (TEXT) - News screening results and excluded tickers
+- `default_forecast_json` (TEXT) - Default strategy forecast details
+- `enhanced_forecast_json` (TEXT) - All 6 preset forecasts (Conservative, Aggressive, etc.)
+- `active_preset` (TEXT) - Currently selected preset ('default', 'conservative', etc.)
+
+**Migration Script:** `migrate_adaptive_features.py` (run once before first use)
+
+**Example time_profiles_json:**
+```json
+{
+  "AAPL": {
+    "classification": "morning_surge",
+    "morning_patterns": 12,
+    "midday_patterns": 5,
+    "afternoon_patterns": 3,
+    "best_window": "morning",
+    "morning_pct": 60.0,
+    "midday_pct": 25.0,
+    "afternoon_pct": 15.0
+  }
+}
+```
+
+**Example news_screening_json:**
+```json
+{
+  "excluded_tickers": ["AAPL", "TSLA"],
+  "ticker_events": {
+    "AAPL": {
+      "reason": "Earnings announcement today 7:00 AM",
+      "severity": "high",
+      "event_type": "earnings"
+    }
+  },
+  "scan_timestamp": "2025-10-27T05:45:00Z"
+}
+```
+
+## Daily Summaries Table
+
+**New Columns Added:**
+- `news_interventions_json` (TEXT) - Log of any mid-day news events that triggered interventions
+
+**Example news_interventions_json:**
+```json
+{
+  "interventions": [
+    {
+      "timestamp": "2025-10-27T14:23:00Z",
+      "ticker": "TSLA",
+      "action": "position_closed",
+      "reason": "Breaking: Product recall announced",
+      "pl_at_close": 125.50
+    }
+  ]
+}
+```
+
+═══════════════════════════════════════════════════════════════
 SECURITY & SECRETS
 ═══════════════════════════════════════════════════════════════
 
@@ -448,9 +609,9 @@ DEVELOPMENT PHASES
 
 1. **Architecture & Alpha Review** - Inventory alpha app, confirm data pipeline, verify repo structure
 2. **Engine Transition** - Replace Capitalise.ai with railyard.py execution engine
-3. **Morning Report** - IBKR integration, 16-dimension scoring, dual-forecast generation, stock universe selection
-4. **Live Monitoring** - Real-time WebSocket streaming, guardrails telemetry, position tracking
-5. **End-of-Day** - Final fills/fees, KPIs, ledger, model drift analysis
+3. **Morning Report** - IBKR integration, 16-dimension scoring, dual-forecast generation, stock universe selection, **time profiles, news screening**
+4. **Live Monitoring** - Real-time WebSocket streaming, guardrails telemetry, position tracking, **adaptive timeouts**
+5. **End-of-Day** - Final fills/fees, KPIs, ledger, model drift analysis, **news intervention logging**
 6. **App Surfaces** - MD3 pages (Python/JS/CSS)
 7. **Management System** - Roles, auth, backend data/file/page management
 8. **Premarket Checklist** - Daily ET checklist flows
@@ -480,3 +641,4 @@ NOTES
 **Material Design 3:** All front-end work uses vendored MD3 components. No emulation or shortcuts.
 
 **Permissions:** GitHub repo fromnineteen80/LRBF may be temporarily public. Read all code before generating/editing. Ignore outdated .md files, prioritize executable code.
+
