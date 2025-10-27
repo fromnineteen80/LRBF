@@ -21,6 +21,7 @@ from backend.core.dual_forecast_generator import DualForecastGenerator
 from backend.core.metrics_calculator import calculate_risk_metrics
 from backend.core.quant_metrics import QuantMetricsCalculator, get_spy_returns
 from backend.core.filter_engine import FilterEngine
+from backend.core.news_monitor import NewsMonitor
 # from backend.data.stock_universe import get_stock_universe  # DEPRECATED - using IBKR scanner
 from backend.data.ibkr_data_provider import fetch_market_data
 from config.config import TradingConfig
@@ -54,6 +55,7 @@ class EnhancedMorningReport:
         self.db = TradingDatabase()
         self.report_date = date.today()
         self.quant_calculator = QuantMetricsCalculator(risk_free_rate=0.05)
+        self.news_monitor = NewsMonitor()
         
     def _load_default_config(self) -> Dict:
         """Load default configuration from config.py"""
@@ -134,10 +136,27 @@ class EnhancedMorningReport:
             market_data = self._fetch_market_data(universe)
             print(f"   ✓ Market data retrieved for {len(market_data)} stocks\n")
             
+            # Step 2a: Screen for news events (TODAY only)
+            print("2a. Screening for news events (TODAY/24hrs)...")
+            news_screening = self.news_monitor.screen_for_news_events(list(market_data.keys()))
+            excluded_count = len(news_screening['excluded_tickers'])
+            if excluded_count > 0:
+                print(f"   ⚠️  {excluded_count} stocks excluded due to fresh news events")
+                for ticker in news_screening['excluded_tickers']:
+                    print(f"      - {ticker}: {news_screening['ticker_events'][ticker]['reason']}")
+            else:
+                print(f"   ✓ No fresh news threats detected")
+            print()
+            
             # Step 3: Analyze patterns for each stock
             print("3. Analyzing VWAP patterns...")
             pattern_results = self._analyze_patterns(market_data)
             print(f"   ✓ Patterns analyzed for {len(pattern_results)} stocks\n")
+            
+            # Step 3a: Classify time-of-day patterns
+            print("3a. Classifying time-of-day patterns...")
+            time_profiles = self._classify_time_profiles(pattern_results, market_data)
+            print(f"   ✓ Time profiles classified for {len(time_profiles)} stocks\n")
             
             # Step 4: Calculate quality scores (16-category system)
             print("4. Calculating quality scores...")
@@ -179,7 +198,9 @@ class EnhancedMorningReport:
             report_id = self._store_report(
                 selection, forecast, risk_metrics, dz_metrics, quant_metrics,
                 default_forecast=all_forecasts['default']['forecast'],
-                enhanced_forecasts=all_forecasts
+                enhanced_forecasts=all_forecasts,
+                time_profiles=time_profiles,
+                news_screening=news_screening
             )
             print(f"   ✓ Report stored (ID: {report_id})\n")
             
@@ -754,6 +775,79 @@ class EnhancedMorningReport:
         
         return scored_stocks
     
+    def _classify_time_profiles(
+        self, 
+        pattern_results: Dict,
+        market_data: Dict[str, pd.DataFrame]
+    ) -> Dict:
+        """
+        Classify time-of-day patterns for each stock.
+        
+        Returns dict with time profile data per ticker:
+        {
+            'ticker': {
+                'classification': 'morning_surge' | 'midday_steady' | 'afternoon_fade' | 'all_day',
+                'morning_patterns': int,
+                'midday_patterns': int,
+                'afternoon_patterns': int,
+                'best_window': 'morning' | 'midday' | 'afternoon',
+                'hourly_distribution': {...}
+            }
+        }
+        """
+        time_profiles = {}
+        
+        for ticker, patterns in pattern_results.items():
+            if not patterns or len(patterns) == 0:
+                continue
+            
+            # Get time classifications from patterns (added by pattern_detector)
+            time_classes = []
+            for pattern in patterns:
+                if 'time_classification' in pattern:
+                    time_classes.append(pattern['time_classification'])
+            
+            if not time_classes:
+                continue
+            
+            # Count patterns by time window
+            morning_count = time_classes.count('morning')
+            midday_count = time_classes.count('midday')
+            afternoon_count = time_classes.count('afternoon')
+            total = len(time_classes)
+            
+            # Determine classification
+            morning_pct = morning_count / total if total > 0 else 0
+            midday_pct = midday_count / total if total > 0 else 0
+            afternoon_pct = afternoon_count / total if total > 0 else 0
+            
+            if morning_pct > 0.5:
+                classification = 'morning_surge'
+            elif afternoon_pct > 0.5:
+                classification = 'afternoon_fade'
+            elif midday_pct > 0.5:
+                classification = 'midday_steady'
+            else:
+                classification = 'all_day'
+            
+            # Determine best window
+            best_window = 'morning' if morning_count >= midday_count and morning_count >= afternoon_count else \
+                         'midday' if midday_count >= afternoon_count else \
+                         'afternoon'
+            
+            time_profiles[ticker] = {
+                'classification': classification,
+                'morning_patterns': morning_count,
+                'midday_patterns': midday_count,
+                'afternoon_patterns': afternoon_count,
+                'best_window': best_window,
+                'morning_pct': round(morning_pct * 100, 1),
+                'midday_pct': round(midday_pct * 100, 1),
+                'afternoon_pct': round(afternoon_pct * 100, 1)
+            }
+        
+        return time_profiles
+    
     def _select_portfolio(self, scored_stocks: pd.DataFrame) -> Dict:
         """
         Select primary and backup stocks using 2/4/2 balance.
@@ -1076,7 +1170,9 @@ class EnhancedMorningReport:
         dz_metrics: Dict,
         quant_metrics: Dict,
         default_forecast: Dict = None,
-        enhanced_forecasts: Dict = None
+        enhanced_forecasts: Dict = None,
+        time_profiles: Dict = None,
+        news_screening: Dict = None
     ) -> int:
         """Store complete report in database with all scenario forecasts"""
         
@@ -1104,6 +1200,8 @@ class EnhancedMorningReport:
             'stock_analysis': self._build_stock_analysis_json(selection, dz_metrics, quant_metrics),
             'default_forecast_json': json.dumps(default_forecast) if default_forecast else None,
             'enhanced_forecast_json': json.dumps(enhanced_json) if enhanced_json else None,
+            'time_profiles_json': json.dumps(time_profiles) if time_profiles else None,
+            'news_screening_json': json.dumps(news_screening) if news_screening else None,
             'active_preset': 'default'  # Can be changed via API
         }
         
@@ -1296,3 +1394,4 @@ if __name__ == "__main__":
         print(f"   Expected trades: {report['forecast']['expected_trades_low']}-{report['forecast']['expected_trades_high']}")
     else:
         print(f"\n❌ Report generation failed: {report.get('error')}")
+
