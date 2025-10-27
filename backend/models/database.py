@@ -447,18 +447,29 @@ class TradingDatabase:
         if 'stock_analysis' in forecast_data and forecast_data['stock_analysis']:
             stock_analysis_json = json.dumps(forecast_data['stock_analysis'])
         
+        # Optional adaptive features (time profiles, news screening)
+        time_profiles_json = forecast_data.get('time_profiles_json')
+        news_screening_json = forecast_data.get('news_screening_json')
+        default_forecast_json = forecast_data.get('default_forecast_json')
+        enhanced_forecast_json = forecast_data.get('enhanced_forecast_json')
+        active_preset = forecast_data.get('active_preset', 'default')
+        
         cursor.execute("""
             INSERT INTO morning_forecasts (
                 date, generated_at, selected_stocks_json, backup_stocks_json,
                 expected_trades_low, expected_trades_high,
-                expected_pl_low, expected_pl_high, stock_analysis_json
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                expected_pl_low, expected_pl_high, stock_analysis_json,
+                time_profiles_json, news_screening_json,
+                default_forecast_json, enhanced_forecast_json, active_preset
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             forecast_data['date'], forecast_data['generated_at'],
             stocks_json, backup_stocks_json,
             forecast_data['expected_trades_low'], forecast_data['expected_trades_high'],
             forecast_data['expected_pl_low'], forecast_data['expected_pl_high'],
-            stock_analysis_json
+            stock_analysis_json,
+            time_profiles_json, news_screening_json,
+            default_forecast_json, enhanced_forecast_json, active_preset
         ))
         
         self.conn.commit()
@@ -1644,3 +1655,4 @@ if __name__ == "__main__":
 
 # Alias for backwards compatibility
 Database = TradingDatabase
+
