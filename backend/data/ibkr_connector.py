@@ -607,9 +607,232 @@ class IBKRConnector:
             }
 
 
-# ============================================================================
-# TESTING
-# ============================================================================
+    # ========================================================================
+    # NEWS & FUNDAMENTAL DATA METHODS
+    # ========================================================================
+    
+    def get_fundamental_data(self, ticker: str) -> Optional[Dict]:
+        """
+        Get fundamental data including earnings date.
+        
+        Args:
+            ticker: Stock symbol
+            
+        Returns:
+            Dict with fundamental data:
+            {
+                'ticker': 'AAPL',
+                'earnings_date': '2025-10-28',  # Next earnings date
+                'market_cap': 2850000000000,
+                'pe_ratio': 28.5,
+                'has_earnings_today': True/False
+            }
+            
+        Returns None if data unavailable.
+        """
+        try:
+            if not self.connected:
+                logger.error("Not connected to IBKR")
+                return None
+            
+            # Get contract
+            contract = self._get_contract(ticker)
+            if not contract:
+                return None
+            
+            # Request fundamental data (ReportsFinStatements report type includes earnings dates)
+            fundamental = self.ib.reqFundamentalData(
+                contract, 
+                'ReportsFinStatements'
+            )
+            
+            # Wait for data
+            self.ib.sleep(0.5)
+            
+            if not fundamental:
+                logger.warning(f"No fundamental data available for {ticker}")
+                return None
+            
+            # Parse XML response to extract earnings date
+            import xml.etree.ElementTree as ET
+            root = ET.fromstring(fundamental)
+            
+            # Extract earnings date from XML
+            earnings_date = None
+            for fiscal_period in root.findall('.//FiscalPeriod'):
+                end_date_elem = fiscal_period.find('EndDate')
+                if end_date_elem is not None:
+                    # Get the most recent fiscal period end date
+                    # This is typically when earnings are announced
+                    date_str = end_date_elem.text
+                    if date_str:
+                        from datetime import datetime
+                        earnings_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+                        break
+            
+            # Check if earnings are today
+            today = datetime.now().date()
+            has_earnings_today = (earnings_date == today) if earnings_date else False
+            
+            result = {
+                'ticker': ticker,
+                'earnings_date': earnings_date.isoformat() if earnings_date else None,
+                'has_earnings_today': has_earnings_today,
+                'data_timestamp': datetime.now().isoformat()
+            }
+            
+            logger.info(f"Fundamental data for {ticker}: earnings_date={earnings_date}, today={has_earnings_today}")
+            return result
+            
+        except Exception as e:
+            logger.error(f"Error getting fundamental data for {ticker}: {e}")
+            return None
+    
+    def is_trading_halted(self, ticker: str) -> bool:
+        """
+        Check if trading is currently halted for a stock.
+        
+        IBKR provides halt status via market data subscription.
+        A trading halt is indicated when:
+        - Market data status shows 'Halted'
+        - No ticks received for extended period during market hours
+        - Bid/Ask spread is abnormally wide or zero
+        
+        Args:
+            ticker: Stock symbol
+            
+        Returns:
+            True if trading is halted, False otherwise
+        """
+        try:
+            if not self.connected:
+                logger.error("Not connected to IBKR")
+                return False
+            
+            # Get contract
+            contract = self._get_contract(ticker)
+            if not contract:
+                return False
+            
+            # Request market data snapshot
+            ticker_obj = self.ib.reqMktData(contract, snapshot=True)
+            
+            # Wait for data
+            self.ib.sleep(0.5)
+            
+            # Check halt indicators
+            halt_detected = False
+            
+            # Indicator 1: Market data status
+            if hasattr(ticker_obj, 'halted') and ticker_obj.halted:
+                halt_detected = True
+                logger.warning(f"{ticker} is HALTED (status field)")
+            
+            # Indicator 2: Bid/Ask are both zero (common during halts)
+            if ticker_obj.bid == 0.0 and ticker_obj.ask == 0.0:
+                halt_detected = True
+                logger.warning(f"{ticker} is HALTED (bid/ask both zero)")
+            
+            # Indicator 3: Last price exists but bid/ask missing during market hours
+            from datetime import datetime
+            now = datetime.now().time()
+            market_hours = (now >= datetime.strptime("09:30", "%H:%M").time() and 
+                           now <= datetime.strptime("16:00", "%H:%M").time())
+            
+            if market_hours and ticker_obj.last and (ticker_obj.bid == 0.0 or ticker_obj.ask == 0.0):
+                halt_detected = True
+                logger.warning(f"{ticker} is HALTED (missing bid/ask during market hours)")
+            
+            # Cancel market data subscription
+            self.ib.cancelMktData(contract)
+            
+            return halt_detected
+            
+        except Exception as e:
+            logger.error(f"Error checking halt status for {ticker}: {e}")
+            return False
+    
+    def batch_check_fundamentals(self, tickers: List[str]) -> Dict[str, Dict]:
+        """
+        Check fundamental data for multiple stocks efficiently.
+        
+        Used by morning report to screen 500 stocks for earnings dates.
+        
+        Args:
+            tickers: List of stock symbols
+            
+        Returns:
+            Dict mapping ticker to fundamental data:
+            {
+                'AAPL': {'earnings_date': '2025-10-28', 'has_earnings_today': True},
+                'MSFT': {'earnings_date': '2025-11-15', 'has_earnings_today': False},
+                ...
+            }
+        """
+        results = {}
+        
+        logger.info(f"Batch checking fundamentals for {len(tickers)} stocks...")
+        
+        for ticker in tickers:
+            try:
+                fund_data = self.get_fundamental_data(ticker)
+                if fund_data:
+                    results[ticker] = fund_data
+                
+                # Rate limiting: 50 requests per second
+                import time
+                time.sleep(0.02)
+                
+            except Exception as e:
+                logger.error(f"Error checking {ticker}: {e}")
+                continue
+        
+        logger.info(f"Completed batch check: {len(results)}/{len(tickers)} successful")
+        return results
+    
+    def batch_check_halts(self, tickers: List[str]) -> Dict[str, bool]:
+        """
+        Check halt status for multiple stocks efficiently.
+        
+        Used by live monitoring to detect halts during trading.
+        
+        Args:
+            tickers: List of stock symbols
+            
+        Returns:
+            Dict mapping ticker to halt status:
+            {
+                'AAPL': False,
+                'TSLA': True,  # HALTED
+                'MSFT': False,
+                ...
+            }
+        """
+        results = {}
+        
+        logger.info(f"Batch checking halt status for {len(tickers)} stocks...")
+        
+        for ticker in tickers:
+            try:
+                is_halted = self.is_trading_halted(ticker)
+                results[ticker] = is_halted
+                
+                if is_halted:
+                    logger.warning(f"🚨 {ticker} IS HALTED!")
+                
+                # Rate limiting
+                import time
+                time.sleep(0.02)
+                
+            except Exception as e:
+                logger.error(f"Error checking {ticker}: {e}")
+                results[ticker] = False  # Assume not halted on error
+                continue
+        
+        halted_count = sum(1 for v in results.values() if v)
+        logger.info(f"Halt check complete: {halted_count}/{len(results)} stocks halted")
+        
+        return results
 
 if __name__ == "__main__":
     print("IBKR ib_insync Connector - Test Suite")
@@ -685,3 +908,232 @@ if __name__ == "__main__":
     
     print("\n" + "=" * 60)
     print("✅ Test suite complete!")
+
+    # ========================================================================
+    # NEWS & FUNDAMENTAL DATA METHODS
+    # ========================================================================
+    
+    def get_fundamental_data(self, ticker: str) -> Optional[Dict]:
+        """
+        Get fundamental data including earnings date.
+        
+        Args:
+            ticker: Stock symbol
+            
+        Returns:
+            Dict with fundamental data:
+            {
+                'ticker': 'AAPL',
+                'earnings_date': '2025-10-28',  # Next earnings date
+                'market_cap': 2850000000000,
+                'pe_ratio': 28.5,
+                'has_earnings_today': True/False
+            }
+            
+        Returns None if data unavailable.
+        """
+        try:
+            if not self.connected:
+                logger.error("Not connected to IBKR")
+                return None
+            
+            # Get contract
+            contract = self._get_contract(ticker)
+            if not contract:
+                return None
+            
+            # Request fundamental data (ReportsFinStatements report type includes earnings dates)
+            fundamental = self.ib.reqFundamentalData(
+                contract, 
+                'ReportsFinStatements'
+            )
+            
+            # Wait for data
+            self.ib.sleep(0.5)
+            
+            if not fundamental:
+                logger.warning(f"No fundamental data available for {ticker}")
+                return None
+            
+            # Parse XML response to extract earnings date
+            import xml.etree.ElementTree as ET
+            root = ET.fromstring(fundamental)
+            
+            # Extract earnings date from XML
+            earnings_date = None
+            for fiscal_period in root.findall('.//FiscalPeriod'):
+                end_date_elem = fiscal_period.find('EndDate')
+                if end_date_elem is not None:
+                    # Get the most recent fiscal period end date
+                    # This is typically when earnings are announced
+                    date_str = end_date_elem.text
+                    if date_str:
+                        from datetime import datetime
+                        earnings_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+                        break
+            
+            # Check if earnings are today
+            today = datetime.now().date()
+            has_earnings_today = (earnings_date == today) if earnings_date else False
+            
+            result = {
+                'ticker': ticker,
+                'earnings_date': earnings_date.isoformat() if earnings_date else None,
+                'has_earnings_today': has_earnings_today,
+                'data_timestamp': datetime.now().isoformat()
+            }
+            
+            logger.info(f"Fundamental data for {ticker}: earnings_date={earnings_date}, today={has_earnings_today}")
+            return result
+            
+        except Exception as e:
+            logger.error(f"Error getting fundamental data for {ticker}: {e}")
+            return None
+    
+    def is_trading_halted(self, ticker: str) -> bool:
+        """
+        Check if trading is currently halted for a stock.
+        
+        IBKR provides halt status via market data subscription.
+        A trading halt is indicated when:
+        - Market data status shows 'Halted'
+        - No ticks received for extended period during market hours
+        - Bid/Ask spread is abnormally wide or zero
+        
+        Args:
+            ticker: Stock symbol
+            
+        Returns:
+            True if trading is halted, False otherwise
+        """
+        try:
+            if not self.connected:
+                logger.error("Not connected to IBKR")
+                return False
+            
+            # Get contract
+            contract = self._get_contract(ticker)
+            if not contract:
+                return False
+            
+            # Request market data snapshot
+            ticker_obj = self.ib.reqMktData(contract, snapshot=True)
+            
+            # Wait for data
+            self.ib.sleep(0.5)
+            
+            # Check halt indicators
+            halt_detected = False
+            
+            # Indicator 1: Market data status
+            if hasattr(ticker_obj, 'halted') and ticker_obj.halted:
+                halt_detected = True
+                logger.warning(f"{ticker} is HALTED (status field)")
+            
+            # Indicator 2: Bid/Ask are both zero (common during halts)
+            if ticker_obj.bid == 0.0 and ticker_obj.ask == 0.0:
+                halt_detected = True
+                logger.warning(f"{ticker} is HALTED (bid/ask both zero)")
+            
+            # Indicator 3: Last price exists but bid/ask missing during market hours
+            from datetime import datetime
+            now = datetime.now().time()
+            market_hours = (now >= datetime.strptime("09:30", "%H:%M").time() and 
+                           now <= datetime.strptime("16:00", "%H:%M").time())
+            
+            if market_hours and ticker_obj.last and (ticker_obj.bid == 0.0 or ticker_obj.ask == 0.0):
+                halt_detected = True
+                logger.warning(f"{ticker} is HALTED (missing bid/ask during market hours)")
+            
+            # Cancel market data subscription
+            self.ib.cancelMktData(contract)
+            
+            return halt_detected
+            
+        except Exception as e:
+            logger.error(f"Error checking halt status for {ticker}: {e}")
+            return False
+    
+    def batch_check_fundamentals(self, tickers: List[str]) -> Dict[str, Dict]:
+        """
+        Check fundamental data for multiple stocks efficiently.
+        
+        Used by morning report to screen 500 stocks for earnings dates.
+        
+        Args:
+            tickers: List of stock symbols
+            
+        Returns:
+            Dict mapping ticker to fundamental data:
+            {
+                'AAPL': {'earnings_date': '2025-10-28', 'has_earnings_today': True},
+                'MSFT': {'earnings_date': '2025-11-15', 'has_earnings_today': False},
+                ...
+            }
+        """
+        results = {}
+        
+        logger.info(f"Batch checking fundamentals for {len(tickers)} stocks...")
+        
+        for ticker in tickers:
+            try:
+                fund_data = self.get_fundamental_data(ticker)
+                if fund_data:
+                    results[ticker] = fund_data
+                
+                # Rate limiting: 50 requests per second
+                import time
+                time.sleep(0.02)
+                
+            except Exception as e:
+                logger.error(f"Error checking {ticker}: {e}")
+                continue
+        
+        logger.info(f"Completed batch check: {len(results)}/{len(tickers)} successful")
+        return results
+    
+    def batch_check_halts(self, tickers: List[str]) -> Dict[str, bool]:
+        """
+        Check halt status for multiple stocks efficiently.
+        
+        Used by live monitoring to detect halts during trading.
+        
+        Args:
+            tickers: List of stock symbols
+            
+        Returns:
+            Dict mapping ticker to halt status:
+            {
+                'AAPL': False,
+                'TSLA': True,  # HALTED
+                'MSFT': False,
+                ...
+            }
+        """
+        results = {}
+        
+        logger.info(f"Batch checking halt status for {len(tickers)} stocks...")
+        
+        for ticker in tickers:
+            try:
+                is_halted = self.is_trading_halted(ticker)
+                results[ticker] = is_halted
+                
+                if is_halted:
+                    logger.warning(f"🚨 {ticker} IS HALTED!")
+                
+                # Rate limiting
+                import time
+                time.sleep(0.02)
+                
+            except Exception as e:
+                logger.error(f"Error checking {ticker}: {e}")
+                results[ticker] = False  # Assume not halted on error
+                continue
+        
+        halted_count = sum(1 for v in results.values() if v)
+        logger.info(f"Halt check complete: {halted_count}/{len(results)} stocks halted")
+        
+        return results
+
+
