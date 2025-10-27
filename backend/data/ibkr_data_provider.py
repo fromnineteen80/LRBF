@@ -34,7 +34,7 @@ class IBKRDataProvider:
         self,
         account_id: str = None,
         paper_trading: bool = True,
-        gateway_url: str = "https://localhost:5000"
+        gateway_url: str = "https://localhost:8000"
     ):
         """
         Initialize IBKR data provider.
