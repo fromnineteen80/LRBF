@@ -7,6 +7,7 @@ import json
 from typing import Dict, List
 from config.config import TradingConfig
 from backend.core.filter_engine import FilterEngine
+from backend.core.vwap_breakout_detector import analyze_vwap_breakout_patterns
 
 class DualForecastGenerator:
     """
@@ -66,7 +67,62 @@ class DualForecastGenerator:
                 use_filters=True
             )
         
+        # 3. VWAP BREAKOUT FORECAST (Strategy 2)
+        print("   Generating VWAP BREAKOUT forecast (Strategy 2)...")
+        all_forecasts['vwap_breakout'] = self._generate_vwap_forecast(
+            selected_stocks,
+            market_data
+        )
+        
         return all_forecasts
+    
+    def _generate_vwap_forecast(
+        self,
+        selected_stocks: List[str],
+        market_data: Dict
+    ) -> Dict:
+        """
+        Generate forecast for VWAP Breakout strategy.
+        Different pattern detection than 3-Step Geometric.
+        """
+        vwap_results = {}
+        
+        for ticker in selected_stocks:
+            if ticker not in market_data:
+                continue
+            
+            df = market_data[ticker]
+            
+            # Run VWAP breakout pattern detection
+            result = analyze_vwap_breakout_patterns(ticker, df, self.config)
+            vwap_results[ticker] = result
+        
+        # Calculate aggregate forecast
+        total_patterns = sum(r['total_patterns'] for r in vwap_results.values())
+        total_entries = sum(r['confirmed_entries'] for r in vwap_results.values())
+        
+        if total_entries > 0:
+            avg_win_rate = sum(
+                r['win_rate'] * r['confirmed_entries'] 
+                for r in vwap_results.values()
+            ) / total_entries
+            
+            expected_pl = sum(r['expected_daily_pl'] for r in vwap_results.values())
+        else:
+            avg_win_rate = 0.0
+            expected_pl = 0.0
+        
+        return {
+            'strategy': 'vwap_breakout',
+            'total_patterns': total_patterns,
+            'total_entries': total_entries,
+            'win_rate': avg_win_rate,
+            'expected_daily_trades_low': int(total_entries * 0.8),
+            'expected_daily_trades_high': int(total_entries * 1.2),
+            'expected_pl_low': expected_pl * 0.8,
+            'expected_pl_high': expected_pl * 1.2,
+            'stock_results': vwap_results
+        }
     
     def _generate_preset_forecast(
         self,
