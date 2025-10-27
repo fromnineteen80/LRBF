@@ -176,7 +176,7 @@ class PatternDetector:
                     'detection_time_ms': detection_time_ms,
                     'entry_confirmed': False,
                     'outcome': 'no_entry',
-                    'failure_reason': entry_result.get('reason', 'no_confirmation')
+                    'failure_reason': entry_result.get('reason', 'no_confirmation'),
                     'time_window': get_time_window(pattern_complete_timestamp),
                 }
                 patterns.append(pattern)
@@ -213,9 +213,9 @@ class PatternDetector:
                         'filter_reason': filter_reason,
                         'filter_results': filter_results,
                         'outcome': 'filtered_out',
-                        'failure_reason': f"Blocked by filter: {filter_reason}"
-                    }
+                        'failure_reason': f"Blocked by filter: {filter_reason}",
                         'time_window': get_time_window(pattern_complete_timestamp),
+                    }
                     patterns.append(pattern)
                     continue
             
