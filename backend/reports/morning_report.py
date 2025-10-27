@@ -25,6 +25,7 @@ from backend.core.news_monitor import NewsMonitor
 from backend.core.time_profile_analyzer import analyze_time_profiles
 # from backend.data.stock_universe import get_stock_universe  # DEPRECATED - using IBKR scanner
 from backend.data.ibkr_data_provider import fetch_market_data
+from backend.core.cross_strategy_detector import CrossStrategyDetector
 from config.config import TradingConfig
 
 
@@ -185,6 +186,11 @@ class EnhancedMorningReport:
                 pattern_results
             )
             print(f"   ✓ Generated {len(all_forecasts)} scenario forecasts\n")
+            
+
+            # Step 6b: Detect cross-strategy outliers
+            print("6b. Detecting cross-strategy outliers...")
+            all_forecasts = self._detect_cross_strategy_outliers(all_forecasts, config)
             
             # Use default for primary display
             default_scenario = all_forecasts['default']
@@ -1316,6 +1322,80 @@ def generate_morning_report_api(use_simulation: bool = False) -> Dict:
     """
     report_gen = EnhancedMorningReport(use_simulation=use_simulation)
     return report_gen.generate_complete_report()
+
+
+    def _detect_cross_strategy_outliers(self, all_forecasts: Dict, config: Dict) -> Dict:
+        """
+        Detect stocks that are exceptional in both strategies.
+        
+        Called after all 7 forecasts generated.
+        
+        Args:
+            all_forecasts: Dict containing all 7 forecasts
+            config: Trading config (for num_stocks)
+        
+        Returns:
+            all_forecasts with outliers added to each forecast
+        """
+        detector = CrossStrategyDetector()
+        
+        # Check each forecast for outliers
+        forecast_keys = [
+            'default', 'conservative', 'aggressive',
+            'choppy', 'trending', 'ab_test', 'vwap_breakout'
+        ]
+        
+        outlier_counts = {}
+        
+        for forecast_key in forecast_keys:
+            if forecast_key not in all_forecasts:
+                continue
+            
+            # Parse strategy and preset from key
+            if forecast_key == 'vwap_breakout':
+                strategy, preset = 'vwap_breakout', 'default'
+            else:
+                # All others are 3step with different presets
+                strategy = '3step'
+                preset = forecast_key
+            
+            # Get selected stocks from forecast
+            scenario_data = all_forecasts[forecast_key]
+            num_stocks = len(scenario_data.get('selection', {}).get('primary', []))
+            
+            # Detect outliers for this forecast
+            outliers = detector.detect_outliers(
+                selected_strategy=strategy,
+                selected_preset=preset,
+                all_forecasts=all_forecasts,
+                num_stocks=num_stocks
+            )
+            
+            # Add to forecast
+            all_forecasts[forecast_key]['cross_strategy_outliers'] = outliers
+            outlier_counts[forecast_key] = len(outliers)
+            
+            # Store in database
+            if outliers:
+                self.db.store_cross_strategy_outliers(
+                    str(self.report_date), 
+                    f"{strategy}_{preset}" if strategy == '3step' else strategy,
+                    outliers
+                )
+        
+        # Log summary
+        total_outliers = sum(outlier_counts.values())
+        if total_outliers > 0:
+            print(f"   ✓ Detected {total_outliers} total cross-strategy outliers")
+            for key, count in outlier_counts.items():
+                if count > 0:
+                    print(f"      - {key}: {count} outliers")
+        else:
+            print(f"   ✓ No cross-strategy outliers detected")
+        
+        print()
+        
+        return all_forecasts
 
 
 if __name__ == "__main__":
