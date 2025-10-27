@@ -1552,6 +1552,118 @@ class TradingDatabase:
 # TESTING
 # ============================================================================
 
+    # ========================================================================
+    # CROSS-STRATEGY OUTLIER METHODS
+    # ========================================================================
+    
+    def store_cross_strategy_outliers(self, date_str: str, forecast_key: str, outliers: List[Dict]) -> bool:
+        """
+        Store cross-strategy outliers in morning_forecasts table.
+        
+        Args:
+            date_str: Date string (YYYY-MM-DD)
+            forecast_key: Forecast key (e.g., '3step_default', 'vwap_breakout')
+            outliers: List of outlier dicts from CrossStrategyDetector
+        
+        Returns:
+            True if successful
+        """
+        try:
+            outliers_json = json.dumps(outliers)
+            
+            self.cursor.execute("""
+                UPDATE morning_forecasts
+                SET cross_strategy_outliers_json = ?
+                WHERE date = ? AND forecast_key = ?
+            """, (outliers_json, date_str, forecast_key))
+            
+            self.connection.commit()
+            return True
+        except Exception as e:
+            logger.error(f"Error storing cross-strategy outliers: {e}")
+            return False
+    
+    def get_cross_strategy_outliers(self, date_str: str, forecast_key: str = None) -> List[Dict]:
+        """
+        Get cross-strategy outliers for a specific date and forecast.
+        
+        Args:
+            date_str: Date string (YYYY-MM-DD)
+            forecast_key: Optional forecast key (if None, gets all outliers for date)
+        
+        Returns:
+            List of outlier dicts, or empty list if none
+        """
+        try:
+            if forecast_key:
+                self.cursor.execute("""
+                    SELECT cross_strategy_outliers_json
+                    FROM morning_forecasts
+                    WHERE date = ? AND forecast_key = ?
+                """, (date_str, forecast_key))
+            else:
+                self.cursor.execute("""
+                    SELECT cross_strategy_outliers_json
+                    FROM morning_forecasts
+                    WHERE date = ?
+                """, (date_str,))
+            
+            row = self.cursor.fetchone()
+            if row and row[0]:
+                return json.loads(row[0])
+            return []
+        except Exception as e:
+            logger.error(f"Error getting cross-strategy outliers: {e}")
+            return []
+    
+    def record_user_override(self, date_str: str, ticker: str, decision: str, forecast_key: str) -> bool:
+        """
+        Record user's decision on a cross-strategy outlier.
+        
+        Args:
+            date_str: Date string (YYYY-MM-DD)
+            ticker: Stock symbol
+            decision: 'use_alternative' or 'keep_selected'
+            forecast_key: Forecast key (e.g., '3step_default')
+        
+        Returns:
+            True if successful
+        """
+        try:
+            # Get current outliers
+            outliers = self.get_cross_strategy_outliers(date_str, forecast_key)
+            
+            if not outliers:
+                logger.warning(f"No outliers found for {date_str} {forecast_key}")
+                return False
+            
+            # Update the specific ticker's override
+            found = False
+            for outlier in outliers:
+                if outlier['ticker'] == ticker:
+                    outlier['user_override'] = decision
+                    found = True
+                    break
+            
+            if not found:
+                logger.warning(f"Ticker {ticker} not found in outliers")
+                return False
+            
+            # Save back
+            outliers_json = json.dumps(outliers)
+            self.cursor.execute("""
+                UPDATE morning_forecasts
+                SET cross_strategy_outliers_json = ?
+                WHERE date = ? AND forecast_key = ?
+            """, (outliers_json, date_str, forecast_key))
+            
+            self.connection.commit()
+            logger.info(f"Recorded override for {ticker}: {decision}")
+            return True
+        except Exception as e:
+            logger.error(f"Error recording user override: {e}")
+            return False
+
 if __name__ == "__main__":
     import os
     
