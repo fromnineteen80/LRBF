@@ -307,3 +307,120 @@ class IBKRConfig:
         if not cls.ACCOUNT_ID:
             raise ValueError("IBKR_ACCOUNT_ID not found in .env file")
 
+
+
+# ═══════════════════════════════════════════════════════════════
+# ADAPTIVE DEAD ZONES CONFIGURATION
+# ═══════════════════════════════════════════════════════════════
+
+class AdaptiveDeadZoneConfig:
+    """Configuration for adaptive dead zone timeouts based on time-of-day analysis."""
+    
+    # === Feature Toggle ===
+    ENABLED = True  # Enable adaptive dead zones
+    
+    # === Base Timeouts (minutes) ===
+    # These are starting points - actual timeouts calculated per stock + time window
+    BASE_TIMEOUT_ENTRY = 8.0       # After entry, waiting for price movement
+    BASE_TIMEOUT_TARGET_1 = 5.6    # After hitting T1 (70% of base)
+    BASE_TIMEOUT_TARGET_2 = 4.0    # After hitting T2 (50% of base)
+    
+    # === Timeout Bounds (minutes) ===
+    MIN_TIMEOUT = 3.0   # Minimum allowed timeout
+    MAX_TIMEOUT = 15.0  # Maximum allowed timeout
+    
+    # === Pattern Strength Multipliers ===
+    # Strong patterns get more time, weak patterns get less
+    PATTERN_STRENGTH_MIN = 0.5   # Weakest multiplier
+    PATTERN_STRENGTH_MAX = 1.5   # Strongest multiplier
+    
+    # === Time-of-Day Analysis ===
+    MIN_PATTERNS_PER_WINDOW = 5  # Minimum patterns to consider window viable
+    LOOKBACK_DAYS = 20           # Days of history to analyze
+    
+    # === Dead Zone Detection ===
+    DEAD_ZONE_RANGE_PCT = 0.6    # ±0.6% range for dead zone
+    DEAD_ZONE_TIMEOUT_MINUTES = 8.0  # Default if no time profile available
+
+
+# ═══════════════════════════════════════════════════════════════
+# NEWS MONITORING CONFIGURATION
+# ═══════════════════════════════════════════════════════════════
+
+class NewsMonitoringConfig:
+    """Configuration for 3-tier news monitoring system."""
+    
+    # === Feature Toggle ===
+    ENABLED = True  # Enable news monitoring
+    
+    # === Pre-Market Screening (Tier 1: Auto-Exclude) ===
+    EXCLUDE_ON_EARNINGS = True        # Auto-exclude earnings day
+    EXCLUDE_ON_FDA_DECISION = True    # Auto-exclude FDA decision day
+    EXCLUDE_ON_EARNINGS_TOMORROW = False  # Exclude day before earnings
+    
+    # === Real-Time Monitoring (During Trading) ===
+    CHECK_INTERVAL_SECONDS = 60       # Check news every 60 seconds
+    
+    # === Volume Spike Detection ===
+    VOLUME_SPIKE_THRESHOLD = 3.0      # 3x normal volume = spike
+    VOLUME_SPIKE_ACTION = "EXIT_IMMEDIATELY"
+    
+    # === Price Gap Detection ===
+    PRICE_GAP_THRESHOLD_PCT = 2.0     # 2% move in 1 minute
+    PRICE_GAP_ACTION = "EXIT_IMMEDIATELY"
+    
+    # === Trading Halt Detection ===
+    CHECK_HALTS = True
+    HALT_ACTION = "HALT_TRADING"      # Pause all trading in halted stock
+    
+    # === Elevated Risk Adjustments (Tier 2) ===
+    # When news presents elevated (but not extreme) risk
+    ELEVATED_RISK_DEAD_ZONE_MULT = 0.5     # Reduce dead zone timeout by 50%
+    ELEVATED_RISK_POSITION_SIZE_MULT = 0.5  # Reduce position size by 50%
+    
+    # === News API Configuration ===
+    EARNINGS_CALENDAR_PROVIDER = "earnings_whispers"  # or "nasdaq", "finviz"
+    ECONOMIC_CALENDAR_PROVIDER = "trading_economics"  # or "forexfactory"
+    BREAKING_NEWS_PROVIDER = "newsapi"               # or "benzinga", "alphavantage"
+    
+    # === Analyst Changes ===
+    TRACK_ANALYST_CHANGES = True
+    ANALYST_LOOKBACK_HOURS = 24       # Check last 24 hours of analyst activity
+
+
+# ═══════════════════════════════════════════════════════════════
+# TIME-OF-DAY CONFIGURATION
+# ═══════════════════════════════════════════════════════════════
+
+class TimeOfDayConfig:
+    """Configuration for time-of-day performance analysis."""
+    
+    # === Time Windows (Eastern Time) ===
+    MARKET_OPEN_START = "09:31"
+    MARKET_OPEN_END = "10:00"
+    
+    MID_MORNING_START = "10:00"
+    MID_MORNING_END = "11:30"
+    
+    LUNCH_START = "11:30"
+    LUNCH_END = "13:30"
+    
+    AFTERNOON_START = "13:30"
+    AFTERNOON_END = "15:30"
+    
+    MARKET_CLOSE_START = "15:30"
+    MARKET_CLOSE_END = "16:00"
+    
+    # === Position Sizing by Time ===
+    ADJUST_POSITION_SIZE_BY_TIME = True
+    
+    # Position size multipliers per window quality
+    EXCELLENT_WINDOW_MULTIPLIER = 1.5  # High win rate, low dead zones
+    AVERAGE_WINDOW_MULTIPLIER = 1.0    # Moderate performance
+    POOR_WINDOW_MULTIPLIER = 0.5       # Low win rate, high dead zones
+    
+    # Quality thresholds
+    EXCELLENT_QUALITY_THRESHOLD = 0.6  # win_rate * (1 - dead_zone_rate)
+    POOR_QUALITY_THRESHOLD = 0.4
+
+
