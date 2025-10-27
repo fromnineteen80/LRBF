@@ -101,6 +101,17 @@ class TradingDatabase:
                 expected_trades_high INTEGER NOT NULL,
                 expected_pl_low REAL NOT NULL,
                 expected_pl_high REAL NOT NULL,
+                time_profiles_json TEXT,
+                news_screening_json TEXT,
+                default_forecast_json TEXT,
+                conservative_forecast_json TEXT,
+                aggressive_forecast_json TEXT,
+                choppy_forecast_json TEXT,
+                trending_forecast_json TEXT,
+                abtest_forecast_json TEXT,
+                vwap_breakout_forecast_json TEXT,
+                active_preset TEXT DEFAULT 'default',
+                active_strategy TEXT DEFAULT '3step',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
