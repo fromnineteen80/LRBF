@@ -19,7 +19,7 @@ WHY WE DON'T CHECK HISTORICAL EVENTS (5-20 days ago):
 - Otherwise we'd exclude 200+ stocks unnecessarily
 
 WHAT WE DO CHECK:
-- Events TODAY (earnings, FDA, mergers) → Exclude completely
+- Events TODAY (earnings) → Exclude completely
 - Events last 24 hours (analyst changes, breaking news) → Trade with caution
 - Real-time during trading (halts, volume spikes, price gaps) → Emergency exit
 """
@@ -34,7 +34,6 @@ from backend.data.news_providers import (
     get_analyst_changes,
     is_trading_halted,
     has_earnings_today,
-    has_fda_decision,
     detect_volume_spike,
     detect_price_gap
 )
@@ -50,7 +49,7 @@ def screen_for_news_events(ticker: str, date: datetime) -> Dict:
     Does NOT screen for events 5-20 days ago - those are captured in historical metrics.
     
     Logic:
-    - Events TODAY (earnings, FDA) → Exclude completely
+    - Events TODAY (earnings) → Exclude completely
     - Events in last 24 hours (analyst changes, breaking news) → Trade with caution
     - Events 2+ days ago → Ignore, historical analysis captures them naturally
     
@@ -86,15 +85,6 @@ def screen_for_news_events(ticker: str, date: datetime) -> Dict:
             'tradeable': False,
             'risk_level': 'EXTREME',
             'reason': 'Earnings announcement TODAY',
-            'adjustments': None
-        }
-    
-    # FDA decision expected TODAY (not next month - TODAY only)
-    if has_fda_decision(ticker, date):
-        return {
-            'tradeable': False,
-            'risk_level': 'EXTREME',
-            'reason': 'FDA decision expected TODAY',
             'adjustments': None
         }
     
