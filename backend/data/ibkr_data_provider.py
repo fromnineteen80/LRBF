@@ -246,13 +246,22 @@ class IBKRDataProvider:
             exchanges = ['NYSE', 'NASDAQ']
         
         try:
-            # TODO: Implement IBKR market scanner API
-            # For now, use fallback to curated list from stock_universe.py
-            print("⚠️  IBKR market scanner not yet implemented. Using curated fallback.")
-            return self._get_fallback_universe(limit)
+            # Use IBKR market scanner
+            tickers = self.connector.get_top_stocks_by_volume(
+                limit=limit,
+                min_volume=min_volume,
+                min_price=min_price
+            )
+            
+            if tickers and len(tickers) > 0:
+                print(f"✅ Scanned {len(tickers)} stocks from IBKR (target: {limit})")
+                return tickers
+            else:
+                print("⚠️  IBKR scanner returned no results. Using fallback.")
+                return self._get_fallback_universe(limit)
             
         except Exception as e:
-            print(f"❌ Error scanning top stocks: {e}")
+            print(f"❌ Error scanning top stocks: {e}. Using fallback.")
             return self._get_fallback_universe(limit)
     
     def _get_fallback_universe(self, limit: int = 500) -> List[str]:
