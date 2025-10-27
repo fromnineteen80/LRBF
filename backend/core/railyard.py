@@ -26,6 +26,9 @@ from backend.core.pattern_detector import PatternDetector
 from backend.core.filter_engine import FilterEngine
 from backend.data.storage_manager import StorageManager
 from config.config import TradingConfig, IBKRConfig
+from backend.core.time_profile_analyzer import calculate_adaptive_timeout
+from backend.core.news_monitor import NewsMonitor
+from backend.models.database import get_db_connection
 
 # Setup logging
 logging.basicConfig(
@@ -103,6 +106,13 @@ class RailyardEngine:
         self.account_balance = 0.0
         self.starting_balance = 0.0
         
+
+        # Time profiles for adaptive dead zones (loaded from morning report)
+        self.stock_time_profiles = {}
+        
+        # News monitoring
+        self.news_monitor = NewsMonitor()
+        self.last_news_check = 0
         logger.info(f"Railyard Engine initialized (strategy: {strategy}, filters: {use_filters})")
     
     def load_morning_forecast(self, date: str = None) -> bool:
@@ -132,6 +142,11 @@ class RailyardEngine:
             
             logger.info(f"Loaded {len(self.selected_tickers)} tickers from morning forecast")
             logger.info(f"Tickers: {', '.join(self.selected_tickers)}")
+
+            # Load time profiles for adaptive dead zones
+            time_profiles_json = forecast.get('time_profiles_json', '{}')
+            self.stock_time_profiles = json.loads(time_profiles_json) if time_profiles_json else {}
+            logger.info(f"Loaded time profiles for {len(self.stock_time_profiles)} stocks")
             
             return True
             
@@ -209,6 +224,11 @@ class RailyardEngine:
                 logger.warning("Daily loss limit hit. Stopping trading.")
                 break
             
+
+            # Check news every 60 seconds
+            if time.time() - self.last_news_check > 60:
+                self._check_news()
+                self.last_news_check = time.time()
             # Update account balance
             self._update_account_balance()
             
@@ -373,6 +393,39 @@ class RailyardEngine:
         # Calculate P&L percentage
         pnl_pct = ((current_price - entry_price) / entry_price) * 100
         time_in_trade = time.time() - entry_time
+
+        # Calculate adaptive timeout based on time-of-day performance
+        adaptive_timeouts = {}
+        if ticker in self.stock_time_profiles:
+            # Determine current milestone
+            milestone = None
+            if position.get('hit_momentum', False):
+                milestone = 'momentum'
+            elif position.get('hit_cross', False):
+                milestone = 'cross'
+            elif position.get('hit_target_1', False):
+                milestone = 'target1'
+            else:
+                milestone = 'base'
+            
+            # Calculate adaptive timeout
+            pattern_strength = position.get('pattern_strength', 1.0)
+            adaptive_timeout = calculate_adaptive_timeout(
+                stock_profile=self.stock_time_profiles[ticker],
+                milestone=milestone,
+                current_time=datetime.now(),
+                pattern_strength=pattern_strength
+            )
+            
+            # Store for use in dead zone checks
+            adaptive_timeouts['momentum'] = adaptive_timeout
+            adaptive_timeouts['cross'] = adaptive_timeout
+            adaptive_timeouts['base'] = adaptive_timeout
+        else:
+            # Fallback to config defaults
+            adaptive_timeouts['momentum'] = self.config.DEAD_ZONE_TIMEOUT_MOMENTUM
+            adaptive_timeouts['cross'] = adaptive_timeouts['cross']
+            adaptive_timeouts['base'] = adaptive_timeouts['base']
         
         # Update max P&L reached
         if 'max_pnl_pct' not in position:
@@ -418,7 +471,7 @@ class RailyardEngine:
         # === CASE 3: Momentum confirmed, going for T2 ===
         if position['hit_momentum']:
             # Check dead zone (6 minutes after momentum)
-            if self._check_dead_zone(position, time_in_trade, self.config.DEAD_ZONE_TIMEOUT_MOMENTUM):
+            if self._check_dead_zone(position, time_in_trade, adaptive_timeouts['momentum']):
                 # Exit at Cross floor or higher
                 exit_pct = max(pnl_pct, self.config.CROSS_THRESHOLD)
                 logger.info(f"{ticker}: DEAD ZONE MOMENTUM - Exiting at {exit_pct:.2f}%")
@@ -436,7 +489,7 @@ class RailyardEngine:
                 return
             
             # Check dead zone (4 minutes)
-            if self._check_dead_zone(position, time_in_trade, self.config.DEAD_ZONE_TIMEOUT_AT_CROSS):
+            if self._check_dead_zone(position, time_in_trade, adaptive_timeouts['cross']):
                 logger.info(f"{ticker}: DEAD ZONE AT CROSS - Exiting at {self.config.CROSS_THRESHOLD:.2f}%")
                 self._execute_exit(ticker, current_price, 'DEAD_ZONE_CROSS')
                 return
@@ -640,6 +693,74 @@ class RailyardEngine:
         
         return True
     
+    
+    def _check_news(self):
+        """
+        Check for news events on active positions every 60 seconds.
+        Take action based on risk level.
+        """
+        if not self.active_positions:
+            return
+        
+        # Get list of tickers with open positions
+        active_tickers = list(self.active_positions.keys())
+        
+        # Monitor for news
+        news_actions = self.news_monitor.monitor_tickers(active_tickers)
+        
+        # Handle recommended actions
+        for ticker, action in news_actions.items():
+            if action == 'EXIT_IMMEDIATELY':
+                logger.warning(f"{ticker}: BREAKING NEWS - Emergency exit triggered")
+                snapshot = self.ibkr.get_market_snapshot(ticker)
+                if snapshot:
+                    current_price = snapshot.get('last_price', 0)
+                    if current_price > 0:
+                        self._execute_exit(ticker, current_price, 'NEWS_BREAK')
+            
+            elif action == 'TIGHTEN_STOPS':
+                logger.warning(f"{ticker}: ELEVATED NEWS RISK - Tightening stops")
+                position = self.active_positions.get(ticker)
+                if position:
+                    # Reduce stop loss to -0.25% (tighter than normal -0.5%)
+                    position['tightened_stop'] = True
+                    position['stop_loss_pct'] = -0.25
+            
+            elif action == 'HALT_TRADING':
+                logger.warning(f"{ticker}: EXTREME NEWS RISK - Halting new entries")
+                # Remove from selected tickers to prevent new entries
+                if ticker in self.selected_tickers:
+                    self.selected_tickers.remove(ticker)
+    
+    def _emergency_exit(self, ticker: str, reason: str):
+        """Emergency exit for news events."""
+        if ticker not in self.active_positions:
+            return
+        
+        snapshot = self.ibkr.get_market_snapshot(ticker)
+        if snapshot:
+            current_price = snapshot.get('last_price', 0)
+            if current_price > 0:
+                self._execute_exit(ticker, current_price, reason)
+                logger.info(f"{ticker}: Emergency exit completed - {reason}")
+    
+    def _tighten_stops(self, ticker: str, multiplier: float = 0.5):
+        """Tighten stop loss for elevated risk."""
+        if ticker not in self.active_positions:
+            return
+        
+        position = self.active_positions[ticker]
+        original_stop = self.config.STOP_LOSS
+        new_stop = original_stop * multiplier
+        position['stop_loss_pct'] = new_stop
+        logger.info(f"{ticker}: Stop loss tightened from {original_stop}% to {new_stop}%")
+    
+    def _halt_position(self, ticker: str):
+        """Halt trading for a specific ticker."""
+        # Remove from selected tickers
+        if ticker in self.selected_tickers:
+            self.selected_tickers.remove(ticker)
+            logger.info(f"{ticker}: Removed from trading list due to news risk")
     def _shutdown(self):
         """Clean shutdown - close all positions."""
         logger.info("=" * 60)
