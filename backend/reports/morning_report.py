@@ -22,7 +22,7 @@ from backend.core.metrics_calculator import calculate_risk_metrics
 from backend.core.quant_metrics import QuantMetricsCalculator, get_spy_returns
 from backend.core.filter_engine import FilterEngine
 from backend.data.stock_universe import get_stock_universe
-from backend.data.data_provider import fetch_market_data
+from backend.data.ibkr_data_provider import fetch_market_data
 from config.config import TradingConfig
 
 
