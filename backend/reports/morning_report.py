@@ -17,7 +17,7 @@ import json
 from backend.models.database import TradingDatabase
 from backend.core.pattern_detector import analyze_vwap_patterns
 from backend.core.stock_selector import select_balanced_portfolio
-from backend.core.dual_forecast_generator import DualForecastGenerator
+from backend.core.seven_forecast_generator import SevenForecastGenerator
 from backend.core.metrics_calculator import calculate_risk_metrics
 from backend.core.quant_metrics import QuantMetricsCalculator, get_spy_returns
 from backend.core.filter_engine import FilterEngine
@@ -1004,7 +1004,7 @@ class EnhancedMorningReport:
             }
         """
         all_forecasts = {}
-        presets = ['default', 'conservative', 'aggressive', 'choppy_market', 'trending_market', 'ab_test']
+        presets = ['default', 'conservative', 'aggressive', 'choppy', 'trending', 'abtest', 'vwap_breakout']
         
         for preset_name in presets:
             print(f"   → Generating {preset_name} forecast...")
