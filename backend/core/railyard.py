@@ -343,13 +343,22 @@ class RailyardEngine:
     
     def _manage_position(self, ticker: str):
         """
-        Manage open position (check stop loss and profit targets).
+        Manage open position with sophisticated tiered exit logic.
+        
+        Exit Logic:
+        - If price reaches T2 (+1.75%) → Exit at T2
+        - If price reaches T1, crosses +1.00%, hits +1.25% → Stay in for T2
+        - If price reaches T1, crosses +1.00%, never hits +1.25% → Exit at +1.00%
+        - If price reaches T1 but never crosses +1.00% → Exit at T1 (+0.75%)
+        - Stop Loss: -0.5% from entry if immediate crash
+        - Tiered dead zones based on profit level
         
         Args:
             ticker: Ticker symbol
         """
         position = self.active_positions[ticker]
         entry_price = position['entry_price']
+        entry_time = position['entry_time']
         shares = position['shares']
         
         # Get current price
@@ -363,27 +372,126 @@ class RailyardEngine:
         
         # Calculate P&L percentage
         pnl_pct = ((current_price - entry_price) / entry_price) * 100
+        time_in_trade = time.time() - entry_time
         
-        # Check STOP LOSS
+        # Update max P&L reached
+        if 'max_pnl_pct' not in position:
+            position['max_pnl_pct'] = pnl_pct
+        else:
+            position['max_pnl_pct'] = max(position['max_pnl_pct'], pnl_pct)
+        
+        # Track price history for dead zone detection
+        if 'price_history' not in position:
+            position['price_history'] = []
+        position['price_history'].append(pnl_pct)
+        if len(position['price_history']) > 60:  # Keep last 60 ticks
+            position['price_history'] = position['price_history'][-60:]
+        
+        # Initialize milestone flags
+        if 'hit_target_1' not in position:
+            position['hit_target_1'] = False
+        if 'hit_cross' not in position:
+            position['hit_cross'] = False
+        if 'hit_momentum' not in position:
+            position['hit_momentum'] = False
+        
+        # === CASE 1: Hit T2 → Exit immediately ===
+        if pnl_pct >= self.config.TARGET_2:
+            logger.info(f"{ticker}: TARGET 2 HIT - P&L: {pnl_pct:.2f}%")
+            self._execute_exit(ticker, current_price, 'TARGET_2')
+            return
+        
+        # === CASE 2: Stop Loss (immediate crash) ===
         if pnl_pct <= self.config.STOP_LOSS:
             logger.info(f"{ticker}: STOP LOSS HIT - P&L: {pnl_pct:.2f}%")
             self._execute_exit(ticker, current_price, 'STOP_LOSS')
             return
         
-        # Check TARGET 1
-        if not position['hit_target_1'] and pnl_pct >= self.config.TARGET_1:
+        # === Update milestone flags ===
+        if pnl_pct >= self.config.TARGET_1:
             position['hit_target_1'] = True
-            logger.info(f"{ticker}: TARGET 1 HIT - Waiting for TARGET 2 or reversion")
+        if pnl_pct >= self.config.CROSS_THRESHOLD:
+            position['hit_cross'] = True
+        if pnl_pct >= self.config.MOMENTUM_CONFIRMATION:
+            position['hit_momentum'] = True
         
-        # If hit TARGET 1, check for TARGET 2 or reversion
+        # === CASE 3: Momentum confirmed, going for T2 ===
+        if position['hit_momentum']:
+            # Check dead zone (6 minutes after momentum)
+            if self._check_dead_zone(position, time_in_trade, self.config.DEAD_ZONE_TIMEOUT_MOMENTUM):
+                # Exit at Cross floor or higher
+                exit_pct = max(pnl_pct, self.config.CROSS_THRESHOLD)
+                logger.info(f"{ticker}: DEAD ZONE MOMENTUM - Exiting at {exit_pct:.2f}%")
+                self._execute_exit(ticker, current_price, 'DEAD_ZONE_MOMENTUM')
+                return
+            # Otherwise, hold for T2
+            return
+        
+        # === CASE 4: Hit T1, crossed 1.00%, waiting for momentum ===
+        if position['hit_cross']:
+            # Check if we should exit at Cross (never hit 1.25%)
+            if pnl_pct < self.config.CROSS_THRESHOLD:
+                logger.info(f"{ticker}: REVERTED TO CROSS - Exiting at {self.config.CROSS_THRESHOLD:.2f}%")
+                self._execute_exit(ticker, current_price, 'CROSS_THRESHOLD')
+                return
+            
+            # Check dead zone (4 minutes)
+            if self._check_dead_zone(position, time_in_trade, self.config.DEAD_ZONE_TIMEOUT_AT_CROSS):
+                logger.info(f"{ticker}: DEAD ZONE AT CROSS - Exiting at {self.config.CROSS_THRESHOLD:.2f}%")
+                self._execute_exit(ticker, current_price, 'DEAD_ZONE_CROSS')
+                return
+            return
+        
+        # === CASE 5: Hit T1, waiting for Cross ===
         if position['hit_target_1']:
-            if pnl_pct >= self.config.TARGET_2:
-                logger.info(f"{ticker}: TARGET 2 HIT - P&L: {pnl_pct:.2f}%")
-                self._execute_exit(ticker, current_price, 'TARGET_2')
-            elif pnl_pct < self.config.TARGET_1:
-                logger.info(f"{ticker}: REVERTED TO TARGET 1 - P&L: {pnl_pct:.2f}%")
+            # Check if we should exit at T1 (never crossed 1.00%)
+            if pnl_pct < self.config.TARGET_1:
+                logger.info(f"{ticker}: REVERTED TO T1 - Exiting at {self.config.TARGET_1:.2f}%")
                 self._execute_exit(ticker, current_price, 'TARGET_1')
+                return
+            
+            # Check dead zone (4 minutes)
+            if self._check_dead_zone(position, time_in_trade, self.config.DEAD_ZONE_TIMEOUT_AT_T1):
+                logger.info(f"{ticker}: DEAD ZONE AT T1 - Exiting at {self.config.TARGET_1:.2f}%")
+                self._execute_exit(ticker, current_price, 'DEAD_ZONE_T1')
+                return
+            return
+        
+        # === CASE 6: Below T1, check for weak pattern ===
+        if time_in_trade > self.config.DEAD_ZONE_TIMEOUT_BELOW_T1:
+            if self._check_dead_zone(position, time_in_trade, self.config.DEAD_ZONE_TIMEOUT_BELOW_T1):
+                # Exit at break-even or small profit
+                exit_pct = max(pnl_pct, 0.0)
+                logger.info(f"{ticker}: DEAD ZONE BELOW T1 - Exiting at {exit_pct:.2f}%")
+                self._execute_exit(ticker, current_price, 'DEAD_ZONE_FAILED')
+                return
     
+    def _check_dead_zone(self, position: Dict, time_in_trade: float, timeout: float) -> bool:
+        """
+        Check if position is stuck in dead zone (±0.6% range).
+        
+        Args:
+            position: Position dict with price_history
+            time_in_trade: Time since entry (seconds)
+            timeout: Timeout threshold (seconds)
+        
+        Returns:
+            True if dead zone detected
+        """
+        if time_in_trade < timeout:
+            return False
+        
+        # Check if stuck in narrow range
+        price_history = position.get('price_history', [])
+        if len(price_history) < 30:
+            return False
+        
+        recent_prices = price_history[-30:]
+        price_range = max(recent_prices) - min(recent_prices)
+        
+        # Dead zone = stuck in ±0.6% range
+        return price_range < self.config.DEAD_ZONE_RANGE
+
     def _execute_exit(self, ticker: str, exit_price: float, reason: str):
         """
         Execute exit order.
