@@ -57,10 +57,6 @@ class DualForecastGenerator:
         
         # 2. PRESET FORECASTS (with filters)
         for preset_name in self.presets:
-            if preset_name == 'ab_test':
-                # Skip ab_test preset (tracking mode only)
-                continue
-                
             print(f"   Generating {preset_name.upper()} forecast...")
             all_forecasts[preset_name] = self._generate_preset_forecast(
                 pattern_results,
