@@ -17,7 +17,7 @@ import json
 from backend.models.database import TradingDatabase
 from backend.core.pattern_detector import analyze_vwap_patterns
 from backend.core.stock_selector import select_balanced_portfolio
-from backend.core.forecast_generator import generate_daily_forecast
+from backend.core.dual_forecast_generator import DualForecastGenerator
 from backend.core.metrics_calculator import calculate_risk_metrics
 from backend.core.quant_metrics import QuantMetricsCalculator, get_spy_returns
 from backend.core.filter_engine import FilterEngine
