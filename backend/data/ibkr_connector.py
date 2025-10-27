@@ -158,6 +158,97 @@ class IBKRConnector:
                 'server_info': None
             }
     
+    
+    def run_market_scanner(
+        self,
+        scanner_type: str = "TOP_PERC_GAIN",
+        location: str = "STK.US.MAJOR",
+        instrument: str = "STK",
+        limit: int = 500,
+        filters: List[Dict] = None
+    ) -> List[Dict]:
+        """
+        Run IBKR market scanner to find stocks matching criteria.
+        
+        Args:
+            scanner_type: Scanner type (e.g., "TOP_PERC_GAIN", "MOST_ACTIVE")
+            location: Market location (e.g., "STK.US.MAJOR", "STK.NASDAQ")
+            instrument: Instrument type (default "STK" for stocks)
+            limit: Maximum results to return (default 500)
+            filters: Additional filters (optional)
+        
+        Returns:
+            List of dictionaries with stock data
+        """
+        try:
+            scanner_params = {
+                "instrument": instrument,
+                "location": location,
+                "type": scanner_type,
+                "filter": filters or []
+            }
+            
+            response = self._make_request(
+                "POST",
+                "/iserver/scanner/run",
+                json=scanner_params
+            )
+            
+            if not response or "contracts" not in response:
+                return []
+            
+            results = []
+            for contract in response["contracts"][:limit]:
+                results.append({
+                    'symbol': contract.get('symbol', ''),
+                    'conid': contract.get('conid'),
+                    'volume': contract.get('volume', 0),
+                    'market_cap': contract.get('market_cap', 0),
+                    'price': contract.get('last_price', 0),
+                    'company_name': contract.get('company_name', '')
+                })
+            
+            return results
+            
+        except Exception as e:
+            print(f"Error running market scanner: {e}")
+            return []
+    
+    def get_top_stocks_by_volume(
+        self,
+        limit: int = 500,
+        min_volume: int = 5_000_000,
+        min_price: float = 5.0
+    ) -> List[str]:
+        """
+        Get top stocks by volume using IBKR scanner.
+        
+        Args:
+            limit: Maximum number of stocks
+            min_volume: Minimum average daily volume
+            min_price: Minimum stock price
+        
+        Returns:
+            List of ticker symbols sorted by volume
+        """
+        try:
+            scanner_results = self.run_market_scanner(
+                scanner_type="MOST_ACTIVE",
+                location="STK.US.MAJOR",
+                limit=limit * 2
+            )
+            
+            filtered = [
+                r['symbol'] for r in scanner_results
+                if r['volume'] >= min_volume and r['price'] >= min_price
+            ]
+            
+            return filtered[:limit]
+            
+        except Exception as e:
+            print(f"Error getting top stocks: {e}")
+            return []
+
     def disconnect(self):
         """Close IBKR connection and logout."""
         try:
