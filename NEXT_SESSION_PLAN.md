@@ -1,198 +1,171 @@
-NEXT SESSION PLAN - Morning Report Completion
-==============================================
+# NEXT SESSION EXECUTION PLAN
+**Objective:** Complete ib_insync migration + validate morning report
+**Estimated Tokens:** 30k (90% code, 10% validation)
 
-SESSION GOAL: Complete morning report with correct IBKR integration
+---
 
-==============================================
-DECISION POINT (Choose before starting)
-==============================================
+## PHASE 1: ib_insync Migration (5 commits, ~15k tokens)
 
-Option A: Use ib_insync (RECOMMENDED)
-- Rebuild 3 files: ibkr_connector.py, ibkr_data_provider.py, delete ibkr_websocket.py
-- 5 commits, ~15k tokens, 30 minutes
-- Institutional-grade: 1-10ms latency, tick data, native scanner
-- Rest of repo unchanged
+### Commit 1: Add ib_insync dependency
+**File:** `requirements.txt`
+**Action:** Add `ib-insync>=0.9.86`
 
-Option B: Keep Client Portal Web API
-- Test current implementation with test_ibkr_connector.py
-- Fix any broken endpoints based on test results
-- ~5k tokens for fixes
-- May need rebuild later for production
+### Commit 2: Rewrite IBKR connector with ib_insync
+**File:** `backend/data/ibkr_connector.py`
+**Replace entire file with:**
+- IB() connection to localhost:4002 (IB Gateway)
+- Methods: connect(), get_historical_data(), get_account_balance(), get_positions(), get_fills()
+- Use Stock() contract for symbols
+- reqHistoricalData() for 20-day bars
+- reqTickers() for real-time snapshots
+- scannerData() for top 500 stocks by volume
+- Keep SAME method signatures (drop-in replacement)
 
-==============================================
-IF OPTION A (ib_insync) - 5 Steps
-==============================================
+**Key differences from Client Portal:**
+- No HTTP/REST calls (native binary protocol)
+- No contract ID lookup needed (use Stock('AAPL', 'SMART', 'USD'))
+- Built-in tick streaming (no WebSocket needed)
+- Simpler code (~200 lines vs 400)
 
-1. Install ib_insync
-   - Add to requirements.txt
-   - Commit
+### Commit 3: Update data provider wrapper
+**File:** `backend/data/ibkr_data_provider.py`
+**Changes:**
+- Import from new ibkr_connector
+- scan_top_stocks() → use ib.reqScannerData()
+- get_historical_data() → parse ib_insync BarDataList to DataFrame
+- get_current_price() → use ib.reqTickers()
+- Add VWAP calculation if not in bars
 
-2. Rewrite backend/data/ibkr_connector.py
-   - Use ib_insync.IB() instead of requests
-   - Keep same method signatures (get_historical_data, etc.)
-   - Add native scanner support
-   - Commit
+### Commit 4: Delete WebSocket (not needed)
+**File:** `backend/data/ibkr_websocket.py`
+**Action:** DELETE (ib_insync has streaming built-in via reqMktData())
 
-3. Update backend/data/ibkr_data_provider.py
-   - Change imports to use new connector
-   - Test fetch_market_data() works
-   - Commit
+### Commit 5: Update configuration
+**File:** `config/config.py`
+**Action:** Add IB Gateway settings (host, port, clientId)
 
-4. Delete backend/data/ibkr_websocket.py
-   - ib_insync has streaming built-in
-   - Commit
+---
 
-5. Test end-to-end
-   - Run morning_report.py
-   - Verify 7 forecasts generated
-   - Commit fixes if needed
+## PHASE 2: Validation (3 steps, ~10k tokens)
 
-==============================================
-IF OPTION B (Client Portal) - 3 Steps
-==============================================
+### Step 1: Create test script
+**File:** `test_ib_insync_connector.py`
+**Test:**
+1. Connect to IB Gateway (localhost:4002)
+2. Get AAPL contract
+3. Fetch 1 day historical data
+4. Check VWAP calculation
+5. Run scanner for 10 stocks
+6. Get real-time snapshot
 
-1. Run validation test
-   - python test_ibkr_connector.py
-   - Note which tests fail
+### Step 2: Fix any issues
+Based on test output, fix:
+- Connection parameters
+- Contract specification
+- Historical data parsing
+- Scanner parameters
+- VWAP calculation
 
-2. Fix failed endpoints
-   - Update URLs/parameters based on errors
-   - Add VWAP calculation if not in response
-   - Add scanner fallback if endpoint doesn't exist
-   - Commit fixes
+### Step 3: Integration test
+**Run:** `python backend/reports/morning_report.py`
+**Verify:**
+- Scans 500 stocks from IB Gateway
+- Fetches 20-day data per stock
+- Generates 7 forecasts
+- Stores in database
+- No errors
 
-3. Test morning report
-   - Run morning_report.py
-   - Verify 7 forecasts generated
-   - Commit fixes if needed
+---
 
-==============================================
-MORNING REPORT INTEGRATION (Both Options)
-==============================================
+## PHASE 3: Documentation (2 commits, ~5k tokens)
 
-1. Verify morning_report.py flow
-   - Loads top 500 from IBKR scanner ✅ (commit 710456f)
-   - Fetches 20-day data for each ✅
-   - Runs pattern detection ✅
-   - Generates 7 forecasts ✅
-   - Stores in database ✅
+### Commit 1: Update TECHNICAL_SPECS.md
+**Changes:**
+- Replace Client Portal sections with IB Gateway
+- Update data source to ib_insync
+- Update latency specs (1-10ms)
+- Update prerequisites (IB Gateway setup)
 
-2. Test database storage
-   - Check morning_forecasts table has all_forecasts_json
-   - Check users table has fund_contribution, ownership_pct
-   - Run migrations if needed
+### Commit 2: Create IB Gateway setup guide
+**File:** `docs/IB_GATEWAY_SETUP.md`
+**Content:**
+- Download IB Gateway
+- Configuration (port 4002)
+- Paper trading setup
+- Auto-restart settings
+- Troubleshooting
 
-3. Run full morning report
-   - python backend/reports/morning_report.py
-   - Should generate JSON output with 7 forecasts
-   - Store in database
-   - Print summary
+---
 
-4. Verify output
-   - Selected stocks (8-20)
-   - Backup stocks (4)
-   - 7 forecast scenarios
-   - Expected trades/P&L ranges
-   - Quality scores
+## SUCCESS CRITERIA
 
-==============================================
-REMAINING GAPS (If Time Permits)
-==============================================
+✅ All 5 migration commits pushed
+✅ Test script passes all checks
+✅ Morning report generates 7 forecasts
+✅ Database contains forecast data
+✅ No Client Portal references remain
 
-1. VWAP calculation
-   - If not in historical data response
-   - Add manual calculation: VWAP = sum(price*volume) / sum(volume)
+---
 
-2. Rate limiting
-   - 500 stocks × 20 days = potential rate limit issue
-   - Add retry logic for 429 status codes
-   - Add delays between requests
+## FILE CHANGES SUMMARY
 
-3. Error handling
-   - Add try/catch for failed stock data
-   - Continue if 1 stock fails (don't break entire scan)
+**Modified (3 files):**
+- backend/data/ibkr_connector.py (complete rewrite)
+- backend/data/ibkr_data_provider.py (update imports/calls)
+- requirements.txt (add ib_insync)
 
-4. Logging
-   - Add detailed logs for debugging
-   - Track timing per stock
-   - Identify slow stocks
+**Deleted (1 file):**
+- backend/data/ibkr_websocket.py
 
-==============================================
-SUCCESS CRITERIA
-==============================================
+**Unchanged (everything else):**
+- All core logic (pattern detection, forecasting, scoring)
+- All reports (morning, EOD)
+- All frontend (HTML, JS, CSS)
+- All database schemas
+- All other backend modules
 
-Morning report should:
-✅ Scan 500 stocks from IBKR
-✅ Fetch 20-day historical data
-✅ Generate 7 forecasts:
-   1. Default (no filters)
-   2. Conservative
-   3. Aggressive
-   4. Choppy Market
-   5. Trending Market
-   6. AB Test
-   7. VWAP Breakout
-✅ Store in database
-✅ Return JSON output
-✅ Complete in <5 minutes
+**Total LOC changed:** ~500 lines (out of 15,000+ total)
 
-==============================================
-CURRENT STATUS
-==============================================
+---
 
-✅ COMPLETED (15 commits this session):
-- Fixed IBKR gateway URLs
-- Replaced RapidAPI with IBKR
-- Added market scanner
-- Created VWAP Breakout detector
-- Generated 7 forecasts
-- Added WebSocket streaming
-- Added database migrations
-- Morning report uses IBKR scanner
+## CRITICAL NOTES
 
-⚠️ NOT TESTED:
-- IBKR endpoints (may be wrong)
-- Morning report end-to-end
-- Database storage
-- 7-forecast generation
+1. **IB Gateway must be running** before any tests
+2. **Paper account** (DU5697343) should be configured
+3. **Port 4002** is standard for IB Gateway (not 8000)
+4. **VWAP calculation:** If not in historical bars, calculate as sum(price × volume) / sum(volume)
+5. **Scanner:** Use ScannerSubscription with TOP_PERC_GAIN or MOST_ACTIVE filter
 
-==============================================
-RECOMMENDED APPROACH
-==============================================
+---
 
-START NEXT SESSION:
-1. User decides: ib_insync (Option A) or Client Portal (Option B)
-2. Execute chosen option (5 or 3 steps)
-3. Test morning report end-to-end
-4. Fix any issues
-5. Verify 7 forecasts stored in database
+## EXECUTION ORDER
 
-ESTIMATED TIME:
-- Option A: 30-45 minutes (rebuild + test)
-- Option B: 15-30 minutes (test + fix)
+1. Read this plan
+2. Execute Phase 1 (migration) - commit after each step
+3. Execute Phase 2 (validation) - fix issues immediately
+4. Execute Phase 3 (documentation) - update specs
+5. Report token usage after completion
 
-ESTIMATED TOKENS:
-- Option A: ~15-20k tokens
-- Option B: ~5-10k tokens
+---
 
-==============================================
-FILES TO REFERENCE NEXT SESSION
-==============================================
+## ESTIMATED TIMELINE
 
-✅ Keep open:
-- project_handoff.md (context)
-- TECHNICAL_SPECS.md (reference)
-- morning_report_assessment.md (requirements)
-- IBKR_API_VERIFICATION.md (API notes)
-- test_ibkr_connector.py (validation script)
+- Phase 1: 15k tokens (5 commits)
+- Phase 2: 10k tokens (testing)
+- Phase 3: 5k tokens (docs)
+- **Total: 30k tokens**
+- **Remaining: 60k tokens for morning report work**
 
-❌ Don't read:
-- Building Railyard Markets.docx (not needed)
-- Full IBKR API docs (too large)
+---
 
-==============================================
-END OF PLAN
-==============================================
+## AFTER COMPLETION
 
-Token Status: 88k remaining
-Next Session: Choose Option A or B, execute, test, verify
+Next priorities (if tokens remain):
+1. Run full morning report scan (500 stocks)
+2. Verify 7 forecasts stored correctly
+3. Test database queries
+4. Fix any performance issues
+
+---
+
+**END OF PLAN**
