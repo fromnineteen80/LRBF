@@ -1106,16 +1106,17 @@ class EnhancedMorningReport:
     ) -> int:
         """Store complete report in database with all scenario forecasts"""
         
-        # Prepare enhanced forecasts JSON (excluding default since it's stored separately)
-        enhanced_json = {}
+        # Prepare all_forecasts dict in format database expects
+        all_forecasts = {}
         if enhanced_forecasts:
             for preset_name, scenario_data in enhanced_forecasts.items():
-                if preset_name != 'default':
-                    enhanced_json[preset_name] = {
-                        'forecast': scenario_data['forecast'],
-                        'selected_stocks': scenario_data['selection']['primary']['ticker'].tolist(),
-                        'stocks_analyzed': scenario_data['stocks_analyzed']
-                    }
+                all_forecasts[preset_name] = {
+                    'forecast': scenario_data['forecast'],
+                    'selected_stocks': scenario_data['selection']['primary']['ticker'].tolist(),
+                    'backup_stocks': scenario_data['selection']['backup']['ticker'].tolist() if 'backup' in scenario_data['selection'] else [],
+                    'stocks_analyzed': scenario_data['stocks_analyzed'],
+                    'preset': preset_name
+                }
         
         # Prepare data for database
         forecast_data = {
@@ -1128,11 +1129,11 @@ class EnhancedMorningReport:
             'expected_pl_low': forecast['ranges']['profit']['low'],
             'expected_pl_high': forecast['ranges']['profit']['high'],
             'stock_analysis': self._build_stock_analysis_json(selection, dz_metrics, quant_metrics),
-            'default_forecast_json': json.dumps(default_forecast) if default_forecast else None,
-            'enhanced_forecast_json': json.dumps(enhanced_json) if enhanced_json else None,
+            'all_forecasts': all_forecasts,  # Pass all_forecasts dict directly
             'time_profiles_json': json.dumps(time_profiles) if time_profiles else None,
             'news_screening_json': json.dumps(news_screening) if news_screening else None,
-            'active_preset': 'default'  # Can be changed via API
+            'active_preset': 'default',  # Can be changed via API
+            'active_strategy': '3step'
         }
         
         report_id = self.db.insert_morning_forecast(forecast_data)
