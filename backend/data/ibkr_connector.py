@@ -45,7 +45,7 @@ class IBKRConnector:
     
     def __init__(
         self,
-        gateway_url: str = "https://localhost:5000",
+        gateway_url: str = "https://localhost:8000",
         account_id: str = None,
         paper_trading: bool = True,
         timeout: int = 30
