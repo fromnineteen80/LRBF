@@ -35,9 +35,9 @@ class CategoryScorer:
         'dead_zone': 0.05,
         
         # TIER 2: Execution Quality (30%)
-        'liquidity': 0.10,
+        'liquidity': 0.07,  # Reduced from 10% - top 500 already liquid
         'volatility': 0.10,
-        'vwap_stability': 0.05,
+        'vwap_stability': 0.08,  # Increased from 5% - critical for both strategies
         'time_efficiency': 0.05,
         
         # TIER 3: Risk Management (15%)
