@@ -1,14 +1,15 @@
 """
 IBKR Data Provider - Production Implementation
 
-Replaces RapidAPI/yfinance with direct IBKR Client Portal Gateway API.
-Provides historical data, real-time quotes, and market scanning capabilities.
+Uses ib_insync library for native IB Gateway connection.
+Replaces RapidAPI/yfinance and Client Portal with direct IB Gateway API.
 
 Key Features:
 - 20-day historical tick/minute data from IBKR
-- Real-time price snapshots via WebSocket
+- Real-time price snapshots via native streaming
 - Top 500 stock scanner by volume
 - Production-grade error handling and retries
+- Low-latency native binary protocol
 
 Author: The Luggage Room Boys Fund
 Date: October 2025
@@ -26,15 +27,17 @@ class IBKRDataProvider:
     """
     Production IBKR data provider for morning report and live trading.
     
-    Wraps IBKRConnector with convenience methods matching the old RapidAPI interface
-    to enable drop-in replacement throughout the codebase.
+    Wraps IBKRConnector (ib_insync) with convenience methods matching the old RapidAPI 
+    interface to enable drop-in replacement throughout the codebase.
     """
     
     def __init__(
         self,
         account_id: str = None,
         paper_trading: bool = True,
-        gateway_url: str = "https://localhost:8000"
+        host: str = "127.0.0.1",
+        port: int = None,
+        client_id: int = 1
     ):
         """
         Initialize IBKR data provider.
@@ -42,25 +45,32 @@ class IBKRDataProvider:
         Args:
             account_id: IBKR account ID (reads from env if not provided)
             paper_trading: Use paper account (DU prefix)
-            gateway_url: Client Portal Gateway URL
+            host: IB Gateway host (default: localhost)
+            port: Gateway port (default: 4002 for paper, 4001 for live)
+            client_id: Unique client ID (1-32)
         """
         # Get account ID from environment if not provided
         if not account_id:
             account_id = os.getenv('IBKR_ACCOUNT_ID')
-            if not account_id:
-                raise ValueError("IBKR_ACCOUNT_ID must be set in environment or passed as argument")
+            # Account ID is optional - connector will auto-detect
         
-        # Initialize IBKR connector
+        # Set default port based on paper_trading if not specified
+        if port is None:
+            port = 4002 if paper_trading else 4001
+        
+        # Initialize IBKR connector (ib_insync)
         self.connector = IBKRConnector(
-            gateway_url=gateway_url,
+            host=host,
+            port=port,
+            client_id=client_id,
             account_id=account_id,
             paper_trading=paper_trading
         )
         
-        # Connect to gateway
+        # Connect to IB Gateway
         self.connected = self.connector.connect()
         if not self.connected:
-            raise ConnectionError("Failed to connect to IBKR Client Portal Gateway")
+            raise ConnectionError("Failed to connect to IB Gateway. Make sure it's running on port {port}.")
     
     # ========================================================================
     # HISTORICAL DATA (20-day lookback for morning report)
@@ -129,16 +139,16 @@ class IBKRDataProvider:
             return 20
     
     def _convert_interval(self, interval: str) -> str:
-        """Convert yfinance-style interval to IBKR bar size."""
+        """Convert yfinance-style interval to ib_insync bar size format."""
         conversion_map = {
-            '1m': '1min',
-            '5m': '5min',
-            '15m': '15min',
-            '30m': '30min',
-            '1h': '1h',
-            '1d': '1d'
+            '1m': '1 min',
+            '5m': '5 mins',
+            '15m': '15 mins',
+            '30m': '30 mins',
+            '1h': '1 hour',
+            '1d': '1 day'
         }
-        return conversion_map.get(interval, '1min')
+        return conversion_map.get(interval, '1 min')
     
     # ========================================================================
     # REAL-TIME DATA (live monitoring)
@@ -162,12 +172,8 @@ class IBKRDataProvider:
             if not snapshot:
                 return None
             
-            # Try last price, then bid, then ask
-            return (
-                snapshot.get('31') or  # Last price
-                snapshot.get('84') or  # Bid price
-                snapshot.get('86')     # Ask price
-            )
+            # Return last price, or bid if last not available
+            return snapshot.get('last_price') or snapshot.get('bid')
             
         except Exception as e:
             print(f"❌ Error fetching current price for {ticker}: {e}")
@@ -191,22 +197,15 @@ class IBKRDataProvider:
             if not snapshot:
                 return None
             
-            # Map IBKR field codes to readable names
+            # Map to RapidAPI-style output (for compatibility)
             return {
                 'symbol': ticker,
-                'current_price': snapshot.get('31'),      # Last price
-                'bid': snapshot.get('84'),                # Bid price
-                'ask': snapshot.get('86'),                # Ask price
-                'bid_size': snapshot.get('88'),           # Bid size
-                'ask_size': snapshot.get('85'),           # Ask size
-                'volume': snapshot.get('87'),             # Volume
-                'vwap': snapshot.get('7633'),             # VWAP
-                'open': snapshot.get('7295'),             # Open price
-                'high': snapshot.get('70'),               # High price
-                'low': snapshot.get('71'),                # Low price
-                'previous_close': snapshot.get('7295'),   # Previous close
-                'change': snapshot.get('82'),             # Price change
-                'change_pct': snapshot.get('83')          # % change
+                'current_price': snapshot.get('last_price'),
+                'bid': snapshot.get('bid'),
+                'ask': snapshot.get('ask'),
+                'volume': snapshot.get('volume'),
+                'vwap': snapshot.get('vwap'),
+                'timestamp': snapshot.get('timestamp')
             }
             
         except Exception as e:
