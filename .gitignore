@@ -67,3 +67,6 @@ tmp/
 developer_notes/notes/
 /prototypes/
 
+
+# Project state archive
+docs/project/
