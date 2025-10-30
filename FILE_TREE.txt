@@ -1,115 +1,222 @@
-railyard_app/ - Complete Application Structure
-│
-├── 📄 app.py (381 lines)
-│   └── Main Flask application with all API endpoints
-│       ├── Authentication (login/logout)
-│       ├── Page routes (10 pages)
-│       ├── Morning report API
-│       ├── Live monitor API
-│       ├── EOD report API
-│       ├── Calculator API
-│       ├── Practice mode API
-│       ├── History API
-│       ├── Settings API
-│       ├── Credentials API
-│       └── System status API
-│
-├── 📁 modules/ (YOUR BACKEND - 100% PRESERVED)
-│   ├── __init__.py
-│   ├── pattern_detector.py (VWAP Recovery Pattern detection)
-│   ├── stock_selector.py (Portfolio selection algorithm)
-│   ├── forecast_generator.py (Daily forecast calculations)
-│   ├── morning_report.py (Morning analysis generator)
-│   ├── live_monitor.py (Real-time monitoring)
-│   ├── eod_reporter.py (End-of-day analysis)
-│   ├── ibkr_connector.py (Interactive Brokers API)
-│   ├── capitalise_prompts.py (Capitalise.ai integration)
-│   ├── database.py (SQLite interface)
-│   ├── config.py (Trading configuration)
-│   ├── stock_universe.py (Curated stock list)
-│   ├── batch_analyzer.py (Parallel analysis)
-│   ├── metrics_calculator.py (Risk metrics)
-│   └── eod_html_generator.py (Report formatting)
-│
-├── 📁 templates/ (MATERIAL DESIGN 3 PAGES)
-│   ├── base.html (MD3 base template with nav rail, top bar)
-│   ├── login.html (Authentication page)
-│   ├── dashboard.html (Overview with charts)
-│   ├── morning.html (Stock selection & forecast)
-│   ├── live.html (Real-time monitoring)
-│   ├── eod.html (Daily analysis)
-│   ├── calculator.html (Performance projections)
-│   ├── practice.html (Strategy testing)
-│   ├── history.html (Trading history)
-│   ├── settings.html (Configuration)
-│   ├── api_credentials.html (API management)
-│   ├── 404.html (Not found page)
-│   └── 500.html (Server error page)
-│
-├── 📁 static/
-│   ├── 📁 css/
-│   │   ├── md3-theme.css (Design tokens: colors, typography, spacing, elevation)
-│   │   └── md3-layout.css (Components: nav rail, cards, buttons, inputs, grid)
-│   │
-│   ├── 📁 js/
-│   │   └── common.js (Utilities: API calls, formatting, snackbar)
-│   │
-│   └── 📁 images/ (empty - ready for logos/assets)
-│
-├── 📁 data/ (Database storage)
-│   └── (luggage_room.db will be created here)
-│
-├── 📄 .gitignore
-│   └── Excludes: *.db, *.env, __pycache__, config/*.json
-│
-├── 📄 .env.example
-│   └── Template for environment variables
-│
-├── 📄 requirements.txt
-│   └── Flask, yfinance, pandas, numpy, requests, python-dotenv
-│
-├── 📄 start.sh
-│   └── Quick start script
-│
-└── 📚 DOCUMENTATION (6 files)
-    ├── README.md (Complete project documentation)
-    ├── QUICKSTART.md (3-minute setup guide)
-    ├── PROJECT_SUMMARY.md (Feature overview)
-    ├── DEPLOYMENT_GUIDE.md (Production deployment steps)
-    ├── GITHUB_COMMANDS.md (Git workflow reference)
-    ├── START_HERE.md (Getting started guide)
-    └── FILE_TREE.txt (This file)
+LRBF Repository Structure
+═══════════════════════════════════════════════════════════════
+VERIFIED: October 29, 2025
+STATUS: Production-ready backend, alpha frontend
+═══════════════════════════════════════════════════════════════
 
-TOTAL: 39 files
-SIZE: 83KB compressed
+ROOT FILES
+──────────────────────────────────────────────────────────────
+app.py                    # Main Flask application (84KB)
+requirements.txt          # Python dependencies
+start.sh                  # Startup script
+Makefile                  # Build/deployment commands
+package.json              # Node dependencies (if any)
+.env.example              # Environment variables template
+.gitignore                # Git ignore rules
+README.md                 # Project documentation
 
-KEY FEATURES:
-✅ Material Design 3 (proper Google MD3 implementation)
-✅ Complete backend integration (all modules preserved)
-✅ 10+ functional pages
-✅ Light & dark themes
-✅ Responsive layout
-✅ API-driven architecture
-✅ GitHub ready
-✅ Production deployment guides
-✅ Comprehensive documentation
+BACKEND/ (Production-Ready)
+──────────────────────────────────────────────────────────────
 
-BACKEND MODULES (PROTECTED):
-✅ All your original Python logic preserved
-✅ No modifications to core algorithms
-✅ Pattern detection intact
-✅ Stock selection intact
-✅ Forecast generation intact
-✅ IBKR integration intact
-✅ Database structure intact
+backend/core/             # Pattern Detection & Trading Logic
+  batch_analyzer.py       # Batch processing for multiple stocks
+  category_scorer.py      # 16-category stock scoring (60KB)
+  cross_strategy_detector.py  # Cross-pattern detection
+  daily_scoring_engine.py # Daily stock ranking
+  dual_forecast_generator.py  # Dual pattern forecasting
+  filter_engine.py        # Quality filters (VWAP, volume, S/R, etc.)
+  forecast_generator.py   # Expected performance calculation
+  metrics_calculator.py   # Risk-adjusted metrics (Sharpe, Sortino)
+  news_monitor.py         # News screening (exclude material news)
+  parallel_batch_processor.py  # Multi-core parallel processing
+  pattern_detector.py     # 3-Step VWAP Recovery pattern (26KB)
+  quant_metrics.py        # Quantitative analysis metrics
+  railyard.py             # ⚠️ Trading execution (29KB - NEEDS OVERHAUL)
+  seven_forecast_generator.py  # Generate all 7 forecasts
+  stock_ranker.py         # Composite score ranking
+  stock_selector.py       # Portfolio selection (2/4/2 balance)
+  time_profile_analyzer.py  # Adaptive timeout calculation
+  vwap_breakout_detector.py  # VWAP Breakout pattern detection
 
-READY TO:
-✅ Run locally (python app.py)
-✅ Push to GitHub
-✅ Deploy to Railway
-✅ Configure production APIs
-✅ Start trading
+backend/data/             # IBKR Integration & Data Fetching
+  data_provider.py        # Abstract data provider interface
+  ibkr_connector.py       # IBKR REST API connector (39KB)
+  ibkr_connector_insync.py  # IBKR ib_insync connector (12KB) ✅ PRIMARY
+  ibkr_data_provider.py   # IBKR data fetching implementation
+  intraminute_provider.py # Tick/intraminute data provider
+  market_calendar.py      # Market hours and trading calendar
+  news_providers.py       # News API integration (13KB)
+  stock_universe.py       # 500 stock curated list
+  storage_manager.py      # Database storage operations
 
-LOGIN CREDENTIALS:
-👤 admin / admin123
-👤 cofounder / luggage2025
+backend/models/           # Database Models & ORM
+  database.py             # SQLite/PostgreSQL database operations (61KB)
+
+backend/reports/          # Report Generation
+  eod_html_generator.py   # EOD HTML report generator (24KB)
+  eod_reporter.py         # End-of-day analysis (22KB)
+  filter_report.py        # Filter impact analysis
+  live_monitor.py         # Real-time monitoring (Railyard data)
+  morning_report.py       # Morning analysis with 7 forecasts (56KB)
+
+backend/services/         # External Services
+  capitalise_prompts.py   # ⚠️ DEPRECATED (Capitalise.ai removed)
+  email_service.py        # SendGrid email integration
+  market_data_service.py  # Market data caching
+  sms_service.py          # Twilio SMS integration
+
+backend/utils/            # Utility Functions
+  auth_helper.py          # Authentication helpers (bcrypt, sessions)
+  metrics_utils.py        # Metrics calculation utilities
+  scheduler.py            # Task scheduling (morning report, EOD)
+  simulation_helper.py    # Simulation mode utilities
+
+backend/api/              # ⚠️ API Route Definitions (EMPTY - NEEDS POPULATION)
+  __init__.py             # API blueprint registration (empty)
+
+CONFIG/                   # Configuration
+──────────────────────────────────────────────────────────────
+config/
+  config.py               # Trading parameters, risk limits (17KB)
+  filter_presets.py       # Preset filter configurations
+  news_config.py          # News API configuration
+
+TEMPLATES/ (Alpha - Will Be Rebuilt with MD3)
+──────────────────────────────────────────────────────────────
+templates/
+  base.html               # Base template (29KB)
+  login.html              # Authentication page (36KB)
+  signup.html             # Registration page (20KB)
+  dashboard.html          # Main dashboard (4KB)
+  morning.html            # Morning report UI (10KB)
+  live.html               # Railyard monitoring UI (4KB)
+  eod.html                # End-of-day analysis UI (3KB)
+  settings.html           # Configuration management (31KB)
+  fund.html               # Fund overview (8KB)
+  ledger.html             # Financial ledger (10KB)
+  profile.html            # User profile (6KB)
+  documents.html          # Document management (12KB)
+  performance.html        # Performance metrics (10KB)
+  calculator.html         # Projection calculator (5KB)
+  practice.html           # Practice mode (3KB)
+  history.html            # Trading history (3KB)
+  about.html              # About page (14KB)
+  how_it_works.html       # Strategy explanation (17KB)
+  glossary.html           # Trading glossary (2KB)
+  api_credentials.html    # API key management (7KB)
+  delete_account.html     # Account deletion (14KB)
+  404.html                # Error page (1KB)
+  500.html                # Error page (2KB)
+
+⚠️ CRITICAL: All HTML templates are alpha quality and will be rebuilt
+    with Material Design 3 vendored components after backend complete.
+
+STATIC/                   # CSS/JS Assets
+──────────────────────────────────────────────────────────────
+static/css/
+  material-web-layout.css # MD3 component layout (32KB)
+  md3-theme.css           # MD3 theme definitions (14KB)
+  theme/                  # Theme variants
+    light.css             # Light theme (4KB)
+    dark.css              # Dark theme (3KB)
+    light-mc.css          # Light medium contrast (3KB)
+    dark-mc.css           # Dark medium contrast (3KB)
+    light-hc.css          # Light high contrast (3KB)
+    dark-hc.css           # Dark high contrast (3KB)
+
+static/js/
+  common.js               # Common utilities (1KB)
+  documents.js            # Document management (14KB)
+  fund.js                 # Fund page logic (11KB)
+  ledger.js               # Ledger page logic (16KB)
+  market-status.js        # Market status widget (10KB)
+  profile.js              # Profile page logic (7KB)
+  theme-controller.js     # Theme switching (4KB)
+
+TESTS/                    # Testing
+──────────────────────────────────────────────────────────────
+tests/
+  test_pipeline.py        # Pipeline integration tests (10KB)
+  integration/
+    test_morning_report.py  # Morning report tests (3KB)
+
+SCRIPTS/                  # Database Migrations
+──────────────────────────────────────────────────────────────
+scripts/
+  migrate_db.py           # Base migration script
+  migrate_adaptive_features.py  # Adaptive timeout migration
+  migrate_cross_strategy_outliers.py  # Cross-pattern outliers
+  migrate_dual_forecast.py  # Dual forecast migration
+  migrate_multi_forecast.py  # Multi-forecast migration
+  migrate_pooled_account.py  # Pooled account migration
+  migrate_preset_forecasts.py  # Preset forecasts migration
+  migrate_seven_forecasts.py  # 7-forecast migration
+  migrate_wall_street.py  # Wall Street fund management
+
+DATA/                     # Runtime Data
+──────────────────────────────────────────────────────────────
+data/
+  backups/                # Database backups (.gitignore'd)
+
+LOGS/                     # Application Logs
+──────────────────────────────────────────────────────────────
+logs/                     # Log files (.gitignore'd)
+
+DOCS/                     # Documentation
+──────────────────────────────────────────────────────────────
+docs/
+  canonical_repo_layout.md  # Repository structure reference (1KB)
+  lrbf_data_reference.md  # Data schema reference (151KB)
+  MD3_VENDORED_MIGRATION.md  # MD3 migration guide (4KB)
+  policy_matrix.yaml      # Security/access policies (5KB)
+  project_layout_beta.md  # Beta project layout (5KB)
+  REAL_DATA_INTEGRATION_GUIDE.md  # IBKR integration guide (7KB)
+  rules_to_follow.md      # Development rules (14KB)
+
+DEVELOPER_NOTES/          # Development History
+──────────────────────────────────────────────────────────────
+developer_notes/
+  MORNING_REPORT_ASSESSMENT.md  # Morning report analysis (14KB)
+  notes/                  # Session notes and guides
+    (38 files documenting development history)
+    RAILYARD_SPECS_PHASES_5-26.md  # ⚠️ Railyard requirements (1KB)
+
+PROTOTYPES/               # Design Prototypes
+──────────────────────────────────────────────────────────────
+prototypes/
+  future_phases.md        # Phase planning (48KB)
+  react-dashboard.html    # ✅ CORRECT MD3 React template (24KB)
+  trading-dashboard.tsx   # React TypeScript dashboard (21KB)
+  NEXT_SESSION_MD3_MIGRATION.md  # MD3 migration plan (5KB)
+
+═══════════════════════════════════════════════════════════════
+KEY INSIGHTS
+═══════════════════════════════════════════════════════════════
+
+✅ Backend is production-ready:
+   - Pattern detection (3-Step + VWAP Breakout)
+   - Morning report with 7 forecasts
+   - IBKR integration via ib_insync
+   - Database models and storage
+
+⚠️ Railyard needs complete overhaul:
+   - Exists at backend/core/railyard.py (29KB)
+   - Requires real-time monitoring, entry/exit logic
+   - See developer_notes/notes/RAILYARD_SPECS_PHASES_5-26.md
+
+⚠️ Frontend is alpha quality:
+   - All 23 HTML templates need MD3 rebuild
+   - Correct template exists: prototypes/react-dashboard.html
+   - Frontend work deferred until backend complete
+
+⚠️ API routes need population:
+   - backend/api/__init__.py is empty
+   - Need /api/morning-data, /api/railyard-data, /api/eod-data
+
+✅ IBKR Integration:
+   - PRIMARY: ibkr_connector_insync.py (ib_insync library)
+   - DEPRECATED: Capitalise.ai, RapidAPI, yfinance removed
+
+═══════════════════════════════════════════════════════════════
+END OF FILE TREE
+═══════════════════════════════════════════════════════════════
