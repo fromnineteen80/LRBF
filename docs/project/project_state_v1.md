@@ -13,14 +13,17 @@
 
 **Status:** Not started, needs exploratory session
 
+**Phase Folder:** `/phases/phase_0/`
+
 ---
 
-## 📋 PHASE REFERENCE
+## 📋 PHASE TRACKING
 
-See `lrbf-skill/references/phases.md` for all 32 phases (0-31)
+**All phases:** See `phases/` folder in repo
+- Phase 0: ⏸️ Not started
+- Phases 1-31: ⏸️ Not started (some alpha work only)
 
-**Phase 0:** ⏸️ Not started  
-**Phases 1-31:** ⏸️ Not started (some alpha work only)
+**Reference:** `lrbf-skill/references/phases.md` for descriptions
 
 ---
 
@@ -32,24 +35,33 @@ See `lrbf-skill/references/phases.md` for all 32 phases (0-31)
 
 ---
 
+## 📚 KEY DOCUMENTS
+
+**Repository:**
+- `FILE_TREE.txt` - Repository structure
+- `docs/explainers/` - Strategy, morning report, data pipeline
+- `docs/project/` - Project state files (current + archive)
+- `phases/` - Phase documentation and tracking
+
+**Explainers:**
+- `docs/explainers/trading_strategy_explainer.md` - Complete strategy
+- `docs/explainers/morning_report_explainer.md` - Morning process
+- `docs/explainers/data_pipeline_explainer.md` - Complete pipeline
+
+**Phase Reference:**
+- `lrbf-skill/references/phases.md` - All 32 phases listed
+
+---
+
 ## 🔄 HANDOFF PROTOCOL
 
 **At 130k tokens used:**
-1. Create project_state_v2.md
-2. Update FILE_TREE.txt
-3. Update phases/phase_X.md
-4. Move project_state_v1.md to /docs/project/archive/
+1. Update phase completion in `phases/phase_X/completion.md`
+2. Create `project_state_v2.md`
+3. Update `FILE_TREE.txt`
+4. Move project_state_v1.md to archive/
 5. Commit all to GitHub
 
 ---
 
-## 📚 KEY DOCUMENTS
-
-- FILE_TREE.txt - Repository structure
-- /docs/explainers/ - Trading strategy, morning report, data pipeline
-- /docs/project/ - Archived project states
-- lrbf-skill/ - Development skill package
-
----
-
-**Token Status:** 102k used, 88k remaining
+**Token Status:** 107k used, 83k remaining
