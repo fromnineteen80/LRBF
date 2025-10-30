@@ -5,64 +5,42 @@
 
 ## Status
 **Status:** Exploratory needed  
-**Next Action:** Discuss Phase 0 requirements and create plan
+**Next Action:** Research institutional trading engine best practices. Read docs/explainers/trading_strategy_explainer.md, morning_report_explainer.md, data_pipeline_explainer.md. Create DRAFT requirements.md + plan.md in docs/phases/phase_0/. Commit drafts. Wait for user review and approval.
 
 ## Recent Work
-- Set up lrbf-skill with automatic GitHub access and project state loading
-- Added quality standards (JPMorgan quant + Robinhood engineer test)
-- Added project state status model (Exploratory/Building/Testing/Complete)
-- Documented all 32 phases (0-31)
-- Created explainers for trading strategy, morning report, data pipeline
-- Moved phases folder to docs/phases/
-- Created docs/TECH_SPECS.md for quick reference
+- Set up lrbf-skill with automatic triggers
+- Added quality standards (JPMorgan quant + Robinhood engineer)
+- Added project state status model
+- Optimized token usage: commit drafts (not long chat proposals), batch commit verification, update project_state.md only at session boundaries
+- Moved phases to docs/phases/
+- Created docs/TECH_SPECS.md
 
 ## Current Phase: Phase 0
 
 **Objective:** Build Railyard (real-time trading engine) + EOD (end-of-day analysis)
 
-**What Phase 0 Includes:**
-- Railyard backend (pattern monitoring, entry/exit logic, risk management)
-- EOD backend (daily analysis, metrics calculation)
-- API endpoints: /api/railyard-data, /api/eod-data
-- Integration testing: Database → API chains
+**Status:** Exploratory phase - need to research, draft requirements/plan, get approval
 
-**Current Status Detail:**
-Phase 0 has NOT been explored yet. Need to:
-1. Read docs/explainers/trading_strategy_explainer.md
-2. Read docs/explainers/morning_report_explainer.md
-3. Read docs/explainers/data_pipeline_explainer.md
-4. Research institutional best practices for trading engines
-5. Propose requirements.md (what needs to be built)
-6. Propose plan.md (how to build it)
-7. Get user approval
-8. THEN commit requirements.md + plan.md to docs/phases/phase_0/
-
-## Next Session
-
-When you say "use lrbf-skill to continue working on our app":
-- Claude will read this Status: "Exploratory needed"
-- Claude will automatically start exploratory process
-- Claude will propose requirements and plan for discussion
-- You approve, then Claude commits them
-- Status updates to "Building - [first task]"
-
-## Blockers
-None currently
+**Next Steps:**
+1. Research institutional best practices for trading engines
+2. Read all three explainers
+3. Create DRAFT requirements.md (what to build)
+4. Create DRAFT plan.md (how to build it)
+5. Commit both as drafts
+6. User reviews files in repo
+7. User requests changes or approves
+8. Update files based on feedback
+9. When approved, update Status to "Building - [first task]"
 
 ## Technical Context
 - **Data Source:** IBKR API via ib_insync
 - **Database:** SQLite (dev) → PostgreSQL (prod)
 - **Backend:** Flask 3.0+
 - **Frontend:** Deferred until Phases 0-17 complete
-- **Trading Patterns:** 3-Step Geometric + VWAP Breakout
+- **Patterns:** 3-Step Geometric + VWAP Breakout
 - **Exit Logic:** T1 (0.75%) → CROSS (1.0%) → momentum → T2 (1.75%)
 
-## Dependencies
-Phase 0 is the foundation - no dependencies
-
 ## Notes
-- Existing backend/core/railyard.py needs complete overhaul
-- Existing backend/reports/eod_reporter.py needs complete overhaul
-- All HTML templates are alpha and will be rebuilt with Material Design 3
-- Frontend work (Phases 18-31) deferred until backend complete
-- DEPRECATED: Capitalise.ai, yfinance (use IBKR API only)
+- Existing railyard.py and eod_reporter.py need complete overhaul
+- All HTML templates will be rebuilt with MD3
+- DEPRECATED: Capitalise.ai, yfinance
