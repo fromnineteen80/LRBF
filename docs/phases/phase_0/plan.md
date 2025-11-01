@@ -56,6 +56,58 @@
 
 **⚠️ If you skip this pre-work, you WILL make mistakes that require rework.**
 
+
+---
+
+### 🛑 CRITICAL CHECKPOINT (STOP HERE UNTIL COMPLETE)
+
+**YOU CANNOT PROCEED TO CODING UNTIL YOU:**
+
+1. ✅ **Read and confirmed understanding of:**
+   - [ ] docs/explainers/trading_strategy_explainer.md (ALL exit logic examples)
+   - [ ] /mnt/skills/user/lrbf-skill/references/common-pitfalls.md (ALL pitfall sections)
+   - [ ] backend/core/position_manager.py (verified methods exist)
+   - [ ] backend/data/ibkr_connector_insync.py (verified methods exist)
+
+2. ✅ **Verified these methods exist (grep each one):**
+   - [ ] position_manager.get_position()
+   - [ ] position_manager.exit_position()
+   - [ ] position_manager.get_all_positions()
+   - [ ] ibkr_connector.get_current_price()
+   - [ ] ibkr_connector.stream_ticks()
+
+3. ✅ **Aware of ALL critical pitfalls:**
+   - [ ] Not implementing CROSS (+1.00%) milestone
+   - [ ] Not implementing momentum (+1.25%) confirmation
+   - [ ] Using fixed dead zone timeout instead of adaptive (3/4/4/6 min)
+   - [ ] Exiting immediately at T1 instead of locking floor
+   - [ ] Not tracking milestone state for each position
+   - [ ] Making phantom references to non-existent methods
+   - [ ] Using complex custom logic instead of simple if/elif
+
+**WHEN COMMITTING THIS COMPONENT, YOU MUST REPORT:**
+
+```
+Component 7 Complete - Pre-Commit Verification Report:
+
+✅ Read trading_strategy_explainer.md - understood tiered exit system
+✅ Read common-pitfalls.md - aware of all 7 critical pitfalls
+✅ Verified position_manager.get_position() exists (line X)
+✅ Verified position_manager.exit_position() exists (line Y)
+✅ Verified ibkr_connector.get_current_price() exists (line Z)
+✅ Implemented 4 milestones: T1/CROSS/momentum/T2
+✅ Implemented adaptive timeouts: 3/4/4/6 min
+✅ All 5 test scenarios pass
+✅ Integration test passes
+✅ No phantom references found
+
+Commit: [hash]
+Ready for user confirmation.
+```
+
+**If you cannot check ALL boxes above, DO NOT COMMIT. Ask user for guidance.**
+
+---
 ---
 
 ### 🎯 Purpose
