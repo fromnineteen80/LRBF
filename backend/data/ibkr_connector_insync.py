@@ -110,6 +110,9 @@ class IBKRConnectorInsync:
                 self.ib.cancelMktData(ticker_obj.contract)
             self._ticker_streams.clear()
             
+            # Clear order callbacks
+            self._order_callbacks.clear()
+            
             self.ib.disconnect()
             self.connected = False
             print("✅ Disconnected from IBKR")
