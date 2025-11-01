@@ -36,9 +36,10 @@ class FilterPreset:
     
     # Exit parameters (same for all presets per explainer)
     target_1_pct: float = 0.75  # T1 target
+    cross_threshold_pct: float = 1.0  # CROSS threshold
+    momentum_threshold_pct: float = 1.25  # Momentum confirmation
     target_2_pct: float = 1.75  # T2 target
     stop_loss_pct: float = 0.5  # Stop loss
-    cross_threshold_pct: float = 1.0  # CROSS threshold
 
 
 # =============================================================================
