@@ -29,7 +29,7 @@ class PatternDetector:
     def __init__(
         self,
         decline_threshold_pct: float = 1.0,
-        entry_confirmation_pct: float = 1.5,
+        entry_confirmation_pct: float = 0.5,  # Entry signal: +0.5% from pattern low
         target_1_pct: float = 0.75,
         target_2_pct: float = 2.0,
         stop_loss_pct: float = 0.5,
@@ -543,7 +543,7 @@ class PatternDetector:
 def analyze_vwap_patterns(
     tick_df: pd.DataFrame,
     decline_threshold: float = 1.0,
-    entry_threshold: float = 1.5,
+    entry_threshold: float = 0.5,  # Entry signal: +0.5% from pattern low
     target_1: float = 0.75,
     target_2: float = 2.0,
     stop_loss: float = 0.5,
