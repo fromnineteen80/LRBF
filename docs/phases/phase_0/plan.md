@@ -513,6 +513,546 @@ git log -1 --oneline
 
 ---
 
-## Components 8-19: TODO
+## Component 8: Risk Management System
+
+**File**: `backend/core/risk_manager.py`
+
+---
+
+### 🚨 MANDATORY PRE-WORK (DO THIS FIRST OR FAIL)
+
+**BEFORE writing any code, you MUST:**
+
+1. **Read the trading strategy explainer** (15 minutes):
+   ```bash
+   Read: docs/explainers/trading_strategy_explainer.md
+   Focus on: "Guardrails active" section
+   Focus on: Daily loss limit (-1.5%)
+   Focus on: Per-trade stop loss (-0.5%)
+   Note: "If daily loss hits -1.5%, stop all trading"
+   ```
+
+2. **Review existing components** (verify these files exist and study their APIs):
+   ```bash
+   View: backend/core/position_manager.py
+   Check methods: get_all_positions(), close_all_positions(), get_total_unrealized_pnl()
+   
+   View: backend/models/database.py
+   Check methods: get_daily_fills(), get_daily_summary()
+   Note: Need to verify if these methods exist or what they're actually called
+   
+   View: backend/data/ibkr_connector_insync.py
+   Check methods: get_account_balance()
+   ```
+
+3. **Read common pitfalls** (avoid past mistakes):
+   ```bash
+   Read: /mnt/skills/user/lrbf-skill/references/common-pitfalls.md
+   Focus on: "Phantom References" section
+   Focus on: "Assumption-Based Development" section
+   Focus on: "Marking Complete Without Testing" section
+   ```
+
+**⚠️ If you skip this pre-work, you WILL create risk management that doesn't actually protect capital.**
+
+---
+
+### 🛑 CRITICAL CHECKPOINT (STOP HERE UNTIL COMPLETE)
+
+**YOU CANNOT PROCEED TO CODING UNTIL YOU:**
+
+1. ✅ **Read and confirmed understanding of:**
+   - [ ] docs/explainers/trading_strategy_explainer.md (daily loss limit section)
+   - [ ] /mnt/skills/user/lrbf-skill/references/common-pitfalls.md (ALL pitfall sections)
+   - [ ] backend/core/position_manager.py (verified methods exist)
+   - [ ] backend/models/database.py (verified fill retrieval methods exist)
+
+2. ✅ **Verified these methods exist (grep each one):**
+   - [ ] position_manager.get_all_positions()
+   - [ ] position_manager.close_all_positions()
+   - [ ] position_manager.get_total_unrealized_pnl()
+   - [ ] database.get_todays_fills() OR database.get_daily_fills() (find actual name)
+   - [ ] ibkr_connector.get_account_balance()
+
+3. ✅ **Aware of ALL critical pitfalls:**
+   - [ ] Not actually calculating realized P&L from database
+   - [ ] Using unrealized P&L instead of realized P&L for daily loss
+   - [ ] Not including commission in loss calculation
+   - [ ] Checking daily loss once instead of continuously
+   - [ ] Not providing clear kill switch for emergency stops
+   - [ ] Assuming methods exist without verification
+   - [ ] Not testing emergency stop scenario
+
+**WHEN COMMITTING THIS COMPONENT, YOU MUST REPORT:**
+
+```
+Component 8 Complete - Pre-Commit Verification Report:
+
+✅ Read trading_strategy_explainer.md - understood daily loss limit (-1.5%)
+✅ Read common-pitfalls.md - aware of all 7 critical pitfalls
+✅ Verified position_manager.close_all_positions() exists (line X)
+✅ Verified database.[method_name]() exists (line Y)
+✅ Verified ibkr_connector.get_account_balance() exists (line Z)
+✅ Implemented continuous daily loss monitoring
+✅ Implemented emergency kill switch
+✅ Uses REALIZED P&L from database (not unrealized)
+✅ Includes commission in loss calculation
+✅ Test scenario 1 passes (normal trading below limit)
+✅ Test scenario 2 passes (hits -1.5% limit, stops trading)
+✅ Test scenario 3 passes (emergency kill switch)
+✅ Integration test passes
+✅ No phantom references found
+
+Commit: [hash]
+Ready for user confirmation.
+```
+
+**If you cannot check ALL boxes above, DO NOT COMMIT. Ask user for guidance.**
+
+---
+
+### 🎯 Purpose
+
+Monitor cumulative realized P&L and enforce risk limits to protect capital:
+- **Daily loss limit**: Stop all trading if realized loss reaches -1.5% of capital
+- **Kill switch**: Immediate emergency stop that closes all positions
+- **Continuous monitoring**: Check limits after every fill
+
+**NOT just checking once**. This is **continuous real-time monitoring** with automatic shutdown.
+
+---
+
+### 📊 Risk Limits (CRITICAL - Study This)
+
+```
+Starting Capital: $50,000
+    ↓
+Daily Loss Limit: -$750 (-1.5%)
+    ↓
+    ├─ Realized P&L > -$750 → ✅ Continue trading
+    ├─ Realized P&L ≤ -$750 → 🛑 STOP ALL TRADING
+    │   ├─ Close all open positions
+    │   ├─ Mark system as HALTED
+    │   ├─ Reject all new entry signals
+    │   └─ Log emergency stop event
+    └─ Kill switch activated → 🛑 EMERGENCY STOP
+        └─ Same as above but triggered manually
+```
+
+**Example from trading_strategy_explainer.md**:
+- Starting capital: $50,000
+- Trade 1: -$200 (loss)
+- Trade 2: +$150 (win)
+- Trade 3: -$300 (loss)
+- Trade 4: -$400 (loss)
+- **Cumulative realized P&L: -$750 (-1.5%)**
+- **System halts automatically, closes all positions**
+
+---
+
+### 🚨 CRITICAL PITFALLS (Read Before Coding)
+
+**From common-pitfalls.md and institutional risk management:**
+
+| ❌ WRONG | ✅ RIGHT |
+|----------|----------|
+| Check daily loss once | Continuous monitoring after every fill |
+| Use unrealized P&L | Use REALIZED P&L from database fills |
+| Ignore commission | Include commission in loss calculation |
+| Soft warning only | Hard stop - reject all new trades |
+| Let positions run | Close ALL positions when limit hit |
+| No emergency override | Implement kill switch for manual stop |
+| Check at EOD only | Check in real-time after each fill |
+
+**Reality Check Questions** (ask yourself these):
+- ❓ Did I verify database method for getting today's fills exists?
+- ❓ Am I using REALIZED P&L (from closed trades) not unrealized?
+- ❓ Am I including commission in the loss calculation?
+- ❓ Does the system actually PREVENT new trades after halt?
+- ❓ Does it CLOSE all positions, not just stop opening new ones?
+- ❓ Did I test the emergency scenario where -1.5% is hit?
+
+---
+
+### 📋 Step-by-Step Implementation
+
+**STEP 1: Verify Dependencies (5 min)**
+
+```bash
+# Check Position Manager methods exist
+grep "def close_all_positions" backend/core/position_manager.py
+grep "def get_all_positions" backend/core/position_manager.py
+grep "def get_total_unrealized_pnl" backend/core/position_manager.py
+
+# Check Database methods exist (find actual method name)
+grep "def get.*fill" backend/models/database.py
+# Look for methods that return today's fills or daily summary
+
+# Check IBKR connector
+grep "def get_account_balance" backend/data/ibkr_connector_insync.py
+
+# If ANY grep returns nothing → METHOD DOES NOT EXIST
+# Read those files to find the actual method names
+```
+
+**STEP 2: Create risk_manager.py (30 min)**
+
+```python
+"""
+Risk Manager - Component 8
+
+Enforces capital protection limits:
+- Daily loss limit: -1.5% of capital
+- Emergency kill switch for immediate stops
+
+Continuously monitors realized P&L and halts trading when limit breached.
+
+Author: The Luggage Room Boys Fund
+Date: November 2025
+"""
+
+from typing import Dict, Tuple, Optional, List
+from datetime import datetime, date
+from dataclasses import dataclass
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+@dataclass
+class RiskStatus:
+    """Current risk status of the trading system."""
+    is_halted: bool = False
+    halt_reason: Optional[str] = None
+    halt_timestamp: Optional[datetime] = None
+    daily_realized_pnl: float = 0.0
+    daily_loss_limit: float = 0.0
+    starting_capital: float = 0.0
+    daily_loss_pct: float = 0.0
+
+
+class RiskManager:
+    """
+    Monitors and enforces risk limits.
+    
+    Usage:
+        risk_mgr = RiskManager(
+            position_manager=pm,
+            database=db,
+            ibkr_connector=ibkr,
+            starting_capital=50000.0
+        )
+        
+        # After each fill
+        if risk_mgr.check_daily_loss_limit():
+            # Trading halted
+            pass
+        
+        # Before opening new position
+        if not risk_mgr.can_trade():
+            # Reject trade - system halted
+            pass
+    """
+    
+    def __init__(
+        self,
+        position_manager,
+        database,
+        ibkr_connector,
+        starting_capital: float = 50000.0,
+        daily_loss_limit_pct: float = 1.5
+    ):
+        """
+        Initialize risk manager.
+        
+        Args:
+            position_manager: PositionManager instance
+            database: TradingDatabase instance
+            ibkr_connector: IBKRConnectorInsync instance
+            starting_capital: Starting capital for the day
+            daily_loss_limit_pct: Daily loss limit as % of capital (default 1.5%)
+        """
+        self.pm = position_manager
+        self.db = database
+        self.ibkr = ibkr_connector
+        
+        self.starting_capital = starting_capital
+        self.daily_loss_limit_pct = daily_loss_limit_pct
+        self.daily_loss_limit_dollars = starting_capital * (daily_loss_limit_pct / 100)
+        
+        # Risk status
+        self.status = RiskStatus(
+            starting_capital=starting_capital,
+            daily_loss_limit=-self.daily_loss_limit_dollars
+        )
+        
+        logger.info(
+            f"RiskManager initialized - Capital: ${starting_capital:,.2f}, "
+            f"Daily Loss Limit: -${self.daily_loss_limit_dollars:.2f} (-{daily_loss_limit_pct}%)"
+        )
+    
+    def get_daily_realized_pnl(self) -> Tuple[float, List[Dict]]:
+        """
+        Calculate total realized P&L for today from database fills.
+        
+        CRITICAL: Uses REALIZED P&L (closed trades) not unrealized.
+        CRITICAL: Includes commission in calculation.
+        
+        Returns:
+            (total_pnl, fills_list)
+        """
+        try:
+            # Get today's fills from database
+            # NOTE: Verify actual method name exists in database.py
+            today = date.today()
+            fills = self.db.get_todays_fills()  # VERIFY THIS METHOD EXISTS
+            
+            if not fills:
+                return 0.0, []
+            
+            # Calculate realized P&L including commission
+            total_pnl = 0.0
+            for fill in fills:
+                pnl = fill.get('realized_pnl', 0.0)
+                commission = fill.get('commission', 0.0)
+                total_pnl += (pnl - commission)
+            
+            return total_pnl, fills
+            
+        except Exception as e:
+            logger.error(f"Error calculating daily realized P&L: {e}")
+            return 0.0, []
+    
+    def check_daily_loss_limit(self) -> bool:
+        """
+        Check if daily loss limit has been breached.
+        
+        This should be called after EVERY fill.
+        
+        Returns:
+            True if system was halted (limit breached)
+        """
+        # Get current realized P&L
+        daily_pnl, fills = self.get_daily_realized_pnl()
+        
+        # Update status
+        self.status.daily_realized_pnl = daily_pnl
+        self.status.daily_loss_pct = (daily_pnl / self.starting_capital) * 100
+        
+        # Check if limit breached
+        if daily_pnl <= -self.daily_loss_limit_dollars and not self.status.is_halted:
+            logger.critical(
+                f"🛑 DAILY LOSS LIMIT BREACHED: ${daily_pnl:.2f} "
+                f"({self.status.daily_loss_pct:.2f}%) ≤ -${self.daily_loss_limit_dollars:.2f} "
+                f"(-{self.daily_loss_limit_pct}%)"
+            )
+            
+            # Halt system
+            self.halt_trading("daily_loss_limit_breached")
+            return True
+        
+        return False
+    
+    def halt_trading(self, reason: str):
+        """
+        Halt all trading and close open positions.
+        
+        Args:
+            reason: Reason for halt (e.g., 'daily_loss_limit_breached', 'kill_switch')
+        """
+        if self.status.is_halted:
+            logger.warning(f"System already halted: {self.status.halt_reason}")
+            return
+        
+        logger.critical(f"🛑 HALTING TRADING: {reason}")
+        
+        # Update status
+        self.status.is_halted = True
+        self.status.halt_reason = reason
+        self.status.halt_timestamp = datetime.now()
+        
+        # Close all open positions
+        results = self.pm.close_all_positions(reason=f"Emergency stop: {reason}")
+        
+        # Log results
+        success_count = sum(1 for success, _ in results.values() if success)
+        logger.critical(
+            f"Emergency position closure: {success_count}/{len(results)} positions closed"
+        )
+        
+        # Log to database
+        self.db.log_event(
+            event_type="CRITICAL",
+            severity="HIGH",
+            message=f"Trading halted: {reason}",
+            ticker=None
+        )
+    
+    def activate_kill_switch(self):
+        """
+        Manually activate emergency kill switch.
+        
+        Immediately halts trading and closes all positions.
+        """
+        logger.critical("🚨 KILL SWITCH ACTIVATED")
+        self.halt_trading("kill_switch_manual")
+    
+    def can_trade(self) -> Tuple[bool, str]:
+        """
+        Check if system can accept new trades.
+        
+        Returns:
+            (can_trade, reason)
+        """
+        if self.status.is_halted:
+            return False, f"System halted: {self.status.halt_reason}"
+        
+        return True, "OK"
+    
+    def reset_halt(self, authorized: bool = False):
+        """
+        Reset halt status (use with EXTREME caution).
+        
+        Args:
+            authorized: Must be True to reset (safety check)
+        """
+        if not authorized:
+            logger.error("Cannot reset halt - authorization required")
+            return
+        
+        logger.warning("⚠️ Resetting halt status - trading will resume")
+        
+        self.status.is_halted = False
+        self.status.halt_reason = None
+        self.status.halt_timestamp = None
+        
+        self.db.log_event(
+            event_type="WARNING",
+            severity="MEDIUM",
+            message="Halt status reset - trading resumed",
+            ticker=None
+        )
+    
+    def get_risk_status(self) -> Dict:
+        """
+        Get current risk status.
+        
+        Returns:
+            Dictionary with risk metrics
+        """
+        return {
+            'is_halted': self.status.is_halted,
+            'halt_reason': self.status.halt_reason,
+            'halt_timestamp': self.status.halt_timestamp.isoformat() if self.status.halt_timestamp else None,
+            'daily_realized_pnl': self.status.daily_realized_pnl,
+            'daily_loss_pct': self.status.daily_loss_pct,
+            'daily_loss_limit_dollars': -self.daily_loss_limit_dollars,
+            'daily_loss_limit_pct': -self.daily_loss_limit_pct,
+            'starting_capital': self.starting_capital,
+            'loss_limit_remaining': self.daily_loss_limit_dollars + self.status.daily_realized_pnl
+        }
+```
+
+**STEP 3: Test with 3 Scenarios (20 min)**
+
+Create `tests/test_risk_manager.py`:
+
+```python
+# Test 1: Normal trading (below limit)
+# - Multiple trades, cumulative loss at -0.8%
+# - System should NOT halt
+# - can_trade() should return True
+
+# Test 2: Daily loss limit breach
+# - Multiple trades, cumulative loss hits -1.5%
+# - System SHOULD halt automatically
+# - can_trade() should return False
+# - All positions should be closed
+
+# Test 3: Emergency kill switch
+# - Manually activate kill switch
+# - System should halt immediately
+# - All positions should be closed
+# - can_trade() should return False
+
+# (Implementation details for each test)
+```
+
+**STEP 4: Integration Test (10 min)**
+
+```python
+# Test with Position Manager
+# Test with Database fills
+# Test with IBKR connector
+# Test check_daily_loss_limit() after simulated fills
+```
+
+**STEP 5: Commit (5 min)**
+
+```bash
+git add backend/core/risk_manager.py
+git add tests/test_risk_manager.py
+git commit -m "Phase 0: Add risk management system with -1.5% daily loss limit
+
+- Continuous monitoring of realized P&L from database fills
+- Automatic halt when daily loss reaches -1.5% of capital
+- Emergency kill switch for manual stops
+- Closes all positions when limit breached
+- Uses realized P&L (not unrealized) with commission
+- Tested with 3 scenarios (normal, limit breach, kill switch)"
+git push origin main
+```
+
+---
+
+### ✅ Success Criteria (All Must Pass)
+
+- [ ] Read trading_strategy_explainer.md (verified)
+- [ ] Verified Position Manager methods exist (verified line numbers)
+- [ ] Verified Database fill methods exist (verified line numbers)
+- [ ] Verified IBKR connector methods exist (verified line numbers)
+- [ ] Uses REALIZED P&L from database (not unrealized)
+- [ ] Includes commission in loss calculation
+- [ ] Continuous monitoring (not just once)
+- [ ] Automatically halts at -1.5% limit
+- [ ] Closes all positions when halted
+- [ ] Rejects new trades when halted (can_trade() returns False)
+- [ ] Kill switch works (manual emergency stop)
+- [ ] Test 1 passes (normal trading below limit)
+- [ ] Test 2 passes (auto-halt at -1.5%)
+- [ ] Test 3 passes (kill switch)
+- [ ] No phantom references (all methods verified)
+- [ ] Integration test with Position Manager works
+- [ ] Integration test with Database works
+- [ ] Commit pushed to GitHub
+- [ ] User confirmed commit visible in GitHub Desktop
+
+---
+
+### 🔍 Verification Steps (Do After Coding)
+
+```bash
+# 1. Check file exists
+ls -la backend/core/risk_manager.py
+
+# 2. Check for phantom references
+python3 -c "
+import sys
+sys.path.append('.')
+from backend.core.risk_manager import RiskManager
+print('✅ No import errors')
+"
+
+# 3. Run tests
+python3 tests/test_risk_manager.py
+
+# 4. Check commit
+git log -1 --oneline
+```
+
+---
+
+
+## Components 9-19: TODO
 
 *(To be detailed in subsequent updates)*
