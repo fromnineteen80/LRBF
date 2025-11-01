@@ -1053,6 +1053,572 @@ git log -1 --oneline
 ---
 
 
-## Components 9-19: TODO
+## Component 9: Cooldown Manager
+
+**File**: `backend/core/cooldown_manager.py`
+
+---
+
+### 🚨 MANDATORY PRE-WORK (DO THIS FIRST OR FAIL)
+
+**BEFORE writing any code, you MUST:**
+
+1. **Read the trading strategy explainer** (10 minutes):
+   ```bash
+   Read: docs/explainers/trading_strategy_explainer.md
+   Focus on: "After entry (tiered exit system)" section
+   Note: "Wait 1 minute - Cool down before scanning same stock again"
+   Understand: Why cooldown exists (prevent overtrading same stock)
+   ```
+
+2. **Review existing components** (verify these files exist and study their APIs):
+   ```bash
+   View: backend/core/position_manager.py
+   Check: How positions are tracked by ticker
+   Note: We need to track tickers that recently exited
+   
+   View: backend/core/exit_logic_engine.py
+   Check: How exits are signaled (exit_reason, exit_time)
+   Note: Cooldown starts AFTER exit, not after entry
+   ```
+
+3. **Read common pitfalls** (avoid past mistakes):
+   ```bash
+   Read: /mnt/skills/user/lrbf-skill/references/common-pitfalls.md
+   Focus on: "Complex Code Over Simple Solutions" section
+   Focus on: "Phantom References" section
+   ```
+
+**⚠️ If you skip this pre-work, you'll create a cooldown system that doesn't actually prevent re-entry.**
+
+---
+
+### 🛑 CRITICAL CHECKPOINT (STOP HERE UNTIL COMPLETE)
+
+**YOU CANNOT PROCEED TO CODING UNTIL YOU:**
+
+1. ✅ **Read and confirmed understanding of:**
+   - [ ] docs/explainers/trading_strategy_explainer.md (cooldown section)
+   - [ ] /mnt/skills/user/lrbf-skill/references/common-pitfalls.md (ALL pitfall sections)
+   - [ ] Understanding: Cooldown is PER TICKER, not global
+   - [ ] Understanding: Cooldown starts AFTER exit, not after entry
+
+2. ✅ **Verified these concepts:**
+   - [ ] Cooldown is 60 seconds (1 minute) per trading strategy
+   - [ ] Cooldown prevents ENTRY only (doesn't affect exits)
+   - [ ] Each ticker has independent cooldown timer
+   - [ ] Cooldown starts when position EXITS (not when it enters)
+
+3. ✅ **Aware of ALL critical pitfalls:**
+   - [ ] Making cooldown global instead of per-ticker
+   - [ ] Starting cooldown at entry instead of exit
+   - [ ] Not actually blocking entry attempts during cooldown
+   - [ ] Using complex timer logic instead of simple timestamp check
+   - [ ] Not cleaning up old cooldown records (memory leak)
+   - [ ] Blocking exits during cooldown (should only block entries)
+
+**WHEN COMMITTING THIS COMPONENT, YOU MUST REPORT:**
+
+```
+Component 9 Complete - Pre-Commit Verification Report:
+
+✅ Read trading_strategy_explainer.md - understood 1-minute cooldown
+✅ Read common-pitfalls.md - aware of all 6 critical pitfalls
+✅ Cooldown is per-ticker (not global)
+✅ Cooldown starts after EXIT (not entry)
+✅ Cooldown duration: 60 seconds
+✅ Only blocks ENTRIES (not exits)
+✅ Cleans up expired cooldowns (no memory leak)
+✅ Test scenario 1 passes (blocks re-entry during cooldown)
+✅ Test scenario 2 passes (allows re-entry after cooldown)
+✅ Test scenario 3 passes (multiple tickers independent)
+✅ Test scenario 4 passes (doesn't block exits)
+✅ Integration test passes
+✅ No phantom references found
+
+Commit: [hash]
+Ready for user confirmation.
+```
+
+**If you cannot check ALL boxes above, DO NOT COMMIT. Ask user for guidance.**
+
+---
+
+### 🎯 Purpose
+
+Prevent overtrading the same stock by enforcing a 1-minute cooldown after each exit.
+
+**From trading_strategy_explainer.md:**
+> "Wait 1 minute - Cool down before scanning same stock again"
+
+**Why this matters:**
+- Prevents emotional re-entry (chasing the same stock)
+- Allows price action to settle after our exit
+- Reduces transaction costs from excessive trading
+- Enforces discipline in pattern recognition
+
+**NOT a global pause**. This is **per-ticker cooldown** - other stocks can still be traded.
+
+---
+
+### 📊 Cooldown Logic (CRITICAL - Study This)
+
+```
+AAPL Position Lifecycle:
+    ↓
+Entry @ 9:31:00 AM
+    ↓
+Hold for 3 minutes
+    ↓
+Exit @ 9:34:00 AM ← COOLDOWN STARTS HERE
+    ↓
+Cooldown until 9:35:00 AM (60 seconds)
+    ↓
+    ├─ 9:34:30 AM: New AAPL entry signal → ❌ BLOCKED (in cooldown)
+    ├─ 9:34:50 AM: New AAPL entry signal → ❌ BLOCKED (in cooldown)
+    └─ 9:35:01 AM: New AAPL entry signal → ✅ ALLOWED (cooldown expired)
+
+Meanwhile:
+MSFT can be traded normally (independent cooldown)
+NVDA can be traded normally (independent cooldown)
+```
+
+**Example from trading strategy:**
+1. AAPL exits at 10:15:00 AM
+2. New AAPL pattern detected at 10:15:30 AM
+3. Cooldown manager checks: (10:15:30 - 10:15:00) = 30 seconds < 60 seconds
+4. **Entry BLOCKED** - still in cooldown
+5. New AAPL pattern detected at 10:16:05 AM
+6. Cooldown manager checks: (10:16:05 - 10:15:00) = 65 seconds > 60 seconds
+7. **Entry ALLOWED** - cooldown expired
+
+---
+
+### 🚨 CRITICAL PITFALLS (Read Before Coding)
+
+**From common-pitfalls.md and past failures:**
+
+| ❌ WRONG | ✅ RIGHT |
+|----------|----------|
+| Global cooldown (all stocks) | Per-ticker cooldown (independent) |
+| Start cooldown at entry | Start cooldown at EXIT |
+| Warn but allow entry | Actually BLOCK entry attempt |
+| Complex state machine | Simple timestamp comparison |
+| Keep all cooldowns forever | Clean up expired cooldowns |
+| Block exits during cooldown | Only block ENTRIES |
+| Fixed cooldown dict | Auto-cleanup old entries |
+
+**Reality Check Questions** (ask yourself these):
+- ❓ Is cooldown per-ticker or global? (should be per-ticker)
+- ❓ When does cooldown start - entry or exit? (should be exit)
+- ❓ Does it actually BLOCK entry or just warn? (must block)
+- ❓ Can we still EXIT a stock during its cooldown? (yes - only entries blocked)
+- ❓ Are expired cooldowns cleaned up? (yes - prevent memory leak)
+- ❓ Did I test multiple independent ticker cooldowns?
+
+---
+
+### 📋 Step-by-Step Implementation
+
+**STEP 1: Verify Dependencies (5 min)**
+
+```bash
+# Check if we need any external methods
+# Cooldown manager is mostly self-contained
+# Just needs to track ticker + timestamp pairs
+
+# No external method dependencies to verify
+echo "✅ Cooldown manager is self-contained"
+```
+
+**STEP 2: Create cooldown_manager.py (20 min)**
+
+```python
+"""
+Cooldown Manager - Component 9
+
+Enforces 1-minute cooldown per ticker after position exit.
+
+From trading_strategy_explainer.md:
+"Wait 1 minute - Cool down before scanning same stock again"
+
+Prevents overtrading the same stock immediately after exit.
+
+Author: The Luggage Room Boys Fund
+Date: November 2025
+"""
+
+from typing import Dict, Tuple
+from datetime import datetime, timedelta
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+class CooldownManager:
+    """
+    Manages per-ticker cooldown periods after position exits.
+    
+    Simple rule: After exiting a position, wait 60 seconds before
+    entering the same ticker again.
+    
+    Usage:
+        cooldown = CooldownManager(cooldown_seconds=60)
+        
+        # After exiting AAPL
+        cooldown.start_cooldown('AAPL')
+        
+        # Before entering AAPL again
+        can_enter, reason = cooldown.can_enter('AAPL')
+        if not can_enter:
+            # Block entry - still in cooldown
+            pass
+    """
+    
+    def __init__(self, cooldown_seconds: int = 60):
+        """
+        Initialize cooldown manager.
+        
+        Args:
+            cooldown_seconds: Cooldown duration in seconds (default 60)
+        """
+        self.cooldown_duration = timedelta(seconds=cooldown_seconds)
+        
+        # Track cooldown end time for each ticker
+        # {ticker: cooldown_end_time}
+        self.cooldowns: Dict[str, datetime] = {}
+        
+        logger.info(f"CooldownManager initialized - Duration: {cooldown_seconds}s")
+    
+    def start_cooldown(self, ticker: str, exit_time: datetime = None):
+        """
+        Start cooldown for a ticker after position exit.
+        
+        Args:
+            ticker: Stock symbol
+            exit_time: Exit timestamp (uses now() if None)
+        """
+        if exit_time is None:
+            exit_time = datetime.now()
+        
+        cooldown_end = exit_time + self.cooldown_duration
+        self.cooldowns[ticker] = cooldown_end
+        
+        logger.info(
+            f"Cooldown started: {ticker} - "
+            f"Exit: {exit_time.strftime('%H:%M:%S')}, "
+            f"Available: {cooldown_end.strftime('%H:%M:%S')}"
+        )
+    
+    def can_enter(self, ticker: str, current_time: datetime = None) -> Tuple[bool, str]:
+        """
+        Check if ticker can be entered (not in cooldown).
+        
+        Args:
+            ticker: Stock symbol
+            current_time: Current timestamp (uses now() if None)
+        
+        Returns:
+            (can_enter, reason)
+        """
+        if current_time is None:
+            current_time = datetime.now()
+        
+        # Check if ticker is in cooldown
+        if ticker not in self.cooldowns:
+            return True, "No cooldown active"
+        
+        cooldown_end = self.cooldowns[ticker]
+        
+        # Check if cooldown expired
+        if current_time >= cooldown_end:
+            # Cooldown expired - clean up and allow
+            del self.cooldowns[ticker]
+            return True, "Cooldown expired"
+        
+        # Still in cooldown
+        remaining_seconds = (cooldown_end - current_time).total_seconds()
+        return False, f"In cooldown - {remaining_seconds:.0f}s remaining"
+    
+    def get_cooldown_status(self, ticker: str, current_time: datetime = None) -> Dict:
+        """
+        Get cooldown status for a ticker.
+        
+        Args:
+            ticker: Stock symbol
+            current_time: Current timestamp (uses now() if None)
+        
+        Returns:
+            Dictionary with cooldown info
+        """
+        if current_time is None:
+            current_time = datetime.now()
+        
+        if ticker not in self.cooldowns:
+            return {
+                'ticker': ticker,
+                'in_cooldown': False,
+                'can_enter': True,
+                'cooldown_end': None,
+                'remaining_seconds': 0
+            }
+        
+        cooldown_end = self.cooldowns[ticker]
+        remaining = (cooldown_end - current_time).total_seconds()
+        
+        return {
+            'ticker': ticker,
+            'in_cooldown': remaining > 0,
+            'can_enter': remaining <= 0,
+            'cooldown_end': cooldown_end.isoformat(),
+            'remaining_seconds': max(0, remaining)
+        }
+    
+    def cleanup_expired_cooldowns(self, current_time: datetime = None):
+        """
+        Remove expired cooldowns to prevent memory leak.
+        
+        This should be called periodically (e.g., every minute).
+        
+        Args:
+            current_time: Current timestamp (uses now() if None)
+        """
+        if current_time is None:
+            current_time = datetime.now()
+        
+        # Find expired cooldowns
+        expired = [
+            ticker for ticker, cooldown_end in self.cooldowns.items()
+            if current_time >= cooldown_end
+        ]
+        
+        # Remove them
+        for ticker in expired:
+            del self.cooldowns[ticker]
+        
+        if expired:
+            logger.debug(f"Cleaned up {len(expired)} expired cooldowns: {expired}")
+    
+    def get_all_cooldowns(self, current_time: datetime = None) -> Dict[str, Dict]:
+        """
+        Get status of all active cooldowns.
+        
+        Args:
+            current_time: Current timestamp (uses now() if None)
+        
+        Returns:
+            Dictionary mapping ticker to cooldown status
+        """
+        if current_time is None:
+            current_time = datetime.now()
+        
+        return {
+            ticker: self.get_cooldown_status(ticker, current_time)
+            for ticker in self.cooldowns.keys()
+        }
+    
+    def reset_cooldown(self, ticker: str):
+        """
+        Manually reset cooldown for a ticker (emergency use only).
+        
+        Args:
+            ticker: Stock symbol
+        """
+        if ticker in self.cooldowns:
+            del self.cooldowns[ticker]
+            logger.warning(f"⚠️ Cooldown manually reset for {ticker}")
+    
+    def reset_all_cooldowns(self):
+        """
+        Reset all cooldowns (emergency use only).
+        """
+        count = len(self.cooldowns)
+        self.cooldowns.clear()
+        logger.warning(f"⚠️ All cooldowns reset ({count} tickers)")
+```
+
+**STEP 3: Test with 4 Scenarios (20 min)**
+
+Create `tests/test_cooldown_manager.py`:
+
+```python
+"""Test cooldown manager."""
+
+from backend.core.cooldown_manager import CooldownManager
+from datetime import datetime, timedelta
+
+
+def test_scenario_1_blocks_reentry_during_cooldown():
+    """Test that entry is blocked during cooldown period."""
+    cooldown = CooldownManager(cooldown_seconds=60)
+    
+    # Exit AAPL at 10:00:00
+    exit_time = datetime(2025, 11, 1, 10, 0, 0)
+    cooldown.start_cooldown('AAPL', exit_time)
+    
+    # Try to enter at 10:00:30 (30 seconds later)
+    current_time = datetime(2025, 11, 1, 10, 0, 30)
+    can_enter, reason = cooldown.can_enter('AAPL', current_time)
+    
+    assert can_enter == False, "Should block entry during cooldown"
+    assert "30s remaining" in reason
+    print("✅ Test 1 passed: Blocks re-entry during cooldown")
+
+
+def test_scenario_2_allows_reentry_after_cooldown():
+    """Test that entry is allowed after cooldown expires."""
+    cooldown = CooldownManager(cooldown_seconds=60)
+    
+    # Exit AAPL at 10:00:00
+    exit_time = datetime(2025, 11, 1, 10, 0, 0)
+    cooldown.start_cooldown('AAPL', exit_time)
+    
+    # Try to enter at 10:01:05 (65 seconds later)
+    current_time = datetime(2025, 11, 1, 10, 1, 5)
+    can_enter, reason = cooldown.can_enter('AAPL', current_time)
+    
+    assert can_enter == True, "Should allow entry after cooldown"
+    assert "expired" in reason.lower()
+    print("✅ Test 2 passed: Allows re-entry after cooldown")
+
+
+def test_scenario_3_multiple_tickers_independent():
+    """Test that multiple tickers have independent cooldowns."""
+    cooldown = CooldownManager(cooldown_seconds=60)
+    
+    base_time = datetime(2025, 11, 1, 10, 0, 0)
+    
+    # Exit AAPL at 10:00:00
+    cooldown.start_cooldown('AAPL', base_time)
+    
+    # Exit MSFT at 10:00:30
+    cooldown.start_cooldown('MSFT', base_time + timedelta(seconds=30))
+    
+    # At 10:00:45
+    check_time = base_time + timedelta(seconds=45)
+    
+    # AAPL cooldown should be almost expired (45s elapsed)
+    can_enter_aapl, _ = cooldown.can_enter('AAPL', check_time)
+    
+    # MSFT cooldown should still be active (15s elapsed)
+    can_enter_msft, _ = cooldown.can_enter('MSFT', check_time)
+    
+    assert can_enter_aapl == False, "AAPL still in cooldown"
+    assert can_enter_msft == False, "MSFT still in cooldown"
+    
+    # At 10:01:05 (65s after AAPL exit, 35s after MSFT exit)
+    check_time2 = base_time + timedelta(seconds=65)
+    
+    can_enter_aapl2, _ = cooldown.can_enter('AAPL', check_time2)
+    can_enter_msft2, _ = cooldown.can_enter('MSFT', check_time2)
+    
+    assert can_enter_aapl2 == True, "AAPL cooldown expired"
+    assert can_enter_msft2 == False, "MSFT still in cooldown"
+    
+    print("✅ Test 3 passed: Multiple tickers have independent cooldowns")
+
+
+def test_scenario_4_doesnt_block_exits():
+    """Test that cooldown doesn't affect exits (only entries)."""
+    cooldown = CooldownManager(cooldown_seconds=60)
+    
+    # Exit AAPL at 10:00:00
+    exit_time = datetime(2025, 11, 1, 10, 0, 0)
+    cooldown.start_cooldown('AAPL', exit_time)
+    
+    # Cooldown manager doesn't control exits
+    # This test just verifies the logic is entry-only
+    # (In real system, Position Manager handles exits independently)
+    
+    can_enter, _ = cooldown.can_enter('AAPL', exit_time + timedelta(seconds=30))
+    assert can_enter == False, "Entry blocked during cooldown"
+    
+    # But we could still call start_cooldown again if we exited another position
+    # (This would reset the cooldown timer)
+    cooldown.start_cooldown('AAPL', exit_time + timedelta(seconds=30))
+    
+    print("✅ Test 4 passed: Cooldown only affects entries")
+
+
+if __name__ == "__main__":
+    test_scenario_1_blocks_reentry_during_cooldown()
+    test_scenario_2_allows_reentry_after_cooldown()
+    test_scenario_3_multiple_tickers_independent()
+    test_scenario_4_doesnt_block_exits()
+    print("
+" + "="*60)
+    print("✅ All cooldown manager tests passed!")
+```
+
+**STEP 4: Integration Test (10 min)**
+
+```python
+# Test cleanup_expired_cooldowns()
+# Test get_all_cooldowns()
+# Test integration with Position Manager workflow
+```
+
+**STEP 5: Commit (5 min)**
+
+```bash
+git add backend/core/cooldown_manager.py
+git add tests/test_cooldown_manager.py
+git commit -m "Phase 0: Add cooldown manager with 1-minute per-ticker cooldown
+
+- Per-ticker cooldown (60 seconds) after position exit
+- Blocks re-entry during cooldown period
+- Independent cooldowns for multiple tickers
+- Auto-cleanup of expired cooldowns (no memory leak)
+- Only blocks entries (exits not affected)
+- Tested with 4 scenarios (block/allow/multi-ticker/exit-check)"
+git push origin main
+```
+
+---
+
+### ✅ Success Criteria (All Must Pass)
+
+- [ ] Read trading_strategy_explainer.md (verified)
+- [ ] Understood cooldown is per-ticker, not global (verified)
+- [ ] Understood cooldown starts after EXIT, not entry (verified)
+- [ ] Cooldown duration is 60 seconds (verified)
+- [ ] Only blocks ENTRIES, not exits (verified)
+- [ ] Test 1 passes (blocks re-entry during cooldown)
+- [ ] Test 2 passes (allows re-entry after cooldown)
+- [ ] Test 3 passes (multiple tickers independent)
+- [ ] Test 4 passes (doesn't block exits)
+- [ ] Cleanup removes expired cooldowns (no memory leak)
+- [ ] No phantom references (all self-contained)
+- [ ] Integration test passes
+- [ ] Commit pushed to GitHub
+- [ ] User confirmed commit visible in GitHub Desktop
+
+---
+
+### 🔍 Verification Steps (Do After Coding)
+
+```bash
+# 1. Check file exists
+ls -la backend/core/cooldown_manager.py
+
+# 2. Check for phantom references (should be none - self-contained)
+python3 -c "
+import sys
+sys.path.append('.')
+from backend.core.cooldown_manager import CooldownManager
+print('✅ No import errors')
+"
+
+# 3. Run tests
+python3 tests/test_cooldown_manager.py
+
+# 4. Check commit
+git log -1 --oneline
+```
+
+---
+
+
+## Components 10-19: TODO
 
 *(To be detailed in subsequent updates)*
