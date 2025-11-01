@@ -4,30 +4,28 @@
 **Current Phase:** Phase 0 - Railyard + EOD Backend
 
 ## Status
-**Status:** Building - Filter System  
-**Next Action:** Check backend/core/filter_engine.py. Verify 7 presets exist (default, conservative, aggressive, choppy, trending, abtest, vwap_breakout). Fix if needed. Commit: 'Phase 0: Verify/fix filter system'
+**Status:** Checkpoint - Components 1-4 Complete  
+**Next Action:** Decision needed on Component 5 (Filter System). Existing filter_engine.py needs rewrite to add 7 presets. Continue with remaining components now, or rewrite filters first?
 
 ## Recent Work
-- Completed Phase 0 exploratory research
-- Created requirements.md (institutional-grade standards)
-- Created plan.md (19 components, 6 stages, 10 days)
 - ✅ Component 1: IBKR Connection Module (Commit 61f3ec4)
 - ✅ Component 2: Pattern Detector (3-Step Geometric) (Commit c02996e)
 - ✅ Component 3: Pattern Detector (VWAP Breakout) (Commit 5653e8b)
 - ✅ Component 4: Entry Signal Detector (Commit 714e505)
+- ⚠️ Component 5: Filter System - needs rewrite (7 presets missing)
 
 ## Current Phase: Phase 0
 
 **Objective:** Build Railyard (real-time trading engine) + EOD (end-of-day analysis)
 
-**Status:** Building - implementing components incrementally
+**Status:** Building - 4 of 19 components complete
 
 **Implementation Progress:**
 - [✅] Component 1: IBKR Connection Module (COMPLETE)
 - [✅] Component 2: Pattern Detector (3-Step Geometric) (COMPLETE)
 - [✅] Component 3: Pattern Detector (VWAP Breakout) (COMPLETE)
 - [✅] Component 4: Entry Signal Detector (COMPLETE)
-- [🔄] Component 5: Filter System (7 presets) (IN PROGRESS)
+- [⚠️] Component 5: Filter System (7 presets) (NEEDS REWRITE)
 - [ ] Component 6: Position Manager
 - [ ] Component 7: Exit Logic Engine
 - [ ] Component 8: Risk Management System
@@ -43,49 +41,55 @@
 - [ ] Component 18: Monitoring & Observability
 - [ ] Component 19: Documentation & User Guide
 
-**Component 4 Completion Notes:**
-- File: backend/core/entry_signal_detector.py (CREATED)
-- Monitors tick-by-tick price after pattern completion
-- Detects entry signals:
-  - 3-Step: +0.5% climb from pattern low
-  - VWAP Breakout: +0.5% above VWAP with volume confirmation
-- Returns EntrySignal dataclass with:
-  - confirmed: bool
-  - entry_time: datetime (precise)
-  - entry_price: float
-  - threshold_price: float
-  - failure_reason: str (if not confirmed)
-- 180-second timeout window
-- Handles both pattern types with unified interface
+**Component 5 Status:**
+- File: backend/core/filter_engine.py (EXISTS but old architecture)
+- Current: Has filter logic but NO presets
+- Required: 7 presets for Morning Report forecasts
+  - default: Standard thresholds
+  - conservative: Tighter filters, lower risk
+  - aggressive: Looser filters, higher risk
+  - choppy: Optimized for choppy markets
+  - trending: Optimized for trending markets
+  - abtest: A/B testing variation
+  - vwap_breakout: Specific to VWAP breakout strategy
+- Morning Report needs these presets to generate 7 forecast scenarios
+- Decision: Rewrite now or continue with Components 6-19 first?
 
-**Current Component Details (Component 5):**
-File: backend/core/filter_engine.py (CHECK IF EXISTS)
-Responsibilities:
-- 7 filter presets for different market conditions
-- Presets: default, conservative, aggressive, choppy, trending, abtest, vwap_breakout
-- Each preset has different thresholds and rules
-- Used by Morning Report to generate 7 forecast scenarios
-- Morning Report recommends which preset to use
+**Components 1-4 Summary:**
+✅ IBKR Connection - Streaming, reconnection, fill tracking
+✅ 3-Step Geometric - Pattern detection from tick data
+✅ VWAP Breakout - Pattern detection from tick data
+✅ Entry Signal - Monitors +0.5% threshold confirmation
 
-Verification:
-- Check if file exists
-- Verify all 7 presets present
-- Ensure preset parameters match trading_strategy_explainer.md
-- Fix if needed
+**Next Components (6-19):**
+- Position Manager - Submit orders, track positions
+- Exit Logic - T1, CROSS, momentum, T2 logic
+- Risk Management - Stop loss, position sizing
+- Daily Loss Limit - Kill switch at -1.5%
+- Cooldown Manager - Prevent overtrading
+- Metrics Calculator - Calculate all performance metrics
+- Forecast Accuracy - Compare actual vs forecast
+- EOD Reporter - Generate end-of-day summary
+- Database Integration - Connect all components to DB
+- API Endpoints - Expose data to frontend
+- Testing, Logging, Monitoring, Documentation
 
 ## Technical Context
 - **Data Source:** IBKR API via ib_insync
 - **Database:** SQLite (dev) → PostgreSQL (prod)
 - **Backend:** Flask 3.0+
-- **Frontend:** Deferred until Phases 0-17 complete
 - **Patterns:** 3-Step Geometric ✅ + VWAP Breakout ✅
-- **Entry Signal:** +0.5% from pattern low/VWAP ✅
+- **Entry Signal:** +0.5% threshold ✅
 - **Exit Logic:** T1 (0.75%) → CROSS (1.0%) → momentum → T2 (1.75%)
+
+## Token Status
+- **Used:** 106k / 190k (55%)
+- **Remaining:** 84k
+- **Threshold:** 130k used (stop at 60k remaining buffer)
+- **Buffer Available:** 24k tokens before threshold
 
 ## Notes
 - Following incremental approach: build → test → commit → continue
 - Commit after each component completion
-- Ask user "Continue?" after each commit
 - Quality gate: component must pass tests before moving to next
-- Token threshold: Stop at 130k used (60k remaining buffer)
 - CRITICAL: All detectors/filters shared by Morning Report AND Railyard
