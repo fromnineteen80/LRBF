@@ -102,7 +102,7 @@ class PositionManager:
             return False, f"Position already exists for {ticker}"
         
         # Check 2: Is IBKR connected?
-        if not self.ibkr.is_connected():
+        if not self.ibkr.check_connection()['connected']:
             return False, "IBKR not connected"
         
         # All checks passed
@@ -468,7 +468,7 @@ if __name__ == "__main__":
         print(f"   Can enter AAPL? {can_enter} - {reason}")
         
         # Test 2: Simulate position entry (if IBKR connected)
-        if ibkr.is_connected():
+        if ibkr.check_connection()['connected']:
             print("\n2. Testing position entry...")
             success, message, position = pm.enter_position(
                 ticker="AAPL",
