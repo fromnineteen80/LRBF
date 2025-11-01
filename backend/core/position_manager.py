@@ -145,15 +145,14 @@ class PositionManager:
         
         # Submit BUY order to IBKR
         try:
-            order_result = self.ibkr.place_order(
+            order_result = self.ibkr.place_market_order(
                 ticker=ticker,
-                action='BUY',
                 quantity=quantity,
-                order_type='MKT'
+                action='BUY'
             )
             
             # Check if order was accepted
-            if not order_result or 'orderId' not in order_result:
+            if not order_result or 'order_id' not in order_result:
                 return False, "Order submission failed", None
             
             # Create position record
@@ -164,7 +163,7 @@ class PositionManager:
                 quantity=quantity,
                 pattern_type=pattern_type,
                 preset=preset,
-                ibkr_order_id=str(order_result['orderId']),
+                ibkr_order_id=str(order_result['order_id']),
                 current_price=entry_price
             )
             
@@ -219,15 +218,14 @@ class PositionManager:
         
         # Submit SELL order to IBKR
         try:
-            order_result = self.ibkr.place_order(
+            order_result = self.ibkr.place_market_order(
                 ticker=ticker,
-                action='SELL',
                 quantity=position.quantity,
-                order_type='MKT'
+                action='SELL'
             )
             
             # Check if order was accepted
-            if not order_result or 'orderId' not in order_result:
+            if not order_result or 'order_id' not in order_result:
                 return False, "Order submission failed"
             
             # Calculate realized P&L
