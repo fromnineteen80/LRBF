@@ -2188,6 +2188,558 @@ git log -1 --oneline
 ---
 
 
-## Components 11-19: TODO
+## Component 11: Forecast Accuracy Analyzer
+
+**File**: `backend/core/forecast_analyzer.py`
+
+---
+
+### 🚨 MANDATORY PRE-WORK (DO THIS FIRST OR FAIL)
+
+**BEFORE writing any code, you MUST:**
+
+1. **Read the morning report explainer** (20 minutes):
+   ```bash
+   Read: docs/explainers/morning_report_explainer.md
+   Focus on: "Step 1: Generate 7 forecasts" section
+   Note: Each forecast predicts expected_trades and expected_pl ranges
+   Note: Morning Report stores: all_forecasts_json in database
+   Understand: We compare actual results vs forecast predictions
+   ```
+
+2. **Review existing components** (verify these files exist and study their APIs):
+   ```bash
+   View: backend/models/database.py
+   Check methods: get_morning_forecast(), get_daily_summary()
+   Note: morning_forecasts table structure (all_forecasts_json column)
+   
+   View: backend/core/metrics_calculator.py
+   Check: TradingMetrics dataclass structure
+   Note: total_trades, net_realized_pnl - these are actual results
+   ```
+
+3. **Read common pitfalls** (avoid past mistakes):
+   ```bash
+   Read: /mnt/skills/user/lrbf-skill/references/common-pitfalls.md
+   Focus on: "Phantom References" section
+   Focus on: "Assumption-Based Development" section
+   ```
+
+**⚠️ If you skip this pre-work, you'll compare wrong metrics or reference non-existent forecast fields.**
+
+---
+
+### 🛑 CRITICAL CHECKPOINT (STOP HERE UNTIL COMPLETE)
+
+**YOU CANNOT PROCEED TO CODING UNTIL YOU:**
+
+1. ✅ **Read and confirmed understanding of:**
+   - [ ] docs/explainers/morning_report_explainer.md (7 forecast structure)
+   - [ ] /mnt/skills/user/lrbf-skill/references/common-pitfalls.md (ALL pitfall sections)
+   - [ ] backend/models/database.py (morning_forecasts table structure)
+
+2. ✅ **Verified these methods exist (grep each one):**
+   - [ ] database.get_morning_forecast() OR get_todays_forecast() (find actual name)
+   - [ ] database.get_daily_summary() OR similar (find actual name)
+   - [ ] How forecast JSON is structured (what fields exist)
+
+3. ✅ **Aware of ALL critical pitfalls:**
+   - [ ] Comparing wrong forecast to wrong preset (must match by preset name)
+   - [ ] Not handling JSON parse errors from database
+   - [ ] Assuming forecast fields exist without checking
+   - [ ] Not handling case where no forecast exists for today
+   - [ ] Calculating accuracy incorrectly (must use proper formula)
+   - [ ] Using absolute difference instead of percentage error
+   - [ ] Not validating forecast and actual are from same date
+
+**WHEN COMMITTING THIS COMPONENT, YOU MUST REPORT:**
+
+```
+Component 11 Complete - Pre-Commit Verification Report:
+
+✅ Read morning_report_explainer.md - understood 7 forecast structure
+✅ Read common-pitfalls.md - aware of all 7 critical pitfalls
+✅ Verified database.get_morning_forecast() exists (line X) OR actual method name
+✅ Verified forecast JSON structure (fields confirmed)
+✅ Matches forecast to preset correctly (by name)
+✅ Handles missing forecast gracefully
+✅ Handles JSON parse errors
+✅ Validates date matching (forecast date = actual date)
+✅ Calculates accuracy percentage correctly
+✅ Test scenario 1 passes (forecast matches actual exactly)
+✅ Test scenario 2 passes (forecast off by 20%)
+✅ Test scenario 3 passes (no forecast exists)
+✅ Integration test passes
+✅ No phantom references found
+
+Commit: [hash]
+Ready for user confirmation.
+```
+
+**If you cannot check ALL boxes above, DO NOT COMMIT. Ask user for guidance.**
+
+---
+
+### 🎯 Purpose
+
+Compare actual trading results against morning forecast predictions to validate strategy effectiveness.
+
+**From morning_report_explainer.md:**
+> Each forecast predicts: expected_trades (range), expected_pl (range), win_rate, etc.
+
+**We need to answer:**
+- Did we hit the expected trade count? (within range?)
+- Did we hit the expected P&L? (within range?)
+- How accurate was the forecast? (percentage error)
+- Which preset performed best vs forecast?
+
+---
+
+### 📊 Forecast vs Actual Comparison (CRITICAL - Study This)
+
+```
+Morning Forecast (5:45 AM):
+{
+  "preset": "default",
+  "expected_trades": [18, 25],  // Range: min 18, max 25
+  "expected_pl": [280, 450],    // Range: $280 to $450
+  "win_rate": 0.72,
+  "selected_stocks": ["AAPL", "MSFT", ...]
+}
+
+Actual Results (4:00 PM):
+{
+  "total_trades": 22,           // Within range ✅
+  "net_realized_pnl": 405.25,   // Within range ✅
+  "win_rate": 0.73,
+  "preset_used": "default"
+}
+
+Accuracy Calculation:
+- Trade count accuracy: 100% (22 within [18, 25])
+- P&L accuracy: 100% (405.25 within [280, 450])
+- Win rate accuracy: 98.6% (0.73 vs 0.72 predicted)
+- Overall forecast accuracy: 99.5% ✅
+```
+
+**Example of miss:**
+```
+Forecast: expected_trades [18, 25]
+Actual: 15 trades
+Accuracy: 0% (below minimum threshold)
+```
+
+---
+
+### 🚨 CRITICAL PITFALLS (Read Before Coding)
+
+**From common-pitfalls.md and forecast validation best practices:**
+
+| ❌ WRONG | ✅ RIGHT |
+|----------|----------|
+| Compare to wrong preset | Match by preset name (default vs default) |
+| Use exact match only | Use ranges (min/max) for accuracy |
+| Ignore missing forecast | Return None gracefully with reason |
+| Assume JSON structure | Validate all fields exist first |
+| Use absolute difference | Use percentage error for accuracy |
+| Compare different dates | Validate forecast.date == actual.date |
+| Crash on parse error | Handle malformed JSON gracefully |
+
+**Reality Check Questions** (ask yourself these):
+- ❓ Did I verify the forecast JSON structure in the database?
+- ❓ Am I matching the correct preset (forecast.preset == actual.preset)?
+- ❓ Am I using ranges [min, max] not exact values?
+- ❓ Does it handle missing forecast gracefully?
+- ❓ Does it handle malformed JSON gracefully?
+- ❓ Did I validate dates match (forecast for today, actual is today)?
+
+---
+
+### 📋 Step-by-Step Implementation
+
+**STEP 1: Verify Dependencies (5 min)**
+
+```bash
+# Check database methods for forecasts
+grep "def get.*forecast" backend/models/database.py
+# Find actual method name
+
+# Check morning_forecasts table structure
+grep "morning_forecasts" backend/models/database.py
+# or check schema.sql if it exists
+
+# If methods don't exist → STOP and report to user
+```
+
+**STEP 2: Create forecast_analyzer.py (30 min)**
+
+```python
+"""
+Forecast Accuracy Analyzer - Component 11
+
+Compares actual trading results against morning forecast predictions.
+
+From morning_report_explainer.md:
+"Each forecast predicts expected_trades and expected_pl ranges"
+
+Validates strategy effectiveness by measuring forecast accuracy.
+
+Author: The Luggage Room Boys Fund
+Date: November 2025
+"""
+
+from typing import Dict, Optional, Tuple
+from datetime import date
+from dataclasses import dataclass
+import json
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+@dataclass
+class ForecastAccuracy:
+    """Container for forecast accuracy metrics."""
+    
+    date: str
+    preset: str
+    
+    # Forecast predictions
+    forecast_trades_min: int = 0
+    forecast_trades_max: int = 0
+    forecast_pl_min: float = 0.0
+    forecast_pl_max: float = 0.0
+    forecast_win_rate: float = 0.0
+    
+    # Actual results
+    actual_trades: int = 0
+    actual_pl: float = 0.0
+    actual_win_rate: float = 0.0
+    
+    # Accuracy metrics
+    trades_within_range: bool = False
+    pl_within_range: bool = False
+    win_rate_accuracy_pct: float = 0.0
+    overall_accuracy_pct: float = 0.0
+    
+    # Status
+    forecast_available: bool = False
+    error_message: Optional[str] = None
+
+
+class ForecastAnalyzer:
+    """
+    Analyzes forecast accuracy by comparing predictions vs actual results.
+    
+    Usage:
+        analyzer = ForecastAnalyzer(database, metrics_calculator)
+        accuracy = analyzer.analyze_forecast_accuracy(
+            preset='default',
+            target_date=date.today()
+        )
+        
+        print(f"Overall Accuracy: {accuracy.overall_accuracy_pct:.1f}%")
+    """
+    
+    def __init__(self, database, metrics_calculator):
+        """
+        Initialize forecast analyzer.
+        
+        Args:
+            database: TradingDatabase instance
+            metrics_calculator: MetricsCalculator instance
+        """
+        self.db = database
+        self.metrics_calc = metrics_calculator
+        
+        logger.info("ForecastAnalyzer initialized")
+    
+    def analyze_forecast_accuracy(
+        self,
+        preset: str,
+        target_date: Optional[date] = None
+    ) -> ForecastAccuracy:
+        """
+        Analyze forecast accuracy for a preset on a given date.
+        
+        Args:
+            preset: Preset name (e.g., 'default', 'conservative')
+            target_date: Date to analyze (uses today if None)
+        
+        Returns:
+            ForecastAccuracy object with analysis results
+        """
+        if target_date is None:
+            target_date = date.today()
+        
+        # Initialize result
+        result = ForecastAccuracy(
+            date=target_date.isoformat(),
+            preset=preset
+        )
+        
+        # Get morning forecast
+        forecast = self._get_forecast_for_date(target_date)
+        
+        if not forecast:
+            result.error_message = "No forecast available for this date"
+            logger.warning(f"No forecast found for {target_date}")
+            return result
+        
+        result.forecast_available = True
+        
+        # Parse forecast JSON for the specific preset
+        try:
+            forecast_data = self._extract_preset_forecast(forecast, preset)
+            
+            if not forecast_data:
+                result.error_message = f"Preset '{preset}' not found in forecast"
+                return result
+            
+            # Extract forecast predictions
+            result.forecast_trades_min = forecast_data.get('expected_trades', [0, 0])[0]
+            result.forecast_trades_max = forecast_data.get('expected_trades', [0, 0])[1]
+            result.forecast_pl_min = forecast_data.get('expected_pl', [0, 0])[0]
+            result.forecast_pl_max = forecast_data.get('expected_pl', [0, 0])[1]
+            result.forecast_win_rate = forecast_data.get('win_rate', 0.0)
+            
+        except Exception as e:
+            result.error_message = f"Error parsing forecast: {e}"
+            logger.error(f"Error parsing forecast JSON: {e}")
+            return result
+        
+        # Get actual results
+        actual_metrics = self.metrics_calc.calculate_daily_metrics(target_date)
+        
+        result.actual_trades = actual_metrics.total_trades
+        result.actual_pl = actual_metrics.net_realized_pnl
+        result.actual_win_rate = actual_metrics.win_rate
+        
+        # Calculate accuracy
+        self._calculate_accuracy(result)
+        
+        return result
+    
+    def _get_forecast_for_date(self, target_date: date) -> Optional[Dict]:
+        """
+        Get morning forecast from database for a specific date.
+        
+        Args:
+            target_date: Date to query
+        
+        Returns:
+            Forecast dictionary or None
+        """
+        try:
+            # VERIFY THIS METHOD EXISTS IN database.py
+            forecast = self.db.get_todays_forecast()  # or get_forecast_by_date()
+            
+            # Validate date matches if forecast has date field
+            if forecast and forecast.get('date') != target_date.isoformat():
+                logger.warning(f"Forecast date mismatch: {forecast.get('date')} != {target_date}")
+                return None
+            
+            return forecast
+            
+        except Exception as e:
+            logger.error(f"Error getting forecast for {target_date}: {e}")
+            return None
+    
+    def _extract_preset_forecast(
+        self,
+        forecast: Dict,
+        preset: str
+    ) -> Optional[Dict]:
+        """
+        Extract forecast data for a specific preset from all_forecasts_json.
+        
+        Args:
+            forecast: Forecast record from database
+            preset: Preset name to extract
+        
+        Returns:
+            Preset forecast dictionary or None
+        """
+        try:
+            # Parse all_forecasts_json
+            all_forecasts_json = forecast.get('all_forecasts_json', '[]')
+            
+            if isinstance(all_forecasts_json, str):
+                all_forecasts = json.loads(all_forecasts_json)
+            else:
+                all_forecasts = all_forecasts_json
+            
+            # Find matching preset
+            for forecast_item in all_forecasts:
+                if forecast_item.get('preset') == preset:
+                    return forecast_item
+            
+            return None
+            
+        except json.JSONDecodeError as e:
+            logger.error(f"JSON decode error: {e}")
+            return None
+    
+    def _calculate_accuracy(self, result: ForecastAccuracy):
+        """
+        Calculate accuracy metrics.
+        
+        Modifies result in-place.
+        
+        Args:
+            result: ForecastAccuracy object to update
+        """
+        # Trade count accuracy (within range?)
+        result.trades_within_range = (
+            result.forecast_trades_min <= result.actual_trades <= result.forecast_trades_max
+        )
+        
+        # P&L accuracy (within range?)
+        result.pl_within_range = (
+            result.forecast_pl_min <= result.actual_pl <= result.forecast_pl_max
+        )
+        
+        # Win rate accuracy (percentage error)
+        if result.forecast_win_rate > 0:
+            win_rate_error = abs(result.actual_win_rate - result.forecast_win_rate)
+            win_rate_error_pct = (win_rate_error / result.forecast_win_rate) * 100
+            result.win_rate_accuracy_pct = max(0, 100 - win_rate_error_pct)
+        
+        # Overall accuracy (weighted average)
+        # 40% trade count, 40% P&L, 20% win rate
+        trade_accuracy = 100.0 if result.trades_within_range else 0.0
+        pl_accuracy = 100.0 if result.pl_within_range else 0.0
+        
+        result.overall_accuracy_pct = (
+            (trade_accuracy * 0.4) +
+            (pl_accuracy * 0.4) +
+            (result.win_rate_accuracy_pct * 0.2)
+        )
+    
+    def get_accuracy_summary(self, accuracy: ForecastAccuracy) -> str:
+        """
+        Get human-readable summary of forecast accuracy.
+        
+        Args:
+            accuracy: ForecastAccuracy object
+        
+        Returns:
+            Formatted string summary
+        """
+        if not accuracy.forecast_available:
+            return f"No forecast available: {accuracy.error_message}"
+        
+        return f"""
+Forecast Accuracy Analysis - {accuracy.date} ({accuracy.preset})
+{"="*60}
+FORECAST:
+  Trade Count: [{accuracy.forecast_trades_min}, {accuracy.forecast_trades_max}]
+  P&L Range: [${accuracy.forecast_pl_min:.2f}, ${accuracy.forecast_pl_max:.2f}]
+  Win Rate: {accuracy.forecast_win_rate:.1%}
+
+ACTUAL:
+  Trade Count: {accuracy.actual_trades}
+  P&L: ${accuracy.actual_pl:.2f}
+  Win Rate: {accuracy.actual_win_rate:.1%}
+
+ACCURACY:
+  Trades: {'✅ Within range' if accuracy.trades_within_range else '❌ Outside range'}
+  P&L: {'✅ Within range' if accuracy.pl_within_range else '❌ Outside range'}
+  Win Rate: {accuracy.win_rate_accuracy_pct:.1f}%
+  
+  Overall Accuracy: {accuracy.overall_accuracy_pct:.1f}%
+"""
+```
+
+**STEP 3: Test with 3 Scenarios (20 min)**
+
+Create `tests/test_forecast_analyzer.py`:
+
+```python
+# Test 1: Forecast matches actual exactly (100% accuracy)
+# Test 2: Forecast off by 20% (80% accuracy)
+# Test 3: No forecast exists (graceful handling)
+
+# Each test validates:
+# - Range checking works correctly
+# - Percentage calculation accurate
+# - JSON parsing handles errors
+# - Date validation works
+```
+
+**STEP 4: Integration Test (10 min)**
+
+```python
+# Test with real Database
+# Test with real MetricsCalculator
+# Test end-to-end accuracy analysis
+```
+
+**STEP 5: Commit (5 min)**
+
+```bash
+git add backend/core/forecast_analyzer.py
+git add tests/test_forecast_analyzer.py
+git commit -m "Phase 0: Add forecast accuracy analyzer for validation
+
+- Compare actual results vs morning forecast predictions
+- Check trade count and P&L within expected ranges
+- Calculate win rate accuracy with percentage error
+- Handle missing forecasts gracefully
+- Parse forecast JSON for specific preset
+- Validate date matching between forecast and actual
+- Tested with 3 scenarios (exact/off/missing)"
+git push origin main
+```
+
+---
+
+### ✅ Success Criteria (All Must Pass)
+
+- [ ] Read morning_report_explainer.md (verified forecast structure)
+- [ ] Verified database forecast methods exist (line numbers)
+- [ ] Verified forecast JSON structure (fields confirmed)
+- [ ] Matches forecast to preset by name
+- [ ] Uses ranges [min, max] for accuracy
+- [ ] Handles missing forecast gracefully
+- [ ] Handles JSON parse errors gracefully
+- [ ] Validates dates match (forecast.date == actual.date)
+- [ ] Test 1 passes (exact match, 100% accuracy)
+- [ ] Test 2 passes (20% off, 80% accuracy)
+- [ ] Test 3 passes (no forecast, graceful)
+- [ ] Win rate accuracy calculated correctly
+- [ ] Overall accuracy weighted properly (40/40/20)
+- [ ] No phantom references (all methods verified)
+- [ ] Integration test passes
+- [ ] Commit pushed to GitHub
+- [ ] User confirmed commit visible in GitHub Desktop
+
+---
+
+### 🔍 Verification Steps (Do After Coding)
+
+```bash
+# 1. Check file exists
+ls -la backend/core/forecast_analyzer.py
+
+# 2. Check for phantom references
+python3 -c "
+import sys
+sys.path.append('.')
+from backend.core.forecast_analyzer import ForecastAnalyzer
+print('✅ No import errors')
+"
+
+# 3. Run tests
+python3 tests/test_forecast_analyzer.py
+
+# 4. Check commit
+git log -1 --oneline
+```
+
+---
+
+
+## Components 12-19: TODO
 
 *(To be detailed in subsequent updates)*
