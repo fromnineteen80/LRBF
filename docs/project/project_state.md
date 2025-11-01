@@ -4,8 +4,8 @@
 **Current Phase:** Phase 0 - Railyard + EOD Backend
 
 ## Status
-**Status:** Building - Position Manager  
-**Next Action:** Build Component 6 (Position Manager) in backend/core/position_manager.py. Submit orders to IBKR, track open positions, manage 1-position-per-ticker limit. Commit: 'Phase 0: Add position manager'
+**Status:** Building - 6 of 19 components complete
+**Next Action:** Build Component 7 (Exit Logic Engine) in backend/core/exit_logic_engine.py. Implement tiered exit system: T1 (+0.75%) → CROSS (+1.00%) → momentum (+1.25%) → T2 (+1.75%), dead zone timeouts, stop loss (-0.5%). Commit: 'Phase 0: Add exit logic engine'
 
 ## Recent Work
 - ✅ Component 1: IBKR Connection Module (Commit 61f3ec4)
@@ -13,12 +13,13 @@
 - ✅ Component 3: Pattern Detector (VWAP Breakout) (Commit 5653e8b)
 - ✅ Component 4: Entry Signal Detector (Commit 714e505)
 - ✅ Component 5: Filter System (7 presets) (Commit db26cd0)
+- ✅ Component 6: Position Manager (Commit ae917ef)
 
 ## Current Phase: Phase 0
 
 **Objective:** Build Railyard (real-time trading engine) + EOD (end-of-day analysis)
 
-**Status:** Building - 5 of 19 components complete
+**Status:** Building - 6 of 19 components complete
 
 **Implementation Progress:**
 - [✅] Component 1: IBKR Connection Module (COMPLETE)
@@ -26,8 +27,8 @@
 - [✅] Component 3: Pattern Detector (VWAP Breakout) (COMPLETE)
 - [✅] Component 4: Entry Signal Detector (COMPLETE)
 - [✅] Component 5: Filter System (7 presets) (COMPLETE)
-- [🔄] Component 6: Position Manager (IN PROGRESS)
-- [ ] Component 7: Exit Logic Engine
+- [✅] Component 6: Position Manager (COMPLETE)
+- [🔄] Component 7: Exit Logic Engine (IN PROGRESS)
 - [ ] Component 8: Risk Management System
 - [ ] Component 9: Daily Loss Limit & Kill Switch
 - [ ] Component 10: Cooldown Manager
