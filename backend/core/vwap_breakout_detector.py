@@ -1,274 +1,416 @@
 """
-VWAP Breakout Strategy - Pattern Detection
+VWAP Breakout Pattern Detector - Phase 0
 
-Strategy 2: Detects price crossing back above VWAP after dropping below.
+Detects VWAP breakout patterns using real-time tick data.
+Matches pattern_detector.py architecture for consistency.
 
-Pattern Steps:
-1. Price drops BELOW VWAP
-2. Price stabilizes near/under VWAP for confirmation (2-5 minutes)
-3. Price crosses BACK ABOVE VWAP (the breakout)
-4. Entry signal: Price climbs +0.5% above VWAP with volume confirmation
+Pattern Algorithm:
+1. BELOW VWAP: Price drops below VWAP
+2. STABILIZE: Price stays below/near VWAP for 2-5 bars (10-25 seconds)
+3. BREAKOUT: Price crosses back above VWAP
+4. ENTRY SIGNAL: Price climbs +0.5% above VWAP with volume confirmation
 
-Different from 3-Step Geometric which ignores VWAP position.
+Used by Morning Report (historicals) AND Railyard (real-time).
+
+Author: The Luggage Room Boys Fund
+Date: October 2025 - Phase 0
 """
 
 import pandas as pd
 import numpy as np
-from typing import Dict, List, Tuple
+from typing import List, Dict, Optional
 from datetime import datetime, timedelta
+from dataclasses import dataclass
 
 
-def detect_vwap_breakout_patterns(
-    df: pd.DataFrame,
-    config: Dict
-) -> Dict:
+@dataclass
+class VWAPBreakoutPattern:
     """
-    Detect VWAP breakout patterns in historical data.
-    
-    Args:
-        df: DataFrame with columns [timestamp, open, high, low, close, volume, vwap]
-        config: Trading configuration
-    
-    Returns:
-        Dictionary with pattern analysis:
-        {
-            'total_patterns': int,
-            'confirmed_entries': int,
-            'win_rate': float,
-            'avg_win_pct': float,
-            'avg_loss_pct': float,
-            'expected_daily_patterns': float,
-            'expected_daily_pl': float,
-            'patterns': List[Dict]  # Individual pattern details
-        }
+    Data class for VWAP breakout pattern.
     """
-    if df is None or df.empty or 'vwap' not in df.columns:
-        return _empty_result()
+    ticker: str
+    pattern_id: str
     
-    patterns = []
-    i = 0
+    # Pattern detection
+    below_vwap_time: datetime
+    below_vwap_price: float
+    stabilization_bars: int
+    breakout_time: datetime
+    breakout_price: float
+    vwap_at_breakout: float
     
-    while i < len(df) - 10:  # Need at least 10 bars ahead
-        # STEP 1: Find price drop below VWAP
-        if df.iloc[i]['close'] < df.iloc[i]['vwap']:
-            below_start = i
+    # Entry confirmation
+    entry_confirmed: bool
+    entry_time: Optional[datetime] = None
+    entry_price: Optional[float] = None
+    volume_ratio: Optional[float] = None  # Actual volume / avg volume
+    
+    # Metadata
+    total_duration_seconds: float = 0
+
+
+class VWAPBreakoutDetector:
+    """
+    Detects VWAP breakout patterns in real-time tick data.
+    
+    Architecture matches pattern_detector.py for consistency.
+    
+    Usage:
+        detector = VWAPBreakoutDetector()
+        patterns = detector.detect_patterns(tick_data, 'AAPL')
+    """
+    
+    def __init__(
+        self,
+        entry_threshold_pct: float = 0.5,  # Entry signal: +0.5% above VWAP
+        stabilization_min_bars: int = 2,  # Min bars for stabilization
+        stabilization_max_bars: int = 5,  # Max bars for stabilization
+        volume_multiplier: float = 1.5,  # Volume must be 1.5x recent average
+        aggregation_seconds: int = 5  # 5-second micro-bars (same as pattern_detector.py)
+    ):
+        """
+        Initialize VWAP breakout pattern detector.
+        
+        Args:
+            entry_threshold_pct: % above VWAP to trigger entry (default 0.5%)
+            stabilization_min_bars: Minimum bars below VWAP (default 2)
+            stabilization_max_bars: Maximum bars to wait (default 5)
+            volume_multiplier: Volume confirmation multiplier (default 1.5x)
+            aggregation_seconds: Tick aggregation window (default 5s)
+        """
+        self.entry_threshold_pct = entry_threshold_pct
+        self.stabilization_min_bars = stabilization_min_bars
+        self.stabilization_max_bars = stabilization_max_bars
+        self.volume_multiplier = volume_multiplier
+        self.aggregation_seconds = aggregation_seconds
+    
+    def detect_patterns(
+        self,
+        tick_data: pd.DataFrame,
+        ticker: str
+    ) -> List[VWAPBreakoutPattern]:
+        """
+        Detect all VWAP breakout patterns in tick data.
+        
+        Args:
+            tick_data: DataFrame with columns: timestamp, last, volume
+                      Optional: vwap (if not provided, calculated)
+            ticker: Stock symbol
+        
+        Returns:
+            List of VWAPBreakoutPattern objects
+        """
+        if tick_data.empty or len(tick_data) < 100:
+            return []
+        
+        # Aggregate ticks into micro-bars (same as pattern_detector.py)
+        micro_bars = self._aggregate_to_microbars(tick_data)
+        
+        if micro_bars.empty or len(micro_bars) < 20:
+            return []
+        
+        # Ensure VWAP column exists
+        if 'vwap' not in micro_bars.columns:
+            micro_bars = self._calculate_vwap(micro_bars)
+        
+        patterns = []
+        data_len = len(micro_bars)
+        
+        # Scan for patterns
+        i = 0
+        while i < data_len - 10:
+            pattern = self._scan_for_pattern(
+                micro_bars=micro_bars,
+                current_idx=i,
+                ticker=ticker
+            )
             
-            # STEP 2: Confirm stabilization (price stays below/near VWAP for 2-5 bars)
-            stabilization_bars = 0
-            j = i + 1
+            if pattern:
+                patterns.append(pattern)
+                # Skip ahead past this pattern
+                i = micro_bars.index.get_loc(pattern.breakout_time) + 1
+            else:
+                i += 1
+        
+        return patterns
+    
+    def _aggregate_to_microbars(self, tick_data: pd.DataFrame) -> pd.DataFrame:
+        """
+        Aggregate tick data into micro-bars (5-second windows).
+        IDENTICAL to pattern_detector.py for consistency.
+        
+        Args:
+            tick_data: Raw tick data
+        
+        Returns:
+            DataFrame with OHLC + volume for each micro-bar
+        """
+        # Ensure timestamp column
+        if 'timestamp' not in tick_data.columns:
+            return pd.DataFrame()
+        
+        # Set timestamp as index
+        df = tick_data.copy()
+        df['timestamp'] = pd.to_datetime(df['timestamp'])
+        df = df.set_index('timestamp')
+        
+        # Resample to micro-bars
+        micro_bars = df.resample(f'{self.aggregation_seconds}S').agg({
+            'last': ['first', 'max', 'min', 'last'],  # OHLC
+            'volume': 'sum'
+        })
+        
+        # Flatten column names
+        micro_bars.columns = ['open', 'high', 'low', 'close', 'volume']
+        micro_bars = micro_bars.reset_index()
+        micro_bars.columns = ['timestamp', 'open', 'high', 'low', 'close', 'volume']
+        
+        # Drop rows with NaN (no ticks in that window)
+        micro_bars = micro_bars.dropna()
+        
+        return micro_bars
+    
+    def _calculate_vwap(self, micro_bars: pd.DataFrame) -> pd.DataFrame:
+        """Calculate VWAP from micro-bars."""
+        df = micro_bars.copy()
+        
+        # Typical price
+        df['typical_price'] = (df['high'] + df['low'] + df['close']) / 3
+        
+        # VWAP = cumulative(typical_price * volume) / cumulative(volume)
+        df['vwap'] = (
+            (df['typical_price'] * df['volume']).cumsum() / 
+            df['volume'].cumsum()
+        )
+        
+        return df
+    
+    def _scan_for_pattern(
+        self,
+        micro_bars: pd.DataFrame,
+        current_idx: int,
+        ticker: str
+    ) -> Optional[VWAPBreakoutPattern]:
+        """
+        Scan for VWAP breakout pattern starting at current index.
+        
+        Returns:
+            VWAPBreakoutPattern if found, None otherwise
+        """
+        if current_idx >= len(micro_bars) - 10:
+            return None
+        
+        # STEP 1: Price drops BELOW VWAP
+        current_bar = micro_bars.iloc[current_idx]
+        
+        if current_bar['close'] >= current_bar['vwap']:
+            return None  # Not below VWAP
+        
+        below_vwap_time = current_bar['timestamp']
+        below_vwap_price = current_bar['close']
+        
+        # STEP 2: STABILIZATION (stay below/near VWAP for 2-5 bars)
+        stabilization_bars = 0
+        j = current_idx + 1
+        
+        while j < len(micro_bars) and stabilization_bars < self.stabilization_max_bars:
+            bar = micro_bars.iloc[j]
             
-            while j < len(df) - 5 and stabilization_bars < 5:
-                if df.iloc[j]['close'] <= df.iloc[j]['vwap'] * 1.003:  # Within 0.3% of VWAP
-                    stabilization_bars += 1
-                    j += 1
-                else:
+            # Check if still below or within 0.3% of VWAP
+            if bar['close'] <= bar['vwap'] * 1.003:
+                stabilization_bars += 1
+                j += 1
+            else:
+                break
+        
+        # Need at least min_bars of stabilization
+        if stabilization_bars < self.stabilization_min_bars:
+            return None
+        
+        # STEP 3: BREAKOUT (price crosses back above VWAP)
+        breakout_idx = None
+        breakout_bar = None
+        
+        for k in range(j, min(j + 10, len(micro_bars))):
+            bar = micro_bars.iloc[k]
+            if bar['close'] > bar['vwap']:
+                breakout_idx = k
+                breakout_bar = bar
+                break
+        
+        if breakout_idx is None:
+            return None
+        
+        breakout_time = breakout_bar['timestamp']
+        breakout_price = breakout_bar['close']
+        vwap_at_breakout = breakout_bar['vwap']
+        
+        # STEP 4: ENTRY SIGNAL (+0.5% above VWAP with volume)
+        entry_threshold = vwap_at_breakout * (1 + self.entry_threshold_pct / 100)
+        
+        entry_confirmed = False
+        entry_time = None
+        entry_price = None
+        volume_ratio = None
+        
+        for m in range(breakout_idx, min(breakout_idx + 5, len(micro_bars))):
+            bar = micro_bars.iloc[m]
+            
+            if bar['close'] >= entry_threshold:
+                # Check volume confirmation
+                recent_vol = micro_bars.iloc[max(0, m-20):m]['volume'].mean()
+                
+                if recent_vol > 0 and bar['volume'] >= recent_vol * self.volume_multiplier:
+                    entry_confirmed = True
+                    entry_time = bar['timestamp']
+                    entry_price = bar['close']
+                    volume_ratio = bar['volume'] / recent_vol if recent_vol > 0 else 0
                     break
-            
-            # Need at least 2 bars of stabilization
-            if stabilization_bars >= 2:
-                # STEP 3: Find breakout (price crosses back above VWAP)
-                breakout_idx = None
-                
-                for k in range(j, min(j + 10, len(df))):
-                    if df.iloc[k]['close'] > df.iloc[k]['vwap']:
-                        breakout_idx = k
-                        break
-                
-                if breakout_idx:
-                    # STEP 4: Check for entry signal (+0.5% above VWAP with volume)
-                    vwap_price = df.iloc[breakout_idx]['vwap']
-                    entry_threshold = vwap_price * 1.005  # 0.5% above VWAP
-                    
-                    entry_idx = None
-                    entry_price = None
-                    
-                    for m in range(breakout_idx, min(breakout_idx + 5, len(df))):
-                        if df.iloc[m]['close'] >= entry_threshold:
-                            # Check volume confirmation (2x recent average)
-                            recent_vol = df.iloc[max(0, m-20):m]['volume'].mean()
-                            if df.iloc[m]['volume'] >= recent_vol * 1.5:
-                                entry_idx = m
-                                entry_price = df.iloc[m]['close']
-                                break
-                    
-                    if entry_idx and entry_price:
-                        # Pattern found! Record it
-                        pattern = {
-                            'below_start_idx': below_start,
-                            'stabilization_bars': stabilization_bars,
-                            'breakout_idx': breakout_idx,
-                            'entry_idx': entry_idx,
-                            'entry_price': entry_price,
-                            'vwap_at_entry': df.iloc[entry_idx]['vwap'],
-                            'entry_confirmed': True
-                        }
-                        
-                        # Simulate trade outcome
-                        outcome = _simulate_vwap_trade(df, entry_idx, entry_price, config)
-                        pattern.update(outcome)
-                        
-                        patterns.append(pattern)
-                        i = entry_idx + 1  # Move past this pattern
-                        continue
         
-        i += 1
-    
-    # Calculate aggregate statistics
-    return _calculate_vwap_statistics(patterns, len(df))
+        # Calculate duration
+        if entry_time:
+            total_duration = (entry_time - below_vwap_time).total_seconds()
+        else:
+            total_duration = (breakout_time - below_vwap_time).total_seconds()
+        
+        # Generate unique pattern ID
+        pattern_id = f"{ticker}_vwap_{int(breakout_time.timestamp())}"
+        
+        # Create pattern object
+        pattern = VWAPBreakoutPattern(
+            ticker=ticker,
+            pattern_id=pattern_id,
+            below_vwap_time=below_vwap_time,
+            below_vwap_price=below_vwap_price,
+            stabilization_bars=stabilization_bars,
+            breakout_time=breakout_time,
+            breakout_price=breakout_price,
+            vwap_at_breakout=vwap_at_breakout,
+            entry_confirmed=entry_confirmed,
+            entry_time=entry_time,
+            entry_price=entry_price,
+            volume_ratio=volume_ratio,
+            total_duration_seconds=total_duration
+        )
+        
+        return pattern
 
 
-def _simulate_vwap_trade(
-    df: pd.DataFrame,
-    entry_idx: int,
-    entry_price: float,
-    config: Dict
+# ============================================================================
+# MAIN INTERFACE FUNCTION FOR MORNING REPORT
+# ============================================================================
+
+def analyze_vwap_breakout_patterns(
+    tick_df: pd.DataFrame,
+    ticker: str,
+    entry_threshold: float = 0.5,
+    volume_multiplier: float = 1.5,
+    aggregation_window_seconds: int = 5
 ) -> Dict:
     """
-    Simulate trade outcome using universal exit rules.
+    Analyze VWAP breakout patterns using IBKR tick data.
     
-    Exit Rules (same as 3-Step):
-    - Target 1 (T1): +0.75% from entry
-    - Target 2 (T2): +1.75% from entry
-    - Stop Loss: -0.5% from entry
-    - Deadzone: 8-minute timeout in ±0.6% range
-    """
-    target1 = entry_price * (1 + 0.0075)  # +0.75%
-    target2 = entry_price * (1 + 0.0175)  # +1.75%
-    stop_loss = entry_price * (1 - 0.005)  # -0.5%
-    
-    deadzone_minutes = 0
-    deadzone_threshold = entry_price * 0.006  # ±0.6%
-    
-    for i in range(entry_idx + 1, min(entry_idx + 60, len(df))):  # Max 60 bars
-        current_price = df.iloc[i]['close']
-        
-        # Check stop loss
-        if current_price <= stop_loss:
-            return {
-                'exit_reason': 'StopLoss',
-                'exit_price': stop_loss,
-                'pnl_pct': -0.5,
-                'bars_held': i - entry_idx,
-                'winner': False
-            }
-        
-        # Check Target 2 first
-        if current_price >= target2:
-            # Wait for +1.00% exit or return to T1
-            for j in range(i, min(i + 10, len(df))):
-                if df.iloc[j]['close'] >= entry_price * 1.01:
-                    return {
-                        'exit_reason': 'Target2',
-                        'exit_price': entry_price * 1.01,
-                        'pnl_pct': 1.0,
-                        'bars_held': j - entry_idx,
-                        'winner': True
-                    }
-                elif df.iloc[j]['close'] <= target1:
-                    return {
-                        'exit_reason': 'Target1',
-                        'exit_price': target1,
-                        'pnl_pct': 0.75,
-                        'bars_held': j - entry_idx,
-                        'winner': True
-                    }
-        
-        # Check Target 1
-        if current_price >= target1:
-            deadzone_minutes = 0  # Reset deadzone if making progress
-        
-        # Check deadzone
-        if abs(current_price - entry_price) <= deadzone_threshold:
-            deadzone_minutes += 1
-            if deadzone_minutes >= 8:
-                pnl_pct = ((current_price - entry_price) / entry_price) * 100
-                return {
-                    'exit_reason': 'DeadZone',
-                    'exit_price': current_price,
-                    'pnl_pct': pnl_pct,
-                    'bars_held': i - entry_idx,
-                    'winner': pnl_pct > 0
-                }
-        else:
-            deadzone_minutes = 0
-    
-    # Timeout (60 bars = ~1 hour)
-    final_price = df.iloc[min(entry_idx + 60, len(df) - 1)]['close']
-    pnl_pct = ((final_price - entry_price) / entry_price) * 100
-    
-    return {
-        'exit_reason': 'TimeOut',
-        'exit_price': final_price,
-        'pnl_pct': pnl_pct,
-        'bars_held': 60,
-        'winner': pnl_pct > 0
-    }
-
-
-def _calculate_vwap_statistics(patterns: List[Dict], total_bars: int) -> Dict:
-    """Calculate aggregate statistics from patterns."""
-    if not patterns:
-        return _empty_result()
-    
-    winners = [p for p in patterns if p.get('winner', False)]
-    losers = [p for p in patterns if not p.get('winner', False)]
-    
-    total_patterns = len(patterns)
-    win_rate = len(winners) / total_patterns if total_patterns > 0 else 0
-    
-    avg_win_pct = np.mean([p['pnl_pct'] for p in winners]) if winners else 0
-    avg_loss_pct = np.mean([p['pnl_pct'] for p in losers]) if losers else 0
-    
-    # Calculate expected daily values
-    bars_per_day = 390  # Market hours: 6.5 hours * 60 minutes
-    days_in_sample = total_bars / bars_per_day
-    
-    expected_daily_patterns = total_patterns / days_in_sample if days_in_sample > 0 else 0
-    confirmed_entries = total_patterns  # All patterns that reached entry signal
-    
-    # Expected daily P&L (per position)
-    expected_value = (win_rate * avg_win_pct) - ((1 - win_rate) * abs(avg_loss_pct))
-    expected_daily_pl = expected_daily_patterns * expected_value
-    
-    return {
-        'total_patterns': total_patterns,
-        'confirmed_entries': confirmed_entries,
-        'win_rate': win_rate,
-        'avg_win_pct': avg_win_pct,
-        'avg_loss_pct': avg_loss_pct,
-        'expected_daily_patterns': expected_daily_patterns,
-        'expected_daily_pl': expected_daily_pl,
-        'patterns': patterns
-    }
-
-
-def _empty_result() -> Dict:
-    """Return empty result when no patterns found."""
-    return {
-        'total_patterns': 0,
-        'confirmed_entries': 0,
-        'win_rate': 0.0,
-        'avg_win_pct': 0.0,
-        'avg_loss_pct': 0.0,
-        'expected_daily_patterns': 0.0,
-        'expected_daily_pl': 0.0,
-        'patterns': []
-    }
-
-
-# Convenience function matching pattern_detector interface
-def analyze_vwap_breakout_patterns(ticker: str, df: pd.DataFrame, config: Dict) -> Dict:
-    """
-    Wrapper function matching the pattern_detector interface.
+    This is the main interface function used by morning_report.py.
+    Matches pattern_detector.py interface for consistency.
     
     Args:
+        tick_df: DataFrame with tick data (timestamp, last, volume)
         ticker: Stock symbol
-        df: DataFrame with OHLCV + VWAP
-        config: Trading configuration
+        entry_threshold: % above VWAP to confirm entry (default 0.5%)
+        volume_multiplier: Volume confirmation multiplier (default 1.5x)
+        aggregation_window_seconds: Window for aggregating ticks (default 5s)
     
     Returns:
-        Dictionary with pattern analysis
+        Dictionary with comprehensive pattern analysis
     """
-    result = detect_vwap_breakout_patterns(df, config)
-    result['ticker'] = ticker
-    return result
+    # Initialize detector
+    detector = VWAPBreakoutDetector(
+        entry_threshold_pct=entry_threshold,
+        volume_multiplier=volume_multiplier,
+        aggregation_seconds=aggregation_window_seconds
+    )
+    
+    # Detect all patterns
+    all_patterns = detector.detect_patterns(tick_df, ticker)
+    
+    # Separate confirmed entries
+    confirmed_entries = [p for p in all_patterns if p.entry_confirmed]
+    
+    # Calculate statistics (simplified - exit simulation done elsewhere)
+    total_patterns = len(all_patterns)
+    total_confirmed = len(confirmed_entries)
+    
+    confirmation_rate = total_confirmed / total_patterns if total_patterns > 0 else 0
+    
+    return {
+        'ticker': ticker,
+        'all_patterns': all_patterns,
+        'confirmed_entries': confirmed_entries,
+        'total_patterns_found': total_patterns,
+        'confirmed_entries_count': total_confirmed,
+        'confirmation_rate': confirmation_rate,
+        'data_source': 'ibkr_tick_data',
+        'aggregation_window_seconds': aggregation_window_seconds
+    }
+
+
+# ============================================================================
+# TESTING
+# ============================================================================
+
+if __name__ == "__main__":
+    print("Testing VWAPBreakoutDetector...")
+    print("=" * 60)
+    
+    # Create synthetic tick data
+    timestamps = pd.date_range(start='2025-10-31 10:00:00', periods=500, freq='1S')
+    
+    # Simulate VWAP breakout pattern
+    prices = []
+    volumes = []
+    base_price = 150.0
+    
+    for i in range(len(timestamps)):
+        if i < 100:  # Above VWAP
+            price = base_price + np.random.normal(0, 0.1)
+            volume = np.random.randint(100, 200)
+        elif i < 110:  # Drop below VWAP
+            price = base_price - 0.5 - np.random.normal(0, 0.05)
+            volume = np.random.randint(150, 250)
+        elif i < 125:  # Stabilize below VWAP
+            price = base_price - 0.5 + np.random.normal(0, 0.03)
+            volume = np.random.randint(80, 150)
+        elif i < 135:  # Breakout above VWAP
+            price = base_price + (i - 125) * 0.05 + np.random.normal(0, 0.02)
+            volume = np.random.randint(200, 400)  # Higher volume
+        else:  # Post-breakout
+            price = base_price + 0.5 + np.random.normal(0, 0.1)
+            volume = np.random.randint(100, 200)
+        
+        prices.append(price)
+        volumes.append(volume)
+    
+    tick_data = pd.DataFrame({
+        'timestamp': timestamps,
+        'last': prices,
+        'volume': volumes
+    })
+    
+    # Test detector
+    result = analyze_vwap_breakout_patterns(tick_data, 'AAPL')
+    
+    print(f"\nDetected {result['total_patterns_found']} pattern(s)")
+    print(f"Confirmed entries: {result['confirmed_entries_count']}")
+    print(f"Confirmation rate: {result['confirmation_rate']*100:.1f}%")
+    
+    for i, pattern in enumerate(result['confirmed_entries'], 1):
+        print(f"\nPattern {i}:")
+        print(f"  ID: {pattern.pattern_id}")
+        print(f"  Below VWAP: ${pattern.below_vwap_price:.2f} at {pattern.below_vwap_time}")
+        print(f"  Stabilization: {pattern.stabilization_bars} bars")
+        print(f"  Breakout: ${pattern.breakout_price:.2f} (VWAP: ${pattern.vwap_at_breakout:.2f})")
+        print(f"  Entry: ${pattern.entry_price:.2f} (volume: {pattern.volume_ratio:.1f}x avg)")
+        print(f"  Duration: {pattern.total_duration_seconds:.1f} seconds")
+    
+    print("\n" + "=" * 60)
+    print("✅ Test complete")
