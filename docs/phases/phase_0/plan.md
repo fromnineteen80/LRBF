@@ -1,162 +1,189 @@
-# Phase 0 Implementation Plan - DRAFT
+# Phase 0 Implementation Plan
 
-**Status:** DRAFT - Awaiting User Review  
+**Status:** IN PROGRESS - Components 1-6 Complete  
 **Created:** 2025-10-31  
-**Last Updated:** 2025-10-31
-
-## Overview
-
-This plan outlines HOW we'll build Phase 0 (Railyard + EOD Reporter) following institutional best practices. We'll use an incremental approach, building and testing each component before moving to the next.
-
-## Development Approach
-
-**Philosophy**: Build one component at a time. Test it. Commit it. Then move to next.
-
-**Each component follows this cycle**:
-1. Research best practices (if needed)
-2. Design the component
-3. Implement core functionality
-4. Write unit tests
-5. Test manually
-6. Commit to GitHub
-7. Ask user: "Continue?"
-
-**Quality Gate**: Before moving to next component, current component must:
-- Pass all unit tests
-- Work in manual testing
-- Be committed to GitHub
-- Get user approval to continue
-
-## Implementation Order
-
-We'll build in this sequence to minimize integration issues:
-
-### Stage 1: Foundation (Days 1-2)
-1. IBKR Connection Module
-2. Pattern Detector (3-Step Geometric)
-3. Pattern Detector (VWAP Breakout)
-
-### Stage 2: Trading Engine Core (Days 3-5)
-4. Entry Signal Detector
-5. Filter System (7 presets)
-6. Position Manager
-7. Exit Logic Engine
-
-### Stage 3: Risk & Safety (Day 6)
-8. Risk Management System
-9. Daily Loss Limit & Kill Switch
-10. Cooldown & Circuit Breakers
-
-### Stage 4: EOD Analysis (Day 7)
-11. Metrics Calculator
-12. Forecast Accuracy Analyzer
-13. EOD Reporter
-
-### Stage 5: Integration (Days 8-9)
-14. Database Integration Layer
-15. API Endpoints
-16. End-to-End Testing
-
-### Stage 6: Production Readiness (Day 10)
-17. Error Handling & Logging
-18. Monitoring & Observability
-19. Documentation & User Guide
+**Last Updated:** 2025-11-01
 
 ---
 
-## Component Details
+## Components 1-6: ✅ COMPLETE
 
-*(Abbreviated for brevity - full plan includes detailed specs for each of 19 components)*
-
-### Example Component Plan: Exit Logic Engine
-
-**File**: backend/core/exit_logic_engine.py
-
-**Tiered Exit Logic**:
-- T1 (+0.75%) → Lock floor
-- CROSS (+1.00%) → Lock floor
-- Momentum (+1.25%) → Pursue T2
-- T2 (+1.75%) → Exit
-- Dead Zone → Adaptive timeouts
-- Stop Loss (-0.5%) → Immediate exit
-
-**Key Methods**:
-- check_exit_signal()
-- check_t1_threshold()
-- check_cross_threshold()
-- check_momentum_threshold()
-- check_t2_threshold()
-- check_stop_loss()
-- check_dead_zone_timeout()
-
-**Testing**: 5 scenarios from trading_strategy_explainer.md
-
-**Success Criteria**:
-✅ All exit scenarios work correctly  
-✅ Tiered floors enforced  
-✅ Dead zone timeouts adaptive per stock  
-✅ Exit orders submitted <100ms  
+1. **IBKR Connection Module** - backend/data/ibkr_connector_insync.py (Commit 4d8af40)
+2. **Pattern Detector (3-Step)** - backend/core/pattern_detector.py (Commit ac1107b)
+3. **Pattern Detector (VWAP)** - backend/core/vwap_breakout_detector.py (Commit 5653e8b)
+4. **Entry Signal Detector** - backend/core/entry_signal_detector.py (Commit 714e505)
+5. **Filter System (7 presets)** - backend/core/filter_engine.py (Commit d243ef5)
+6. **Position Manager** - backend/core/position_manager.py (Commit 416d5d5)
 
 ---
 
-## Commit Strategy
+## Component 7: Exit Logic Engine (NEXT)
 
-Commit after each component:
+**File**: `backend/core/exit_logic_engine.py`
+
+### Purpose
+Monitor open positions and determine when to exit based on tiered exit logic from trading_strategy_explainer.md.
+
+### Tiered Exit System (CRITICAL - from trading strategy)
+
 ```
-Phase 0: Add IBKR connection module
-Phase 0: Add 3-Step Geometric pattern detector
-Phase 0: Add VWAP Breakout pattern detector
-...
-Phase 0: COMPLETE - Railyard + EOD working
+Entry → T1 (+0.75%) → CROSS (+1.00%) → Momentum (+1.25%) → T2 (+1.75%)
+         ↓ LOCK        ↓ LOCK            ↓ GO FOR T2        ↓ EXIT
+         
+Falls below locked floor? → Exit at previous milestone
 ```
 
-## Token Management
+**Example Trade Flow**:
+1. Entry at $150.00
+2. Hits $151.13 (+0.75%) → **T1 LOCKED** → Floor = $151.13
+3. Hits $151.50 (+1.00%) → **CROSS LOCKED** → Floor = $151.50
+4. Hits $151.88 (+1.25%) → **MOMENTUM CONFIRMED** → Going for T2
+5. Hits $152.63 (+1.75%) → **T2 EXIT** ✅
 
-After EVERY commit:
-1. Report: "✅ [Component]. Commit: [hash]. Tokens: Xk used, Yk remaining."
-2. Ask: "Continue?"
-3. If STOP → Update project_state.md, commit
-4. If CONTINUE → Next component
+**Alternate Scenario** (Falls back):
+- At CROSS ($151.50), price falls back to $151.45
+- Below CROSS floor → **EXIT AT CROSS (+1.00%)** ✅
 
-FORCED STOP at 130k tokens (60k remaining).
+### Dead Zone Timeouts (Adaptive per profit level)
 
-## Dependencies
+From trading_strategy_explainer.md:
 
-Build order matters:
-1. IBKR Connection → Pattern Detectors
-2. Pattern Detectors → Entry Signal Detector
-3. Entry Signal → Filter System
-4. Filter System → Position Manager
-5. Position Manager → Exit Logic
-6. Exit Logic → Risk Manager
-7. All above → EOD Reporter
+| Profit Level | Timeout | Action |
+|--------------|---------|--------|
+| Below T1 | 3 min | Exit if any positive gain |
+| At T1 | 4 min | Exit at T1 |
+| At CROSS | 4 min | Exit at CROSS |
+| After momentum | 6 min | Exit at best available |
 
-## Success Criteria
+### Implementation Requirements
 
-Phase 0 is complete when:
+**Class Structure**:
+```python
+class ExitLogicEngine:
+    def __init__(self, position_manager, ibkr_connector):
+        self.pm = position_manager
+        self.ibkr = ibkr_connector
+        self.milestone_tracker = {}  # Track which milestone each position reached
+        self.dead_zone_tracker = {}  # Track how long position stuck
+        
+    def monitor_position(self, ticker, current_price, timestamp):
+        """
+        Check exit conditions for a position.
+        Returns: (should_exit: bool, exit_reason: str, exit_price: float)
+        """
+        
+    def check_stop_loss(self, position, current_price):
+        """Immediate exit if -0.5% from entry."""
+        
+    def check_t1_hit(self, position, current_price):
+        """Lock T1 floor if +0.75% reached."""
+        
+    def check_cross_hit(self, position, current_price):
+        """Lock CROSS floor if +1.00% reached."""
+        
+    def check_momentum_confirmed(self, position, current_price):
+        """Confirm momentum if +1.25% reached."""
+        
+    def check_t2_hit(self, position, current_price):
+        """Exit if +1.75% reached."""
+        
+    def check_floor_breach(self, position, current_price):
+        """Exit if falls below locked floor."""
+        
+    def check_dead_zone_timeout(self, position, current_price, timestamp):
+        """Exit if stuck too long without progress."""
+        
+    def execute_exit(self, ticker, exit_price, exit_reason):
+        """Submit exit order via Position Manager."""
+```
 
-✅ Railyard monitors 20 stocks simultaneously  
-✅ Pattern detection works (validated vs test data)  
-✅ Trades execute via IBKR  
-✅ Exit logic: T1 → CROSS → momentum → T2  
-✅ Dead zone timeouts work  
+### Critical Pitfalls to Avoid
+
+**From common-pitfalls.md**:
+
+1. **DON'T**: Implement simple T1/T2 without CROSS and momentum
+   - **DO**: Full tiered system: T1 → CROSS → momentum → T2
+
+2. **DON'T**: Use fixed dead zone timeout for all levels
+   - **DO**: Adaptive timeouts based on profit level (3/4/4/6 min)
+
+3. **DON'T**: Exit immediately when T1 hit
+   - **DO**: Lock T1 as floor, continue pursuing CROSS/T2
+
+4. **DON'T**: Forget to track which milestone each position reached
+   - **DO**: Maintain state for each position's milestone progress
+
+### Testing Scenarios (from trading_strategy_explainer.md)
+
+**Test 1: Full Success Path**
+- Entry: $150.00
+- Hit T1: $151.13 (+0.75%)
+- Hit CROSS: $151.50 (+1.00%)
+- Hit momentum: $151.88 (+1.25%)
+- Hit T2: $152.63 (+1.75%)
+- **Expected**: Exit at T2 (+1.75%)
+
+**Test 2: Return to CROSS**
+- Entry: $150.00
+- Hit T1: $151.13
+- Hit CROSS: $151.50
+- Momentum NOT confirmed (stays at $151.60)
+- Falls back to $151.45
+- **Expected**: Exit at CROSS (+1.00%)
+
+**Test 3: Dead Zone at T1**
+- Entry: $150.00
+- Hit T1: $151.13
+- Stuck at $151.10-$151.15 for 4+ minutes
+- **Expected**: Exit at T1 (+0.75%) after 4 min timeout
+
+**Test 4: Stop Loss**
+- Entry: $150.00
+- Price drops to $149.25
+- **Expected**: Exit at stop loss (-0.5%)
+
+**Test 5: Below T1 Dead Zone**
+- Entry: $150.00
+- Price at $150.30 (+0.20%) for 3+ minutes
+- **Expected**: Exit at +0.20% after 3 min timeout
+
+### Integration Points
+
+**Inputs**:
+- Position data from Position Manager
+- Real-time prices from IBKR tick stream
+- Timestamps for dead zone tracking
+
+**Outputs**:
+- Exit orders to Position Manager
+- Exit reason for logging
+- Milestone tracking for EOD analysis
+
+### Success Criteria
+
+✅ All 5 test scenarios pass  
+✅ Tiered floors enforced correctly  
+✅ Dead zone timeouts work per level  
 ✅ Stop loss triggers at -0.5%  
-✅ Daily loss limit auto-pauses at -1.5%  
-✅ EOD report generates accurately  
-✅ Integration tested: DB → API → Frontend  
-✅ 3 consecutive test days without critical bugs  
-✅ 1 week successful paper trading  
+✅ Exit orders submitted <100ms  
+✅ No phantom references to missing methods  
+✅ Integration tested with Position Manager  
+✅ Logged to database with exit reason  
 
-## References
+### Commit Message
+```
+Phase 0: Add exit logic engine with tiered system (T1→CROSS→momentum→T2)
 
-- docs/explainers/trading_strategy_explainer.md
-- docs/explainers/morning_report_explainer.md
-- docs/explainers/data_pipeline_explainer.md
-- Industry research on trading engine architecture
-- FIA Best Practices for Automated Trading Risk Controls
+- Implement full tiered exit logic per trading_strategy_explainer.md
+- Add adaptive dead zone timeouts (3/4/4/6 min by level)
+- Lock floors at T1 (+0.75%) and CROSS (+1.00%)
+- Momentum confirmation at +1.25% before pursuing T2
+- Stop loss at -0.5%
+- Tested with 5 scenarios from explainer
+```
 
 ---
 
-**Next Step**: User reviews this DRAFT. Once approved, we begin implementation following this incremental approach.
+## Components 8-19: TODO
 
-**Note**: Full plan.md contains detailed specifications for all 19 components. This abbreviated version shows the structure. The actual file has complete implementation details for each component including algorithms, data structures, testing scenarios, and success criteria.
+*(To be detailed in subsequent updates)*
