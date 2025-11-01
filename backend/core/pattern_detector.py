@@ -409,22 +409,32 @@ class PatternDetector:
         stop_loss_pct: float
     ) -> Dict:
         """
-        Simulate trade from entry to exit using tick data.
+        Simulate trade from entry to exit using TIERED EXIT LOGIC.
+        
+        Tiered Exit System (from trading_strategy_explainer.md):
+        1. T1 (+0.75%): Lock in this level, wait for CROSS
+        2. CROSS (+1.00%): Lock in this level, look for momentum
+        3. Momentum (+1.25%): Confirmed, go for T2
+        4. T2 (+1.75%): Final exit
+        5. Falls below locked floor: Exit at previous milestone
         
         Args:
             tick_df: Tick data
             entry_price: Entry price
             entry_timestamp: Entry timestamp
-            target_1_pct: First profit target %
-            target_2_pct: Second profit target %
-            stop_loss_pct: Stop loss %
+            target_1_pct: T1 target (+0.75%)
+            target_2_pct: T2 target (+1.75%)
+            stop_loss_pct: Stop loss (-0.5%)
         
         Returns:
             Dict with trade outcome and millisecond timing
         """
-        target_1_price = entry_price * (1 + target_1_pct / 100)
-        target_2_price = entry_price * (1 + target_2_pct / 100)
-        stop_price = entry_price * (1 - stop_loss_pct / 100)
+        # Define all exit levels (from trading strategy)
+        t1_price = entry_price * (1 + 0.75 / 100)  # +0.75%
+        cross_price = entry_price * (1 + 1.00 / 100)  # +1.00%
+        momentum_price = entry_price * (1 + 1.25 / 100)  # +1.25%
+        t2_price = entry_price * (1 + 1.75 / 100)  # +1.75%
+        stop_price = entry_price * (1 - stop_loss_pct / 100)  # -0.5%
         
         # Filter ticks after entry
         future_ticks = tick_df[tick_df['timestamp'] > entry_timestamp]
@@ -439,82 +449,101 @@ class PatternDetector:
                 'hold_time_ms': 0,
                 'exit_latency_ms': 0,
                 'settlement_lag_minutes': 0.5,
-                'exit_reason': 'no_data'
+                'exit_reason': 'no_data',
+                'dead_zone_ms': 0
             }
         
-        hit_target_1 = False
-        target_1_timestamp = None
+        # Track milestone progress
+        hit_t1 = False
+        hit_cross = False
+        hit_momentum = False
+        t1_timestamp = None
+        cross_timestamp = None
+        momentum_timestamp = None
+        locked_floor = stop_price  # Start with stop loss as floor
         
         for idx, row in future_ticks.iterrows():
-            # Check stop loss
-            if row['last'] <= stop_price:
+            current_price = row['last']
+            
+            # Check if we've hit new milestones
+            if not hit_t1 and current_price >= t1_price:
+                hit_t1 = True
+                t1_timestamp = row['timestamp']
+                locked_floor = t1_price  # Lock in T1
+            
+            if hit_t1 and not hit_cross and current_price >= cross_price:
+                hit_cross = True
+                cross_timestamp = row['timestamp']
+                locked_floor = cross_price  # Lock in CROSS
+            
+            if hit_cross and not hit_momentum and current_price >= momentum_price:
+                hit_momentum = True
+                momentum_timestamp = row['timestamp']
+                # Keep CROSS as floor, but now going for T2
+            
+            # Check for T2 (final target) - only if momentum confirmed
+            if hit_momentum and current_price >= t2_price:
                 hold_time_ms = (row['timestamp'] - entry_timestamp).total_seconds() * 1000
-                
                 return {
-                    'outcome': 'loss',
-                    'exit_price': stop_price,
+                    'outcome': 'win',
+                    'exit_price': t2_price,
                     'exit_time': row['timestamp'],
-                    'pnl': stop_price - entry_price,
-                    'pnl_pct': -stop_loss_pct,
+                    'pnl': t2_price - entry_price,
+                    'pnl_pct': ((t2_price - entry_price) / entry_price) * 100,
                     'hold_time_ms': hold_time_ms,
-                    'exit_latency_ms': np.random.normal(55, 15),
+                    'exit_latency_ms': np.random.normal(50, 15),
                     'settlement_lag_minutes': 0.5,
-                    'exit_reason': 'stop_loss',
+                    'exit_reason': 'T2',
                     'dead_zone_ms': 0
                 }
             
-            # Check target 1
-            if not hit_target_1 and row['last'] >= target_1_price:
-                hit_target_1 = True
-                target_1_timestamp = row['timestamp']
-            
-            # If hit target 1, look for target 2 or return to target 1
-            if hit_target_1:
-                if row['last'] >= target_2_price:
-                    # Hit target 2 - exit
-                    hold_time_ms = (row['timestamp'] - entry_timestamp).total_seconds() * 1000
-                    
-                    return {
-                        'outcome': 'win',
-                        'exit_price': target_2_price,
-                        'exit_time': row['timestamp'],
-                        'pnl': target_2_price - entry_price,
-                        'pnl_pct': target_2_pct,
-                        'hold_time_ms': hold_time_ms,
-                        'exit_latency_ms': np.random.normal(50, 15),
-                        'settlement_lag_minutes': 0.5,
-                        'exit_reason': 'target_2',
-                        'dead_zone_ms': 0
-                    }
+            # Check if fell below locked floor
+            if current_price <= locked_floor:
+                hold_time_ms = (row['timestamp'] - entry_timestamp).total_seconds() * 1000
                 
-                if row['last'] <= target_1_price:
-                    # Returned to target 1 - exit with dead zone
-                    hold_time_ms = (row['timestamp'] - entry_timestamp).total_seconds() * 1000
-                    dead_zone_ms = (row['timestamp'] - target_1_timestamp).total_seconds() * 1000
-                    
-                    return {
-                        'outcome': 'win',
-                        'exit_price': target_1_price,
-                        'exit_time': row['timestamp'],
-                        'pnl': target_1_price - entry_price,
-                        'pnl_pct': target_1_pct,
-                        'hold_time_ms': hold_time_ms,
-                        'exit_latency_ms': np.random.normal(50, 15),
-                        'settlement_lag_minutes': 0.5,
-                        'exit_reason': 'target_1_return',
-                        'dead_zone_ms': dead_zone_ms
-                    }
+                # Determine exit reason based on which floor we hit
+                if locked_floor == stop_price:
+                    exit_reason = 'stop_loss'
+                    outcome = 'loss'
+                elif locked_floor == t1_price:
+                    exit_reason = 'T1_return'
+                    outcome = 'win'
+                elif locked_floor == cross_price:
+                    exit_reason = 'CROSS_return'
+                    outcome = 'win'
+                else:
+                    exit_reason = 'floor_return'
+                    outcome = 'win'
+                
+                # Calculate dead zone if applicable
+                dead_zone_ms = 0
+                if t1_timestamp and locked_floor >= t1_price:
+                    dead_zone_ms = (row['timestamp'] - t1_timestamp).total_seconds() * 1000
+                
+                return {
+                    'outcome': outcome,
+                    'exit_price': locked_floor,
+                    'exit_time': row['timestamp'],
+                    'pnl': locked_floor - entry_price,
+                    'pnl_pct': ((locked_floor - entry_price) / entry_price) * 100,
+                    'hold_time_ms': hold_time_ms,
+                    'exit_latency_ms': np.random.normal(50, 15),
+                    'settlement_lag_minutes': 0.5,
+                    'exit_reason': exit_reason,
+                    'dead_zone_ms': dead_zone_ms
+                }
         
-        # Timed out
+        # Timed out - exit at best available level
         last_tick = future_ticks.iloc[-1]
         hold_time_ms = (last_tick['timestamp'] - entry_timestamp).total_seconds() * 1000
+        exit_price = max(last_tick['last'], locked_floor)
         
         return {
             'outcome': 'timeout',
-            'exit_price': last_tick['last'],
+            'exit_price': exit_price,
             'exit_time': last_tick['timestamp'],
-            'pnl': last_tick['last'] - entry_price,
-            'pnl_pct': ((last_tick['last'] - entry_price) / entry_price) * 100,
+            'pnl': exit_price - entry_price,
+            'pnl_pct': ((exit_price - entry_price) / entry_price) * 100,
             'hold_time_ms': hold_time_ms,
             'exit_latency_ms': np.random.normal(50, 15),
             'settlement_lag_minutes': 0.5,
