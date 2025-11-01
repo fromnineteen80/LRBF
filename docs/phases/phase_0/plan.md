@@ -1619,6 +1619,575 @@ git log -1 --oneline
 ---
 
 
-## Components 10-19: TODO
+## Component 10: Metrics Calculator
+
+**File**: `backend/core/metrics_calculator.py`
+
+---
+
+### 🚨 MANDATORY PRE-WORK (DO THIS FIRST OR FAIL)
+
+**BEFORE writing any code, you MUST:**
+
+1. **Read the trading strategy explainer** (15 minutes):
+   ```bash
+   Read: docs/explainers/trading_strategy_explainer.md
+   Focus on: Performance metrics mentioned throughout
+   Note: Win rate, P&L, trade counts
+   
+   Read: docs/explainers/morning_report_explainer.md
+   Focus on: "Quality Scoring (5:47:00 AM)" section
+   Note: All 16 scoring categories - these are the metrics we calculate
+   ```
+
+2. **Review existing components** (verify these files exist and study their APIs):
+   ```bash
+   View: backend/models/database.py
+   Check methods: get_todays_fills(), get_daily_summary()
+   Note: How fills are stored (realized_pnl, commission, etc.)
+   
+   View: backend/core/position_manager.py
+   Check methods: get_all_positions(), get_total_unrealized_pnl()
+   Note: How positions track entry_price, current_price, unrealized_pnl
+   ```
+
+3. **Read common pitfalls** (avoid past mistakes):
+   ```bash
+   Read: /mnt/skills/user/lrbf-skill/references/common-pitfalls.md
+   Focus on: "Phantom References" section
+   Focus on: "Assumption-Based Development" section
+   Focus on: "Complex Code Over Simple Solutions" section
+   ```
+
+**⚠️ If you skip this pre-work, you'll calculate metrics incorrectly and provide misleading performance data.**
+
+---
+
+### 🛑 CRITICAL CHECKPOINT (STOP HERE UNTIL COMPLETE)
+
+**YOU CANNOT PROCEED TO CODING UNTIL YOU:**
+
+1. ✅ **Read and confirmed understanding of:**
+   - [ ] docs/explainers/morning_report_explainer.md (16 scoring categories)
+   - [ ] docs/explainers/trading_strategy_explainer.md (performance metrics)
+   - [ ] /mnt/skills/user/lrbf-skill/references/common-pitfalls.md (ALL pitfall sections)
+   - [ ] backend/models/database.py (fill data structure)
+
+2. ✅ **Verified these methods exist (grep each one):**
+   - [ ] database.get_todays_fills() OR similar method (find actual name)
+   - [ ] position_manager.get_all_positions()
+   - [ ] position_manager.get_total_unrealized_pnl()
+
+3. ✅ **Aware of ALL critical pitfalls:**
+   - [ ] Mixing realized and unrealized P&L (must separate)
+   - [ ] Not including commission in calculations
+   - [ ] Dividing by zero when no trades (edge case handling)
+   - [ ] Using float for money calculations (precision errors)
+   - [ ] Calculating Sharpe ratio incorrectly (needs returns series, not single value)
+   - [ ] Not handling empty fills list (no trades today)
+   - [ ] Complex nested calculations instead of simple formulas
+
+**WHEN COMMITTING THIS COMPONENT, YOU MUST REPORT:**
+
+```
+Component 10 Complete - Pre-Commit Verification Report:
+
+✅ Read morning_report_explainer.md - understood 16 scoring categories
+✅ Read trading_strategy_explainer.md - understood performance metrics
+✅ Read common-pitfalls.md - aware of all 7 critical pitfalls
+✅ Verified database.get_todays_fills() exists (line X) OR actual method name
+✅ Verified position_manager.get_all_positions() exists (line Y)
+✅ Separates realized vs unrealized P&L
+✅ Includes commission in all calculations
+✅ Handles zero-trade edge case (no division by zero)
+✅ Handles empty fills list gracefully
+✅ Test scenario 1 passes (normal trading day)
+✅ Test scenario 2 passes (no trades today)
+✅ Test scenario 3 passes (all losses)
+✅ Test scenario 4 passes (mixed wins/losses)
+✅ Integration test passes
+✅ No phantom references found
+
+Commit: [hash]
+Ready for user confirmation.
+```
+
+**If you cannot check ALL boxes above, DO NOT COMMIT. Ask user for guidance.**
+
+---
+
+### 🎯 Purpose
+
+Calculate real-time performance metrics from trading activity for:
+- Live monitoring (Railyard dashboard)
+- EOD analysis (daily summary)
+- Forecast accuracy validation
+- Risk management decisions
+
+**From morning_report_explainer.md, we need to track:**
+- Win rate (Category #3: 8% weight)
+- Expected Value (Category #4: 6% weight)
+- Average Win % (Category #5: 3% weight)
+- Risk/Reward Ratio (Category #6: 3% weight)
+- And many more...
+
+---
+
+### 📊 Metrics to Calculate (CRITICAL - Study This)
+
+**Basic Trading Metrics:**
+```python
+# From fills (realized trades)
+total_trades = len(fills)
+winning_trades = len([f for f in fills if f['realized_pnl'] > 0])
+losing_trades = len([f for f in fills if f['realized_pnl'] < 0])
+win_rate = winning_trades / total_trades  # Category #3
+
+# P&L calculations
+total_realized_pnl = sum(f['realized_pnl'] - f['commission'] for f in fills)
+avg_win = average of winning trade P&Ls
+avg_loss = average of losing trade P&Ls
+expected_value = (win_rate × avg_win) - ((1 - win_rate) × avg_loss)  # Category #4
+
+# Risk metrics
+risk_reward_ratio = avg_win / abs(avg_loss)  # Category #6
+```
+
+**Position Metrics:**
+```python
+# From open positions (unrealized)
+open_position_count = len(positions)
+total_unrealized_pnl = sum(pos.unrealized_pnl for pos in positions)
+```
+
+**Time-Based Metrics:**
+```python
+# From fills
+avg_hold_time = average of (exit_time - entry_time)
+fastest_trade = min hold time
+slowest_trade = max hold time
+```
+
+**Advanced Metrics (if data available):**
+```python
+# Sharpe ratio (needs daily returns series)
+# Sortino ratio (needs downside deviation)
+# Max drawdown
+```
+
+---
+
+### 🚨 CRITICAL PITFALLS (Read Before Coding)
+
+**From common-pitfalls.md and quantitative finance best practices:**
+
+| ❌ WRONG | ✅ RIGHT |
+|----------|----------|
+| Mix realized & unrealized P&L | Separate: realized (closed), unrealized (open) |
+| Ignore commission | Always subtract commission from P&L |
+| wins / 0 if no trades | Check if total_trades > 0 first |
+| Use float for money | Use Decimal or round to 2 places consistently |
+| Sharpe = pnl / std | Sharpe = mean(returns) / std(returns) × sqrt(periods) |
+| Crash on empty fills | Return zero/None gracefully |
+| Nested complex logic | Simple formulas, one metric at a time |
+
+**Reality Check Questions** (ask yourself these):
+- ❓ Did I separate realized P&L (closed trades) from unrealized (open positions)?
+- ❓ Did I subtract commission from every P&L calculation?
+- ❓ Did I check for division by zero (no trades, no losses, etc.)?
+- ❓ Does it handle the case where fills list is empty?
+- ❓ Are all money values rounded to 2 decimal places?
+- ❓ Did I test with a day that has zero trades?
+
+---
+
+### 📋 Step-by-Step Implementation
+
+**STEP 1: Verify Dependencies (5 min)**
+
+```bash
+# Check database methods exist
+grep "def get.*fill" backend/models/database.py
+# Find the actual method name for getting today's fills
+
+# Check position manager methods
+grep "def get_all_positions" backend/core/position_manager.py
+grep "def get_total_unrealized_pnl" backend/core/position_manager.py
+
+# If ANY grep returns nothing → METHOD DOES NOT EXIST
+# Read those files to find actual method names
+```
+
+**STEP 2: Create metrics_calculator.py (40 min)**
+
+```python
+"""
+Metrics Calculator - Component 10
+
+Calculates real-time performance metrics from trading activity.
+
+Metrics include:
+- Win rate, expected value, risk/reward ratio
+- Realized P&L (closed trades)
+- Unrealized P&L (open positions)
+- Trade counts, hold times
+- Advanced metrics (Sharpe, etc.) if data available
+
+Author: The Luggage Room Boys Fund
+Date: November 2025
+"""
+
+from typing import Dict, List, Optional
+from datetime import datetime, date
+from dataclasses import dataclass
+import logging
+import statistics
+
+logger = logging.getLogger(__name__)
+
+
+@dataclass
+class TradingMetrics:
+    """Container for calculated trading metrics."""
+    
+    # Date
+    date: str
+    
+    # Trade counts
+    total_trades: int = 0
+    winning_trades: int = 0
+    losing_trades: int = 0
+    
+    # Win/Loss rates
+    win_rate: float = 0.0
+    loss_rate: float = 0.0
+    
+    # P&L (realized - from closed trades)
+    total_realized_pnl: float = 0.0
+    total_commission: float = 0.0
+    net_realized_pnl: float = 0.0
+    
+    avg_win: float = 0.0
+    avg_loss: float = 0.0
+    largest_win: float = 0.0
+    largest_loss: float = 0.0
+    
+    # Risk metrics
+    expected_value: float = 0.0
+    risk_reward_ratio: float = 0.0
+    
+    # Position metrics (unrealized - from open positions)
+    open_positions: int = 0
+    total_unrealized_pnl: float = 0.0
+    
+    # Combined
+    total_pnl: float = 0.0  # realized + unrealized
+    
+    # Time metrics
+    avg_hold_time_seconds: float = 0.0
+    avg_hold_time_minutes: float = 0.0
+    
+    # Advanced metrics (optional)
+    sharpe_ratio: Optional[float] = None
+    sortino_ratio: Optional[float] = None
+    max_drawdown_pct: Optional[float] = None
+
+
+class MetricsCalculator:
+    """
+    Calculates performance metrics from trading data.
+    
+    Usage:
+        calculator = MetricsCalculator(database, position_manager)
+        metrics = calculator.calculate_daily_metrics()
+        
+        print(f"Win Rate: {metrics.win_rate:.1%}")
+        print(f"Total P&L: ${metrics.total_pnl:.2f}")
+    """
+    
+    def __init__(self, database, position_manager):
+        """
+        Initialize metrics calculator.
+        
+        Args:
+            database: TradingDatabase instance
+            position_manager: PositionManager instance
+        """
+        self.db = database
+        self.pm = position_manager
+        
+        logger.info("MetricsCalculator initialized")
+    
+    def calculate_daily_metrics(
+        self,
+        target_date: Optional[date] = None
+    ) -> TradingMetrics:
+        """
+        Calculate all metrics for a trading day.
+        
+        Args:
+            target_date: Date to calculate (uses today if None)
+        
+        Returns:
+            TradingMetrics object with all calculated metrics
+        """
+        if target_date is None:
+            target_date = date.today()
+        
+        # Get fills (closed trades)
+        fills = self._get_fills_for_date(target_date)
+        
+        # Get open positions
+        positions = self.pm.get_all_positions()
+        
+        # Calculate metrics
+        metrics = TradingMetrics(date=target_date.isoformat())
+        
+        # Trade counts
+        metrics.total_trades = len(fills)
+        
+        if metrics.total_trades == 0:
+            # No trades today - return zeros
+            logger.info(f"No trades on {target_date} - returning zero metrics")
+            return metrics
+        
+        # Separate wins and losses
+        wins = [f for f in fills if f.get('realized_pnl', 0) > 0]
+        losses = [f for f in fills if f.get('realized_pnl', 0) < 0]
+        
+        metrics.winning_trades = len(wins)
+        metrics.losing_trades = len(losses)
+        
+        # Win/Loss rates
+        metrics.win_rate = metrics.winning_trades / metrics.total_trades
+        metrics.loss_rate = metrics.losing_trades / metrics.total_trades
+        
+        # P&L calculations (REALIZED - from closed trades)
+        metrics.total_commission = sum(f.get('commission', 0) for f in fills)
+        
+        gross_pnl = sum(f.get('realized_pnl', 0) for f in fills)
+        metrics.total_realized_pnl = gross_pnl
+        metrics.net_realized_pnl = gross_pnl - metrics.total_commission
+        
+        # Average win/loss (NET of commission)
+        if wins:
+            win_pnls = [f['realized_pnl'] - f.get('commission', 0) for f in wins]
+            metrics.avg_win = statistics.mean(win_pnls)
+            metrics.largest_win = max(win_pnls)
+        
+        if losses:
+            loss_pnls = [f['realized_pnl'] - f.get('commission', 0) for f in losses]
+            metrics.avg_loss = statistics.mean(loss_pnls)
+            metrics.largest_loss = min(loss_pnls)  # Most negative
+        
+        # Expected Value (EV)
+        if metrics.total_trades > 0:
+            metrics.expected_value = (
+                (metrics.win_rate * metrics.avg_win) -
+                (metrics.loss_rate * abs(metrics.avg_loss))
+            )
+        
+        # Risk/Reward Ratio
+        if metrics.avg_loss != 0:
+            metrics.risk_reward_ratio = metrics.avg_win / abs(metrics.avg_loss)
+        
+        # Position metrics (UNREALIZED - from open positions)
+        metrics.open_positions = len(positions)
+        metrics.total_unrealized_pnl = self.pm.get_total_unrealized_pnl()
+        
+        # Combined P&L
+        metrics.total_pnl = metrics.net_realized_pnl + metrics.total_unrealized_pnl
+        
+        # Time metrics
+        hold_times = self._calculate_hold_times(fills)
+        if hold_times:
+            metrics.avg_hold_time_seconds = statistics.mean(hold_times)
+            metrics.avg_hold_time_minutes = metrics.avg_hold_time_seconds / 60
+        
+        return metrics
+    
+    def _get_fills_for_date(self, target_date: date) -> List[Dict]:
+        """
+        Get fills for a specific date from database.
+        
+        Args:
+            target_date: Date to query
+        
+        Returns:
+            List of fill dictionaries
+        """
+        try:
+            # VERIFY THIS METHOD EXISTS IN database.py
+            fills = self.db.get_todays_fills()  # or get_fills_by_date(target_date)
+            
+            # Filter to target date if method returns multiple days
+            # (Adjust based on actual database method behavior)
+            
+            return fills if fills else []
+            
+        except Exception as e:
+            logger.error(f"Error getting fills for {target_date}: {e}")
+            return []
+    
+    def _calculate_hold_times(self, fills: List[Dict]) -> List[float]:
+        """
+        Calculate hold times in seconds for each fill.
+        
+        Args:
+            fills: List of fill dictionaries
+        
+        Returns:
+            List of hold times in seconds
+        """
+        hold_times = []
+        
+        for fill in fills:
+            entry_time = fill.get('entry_time')
+            exit_time = fill.get('exit_time')
+            
+            if entry_time and exit_time:
+                # Parse timestamps if they're strings
+                if isinstance(entry_time, str):
+                    entry_time = datetime.fromisoformat(entry_time)
+                if isinstance(exit_time, str):
+                    exit_time = datetime.fromisoformat(exit_time)
+                
+                hold_time = (exit_time - entry_time).total_seconds()
+                hold_times.append(hold_time)
+        
+        return hold_times
+    
+    def get_metrics_summary(self, metrics: TradingMetrics) -> str:
+        """
+        Get human-readable summary of metrics.
+        
+        Args:
+            metrics: TradingMetrics object
+        
+        Returns:
+            Formatted string summary
+        """
+        return f"""
+Trading Metrics for {metrics.date}
+{"="*50}
+Trades: {metrics.total_trades} (W: {metrics.winning_trades}, L: {metrics.losing_trades})
+Win Rate: {metrics.win_rate:.1%}
+Expected Value: ${metrics.expected_value:.2f}
+Risk/Reward: {metrics.risk_reward_ratio:.2f}
+
+Realized P&L: ${metrics.net_realized_pnl:.2f}
+Unrealized P&L: ${metrics.total_unrealized_pnl:.2f}
+Total P&L: ${metrics.total_pnl:.2f}
+
+Avg Win: ${metrics.avg_win:.2f}
+Avg Loss: ${metrics.avg_loss:.2f}
+Largest Win: ${metrics.largest_win:.2f}
+Largest Loss: ${metrics.largest_loss:.2f}
+
+Avg Hold Time: {metrics.avg_hold_time_minutes:.1f} min
+Open Positions: {metrics.open_positions}
+"""
+```
+
+**STEP 3: Test with 4 Scenarios (20 min)**
+
+Create `tests/test_metrics_calculator.py`:
+
+```python
+# Test 1: Normal trading day (mix of wins and losses)
+# Test 2: No trades today (edge case)
+# Test 3: All losses (edge case)
+# Test 4: All wins (edge case)
+
+# Each test verifies:
+# - No division by zero errors
+# - Realized/unrealized separated correctly
+# - Commission included in calculations
+# - Metrics make mathematical sense
+```
+
+**STEP 4: Integration Test (10 min)**
+
+```python
+# Test with real Position Manager
+# Test with real Database
+# Test metric calculations match manual calculations
+```
+
+**STEP 5: Commit (5 min)**
+
+```bash
+git add backend/core/metrics_calculator.py
+git add tests/test_metrics_calculator.py
+git commit -m "Phase 0: Add metrics calculator for real-time performance tracking
+
+- Calculate win rate, expected value, risk/reward ratio
+- Separate realized P&L (closed) from unrealized (open)
+- Include commission in all calculations
+- Handle edge cases (zero trades, all wins/losses)
+- Time-based metrics (avg hold time)
+- Tested with 4 scenarios (normal/no-trades/all-loss/all-win)"
+git push origin main
+```
+
+---
+
+### ✅ Success Criteria (All Must Pass)
+
+- [ ] Read morning_report_explainer.md (verified 16 categories)
+- [ ] Read trading_strategy_explainer.md (verified)
+- [ ] Verified database fill methods exist (line numbers)
+- [ ] Verified position_manager methods exist (line numbers)
+- [ ] Separates realized vs unrealized P&L correctly
+- [ ] Includes commission in all P&L calculations
+- [ ] Handles zero trades gracefully (no division by zero)
+- [ ] Handles all-wins edge case (no losses to divide)
+- [ ] Handles all-losses edge case (no wins to divide)
+- [ ] Test 1 passes (normal trading day)
+- [ ] Test 2 passes (no trades)
+- [ ] Test 3 passes (all losses)
+- [ ] Test 4 passes (all wins)
+- [ ] Win rate calculation correct (wins/total)
+- [ ] Expected value calculation correct (formula verified)
+- [ ] Risk/reward ratio calculation correct (avg_win/avg_loss)
+- [ ] No phantom references (all methods verified)
+- [ ] Integration test passes
+- [ ] Commit pushed to GitHub
+- [ ] User confirmed commit visible in GitHub Desktop
+
+---
+
+### 🔍 Verification Steps (Do After Coding)
+
+```bash
+# 1. Check file exists
+ls -la backend/core/metrics_calculator.py
+
+# 2. Check for phantom references
+python3 -c "
+import sys
+sys.path.append('.')
+from backend.core.metrics_calculator import MetricsCalculator
+print('✅ No import errors')
+"
+
+# 3. Run tests
+python3 tests/test_metrics_calculator.py
+
+# 4. Test edge case manually
+python3 -c "
+from backend.core.metrics_calculator import TradingMetrics
+m = TradingMetrics(date='2025-11-01')
+print('Zero trades:', m.win_rate)  # Should be 0.0, not error
+"
+
+# 5. Check commit
+git log -1 --oneline
+```
+
+---
+
+
+## Components 11-19: TODO
 
 *(To be detailed in subsequent updates)*
